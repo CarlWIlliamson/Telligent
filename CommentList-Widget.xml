@@ -2,7 +2,7 @@
 	<scriptedContentFragment name="${resource:Comments_Name}" version="10.1.8.10498" description="${resource:Comments_Description}" instanceIdentifier="e4e96f3241434dc7bc4a04d39c30192f" theme="" isCacheable="false" varyCacheByUser="false" showHeaderByDefault="false" cssClass="threaded-comments">
 		<contentScript><![CDATA[$core_v2_widget.ExecuteFile('common-config.vm')
 #if ($hidden)
-	$core_v2_widget.Hide()
+    $core_v2_widget.Hide()
 #end
 
 $core_v2_widget.ExecuteFile('templates.vm')
@@ -12,9 +12,9 @@ $core_v2_widget.ExecuteFile('templates.vm')
 #end
 
 #if ($commentFormVisible)
-	$core_v2_widget.ExecuteFile('content-form.vm')
+    $core_v2_widget.ExecuteFile('content-form.vm')
 #else
-	$core_v2_widget.ExecuteFile('content-statistics.vm')
+    $core_v2_widget.ExecuteFile('content-statistics.vm')
 #end
 $core_v2_widget.ExecuteFile('content-thread-best.vm')
 $core_v2_widget.ExecuteFile('content-thread.vm')

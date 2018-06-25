@@ -112,7 +112,73 @@ $core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${
 	 <property id="border" descriptionResourceName="border_desc" dataType="bool" defaultValue="True" resourceName="border" />
  </propertyGroup>
 		]]></configuration>
-		<languageResources><language key="en-us"><resource name="Blog_Banner_Name">Blog - Banner</resource><resource name="Blog_Banner_Description">Displays a blog banner.</resource><resource name="Options">Options</resource><resource name="CF_Title">Widget Title</resource><resource name="navigation">Custom Navigation</resource><resource name="navigation_desc">Add, edit, delete, and reorder custom navigation links.</resource><resource name="more">More</resource><resource name="cancel">Cancel</resource><resource name="design">Design</resource><resource name="design_desc">Customize your blog's banner design. The blog banner's design overrides the group banner's design.</resource><resource name="palette">Color Palette</resource><resource name="palette_desc">Select a color palette for your blog's banner, or create a custom one.</resource><resource name="amber">Amber</resource><resource name="black">Black</resource><resource name="blue">Blue</resource><resource name="bluegray">Blue Gray</resource><resource name="cyan">Cyan</resource><resource name="green">Green</resource><resource name="lightblue">Light Blue</resource><resource name="lightbluegray">Light Blue Gray</resource><resource name="lime">Lime</resource><resource name="pink">Pink</resource><resource name="purple">Purple</resource><resource name="red">Red</resource><resource name="teal">Teal</resource><resource name="white">White</resource><resource name="yellow">Yellow</resource><resource name="custom">Custom</resource><resource name="coverphoto">Cover Photo</resource><resource name="coverPhotoUrl_desc">When provided, a cover photo is rendered as the banner's background.</resource><resource name="coverPhotoBlur">Blur Cover Photo</resource><resource name="coverPhotoBlur_desc">When selected, cover photo is blurred. This is useful for legibility of overlaid text when using a complex image.</resource><resource name="backgroundColor">Background Color</resource><resource name="foregroundColor">Foreground Color</resource><resource name="shadowCoverPhoto">Shadow Cover Photo</resource><resource name="shadowCoverPhoto_desc">When selected, cover photo is shadowed to increase legibility of text on a light photo</resource><resource name="shadow">Bottom Shadow</resource><resource name="border">Bottom Border</resource><resource name="shadow_desc">Render a shadow beneath the banner. When the bottom border is enabled, only renders when scrolled.</resource><resource name="border_desc">Render a bottom border beneath the banner. When the bottom shadow is enabled, only renders when not scrolled.</resource><resource name="designMode">Design</resource><resource name="designMode_desc">Customize your blog's banner with a cover photo or color palette.</resource><resource name="photo">Use Cover Photo</resource><resource name="color">Use Color</resource><resource name="colorMode">Color Type</resource><resource name="solid">Solid</resource><resource name="gradient">Gradient</resource><resource name="backgroundColor2">Secondary Gradient Background Color</resource><resource name="sunset">Sunset</resource><resource name="peach">Peach</resource><resource name="moonrise">Moonrise</resource><resource name="sunny">Sunny</resource><resource name="limeade">Limeade</resource><resource name="scooter">Scooter</resource><resource name="city">City</resource><resource name="river">River</resource><resource name="stellar">Stellar</resource><resource name="tropic">Tropic</resource><resource name="inherit">Use Group's Design</resource><resource name="renderTitle">Post Title</resource><resource name="renderTitle_desc">When selected, renders post title on post pages instead of the blog name.</resource><resource name="renderPoster">Post Image</resource><resource name="renderPoster_desc">When selected, renders post image as the banner background on post pages when available instead of the configured design.</resource></language></languageResources>
+
+    <languageResources><language key="en-us">
+  <resource name="amber">Amber</resource>
+  <resource name="backgroundColor">Background Color</resource>
+  <resource name="backgroundColor2">Secondary Gradient Background Color</resource>
+  <resource name="black">Black</resource>
+  <resource name="Blog_Banner_Description">Displays a blog banner.</resource>
+  <resource name="Blog_Banner_Name">Blog - Banner</resource>
+  <resource name="blue">Blue</resource>
+  <resource name="bluegray">Blue Gray</resource>
+  <resource name="border">Bottom Border</resource>
+  <resource name="border_desc">Render a bottom border beneath the banner. When the bottom shadow is enabled, only renders when not scrolled.</resource>
+  <resource name="cancel">Cancel</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="city">City</resource>
+  <resource name="color">Use Color</resource>
+  <resource name="colorMode">Color Type</resource>
+  <resource name="coverphoto">Cover Photo</resource>
+  <resource name="coverPhotoBlur">Blur Cover Photo</resource>
+  <resource name="coverPhotoBlur_desc">When selected, cover photo is blurred. This is useful for legibility of overlaid text when using a complex image.</resource>
+  <resource name="coverPhotoUrl_desc">When provided, a cover photo is rendered as the banner's background.</resource>
+  <resource name="custom">Custom</resource>
+  <resource name="cyan">Cyan</resource>
+  <resource name="design">Design</resource>
+  <resource name="design_desc">Customize your blog's banner design. The blog banner's design overrides the group banner's design.</resource>
+  <resource name="designMode">Design</resource>
+  <resource name="designMode_desc">Customize your blog's banner with a cover photo or color palette.</resource>
+  <resource name="foregroundColor">Foreground Color</resource>
+  <resource name="gradient">Gradient</resource>
+  <resource name="green">Green</resource>
+  <resource name="inherit">Use Group's Design</resource>
+  <resource name="lightblue">Light Blue</resource>
+  <resource name="lightbluegray">Light Blue Gray</resource>
+  <resource name="lime">Lime</resource>
+  <resource name="limeade">Limeade</resource>
+  <resource name="moonrise">Moonrise</resource>
+  <resource name="more">More</resource>
+  <resource name="navigation">Custom Navigation</resource>
+  <resource name="navigation_desc">Add, edit, delete, and reorder custom navigation links.</resource>
+  <resource name="Options">Options</resource>
+  <resource name="palette">Color Palette</resource>
+  <resource name="palette_desc">Select a color palette for your blog's banner, or create a custom one.</resource>
+  <resource name="peach">Peach</resource>
+  <resource name="photo">Use Cover Photo</resource>
+  <resource name="pink">Pink</resource>
+  <resource name="purple">Purple</resource>
+  <resource name="red">Red</resource>
+  <resource name="renderPoster">Post Image</resource>
+  <resource name="renderPoster_desc">When selected, renders post image as the banner background on post pages when available instead of the configured design.</resource>
+  <resource name="renderTitle">Post Title</resource>
+  <resource name="renderTitle_desc">When selected, renders post title on post pages instead of the blog name.</resource>
+  <resource name="river">River</resource>
+  <resource name="scooter">Scooter</resource>
+  <resource name="shadow">Bottom Shadow</resource>
+  <resource name="shadow_desc">Render a shadow beneath the banner. When the bottom border is enabled, only renders when scrolled.</resource>
+  <resource name="shadowCoverPhoto">Shadow Cover Photo</resource>
+  <resource name="shadowCoverPhoto_desc">When selected, cover photo is shadowed to increase legibility of text on a light photo</resource>
+  <resource name="solid">Solid</resource>
+  <resource name="stellar">Stellar</resource>
+  <resource name="sunny">Sunny</resource>
+  <resource name="sunset">Sunset</resource>
+  <resource name="teal">Teal</resource>
+  <resource name="tropic">Tropic</resource>
+  <resource name="white">White</resource>
+  <resource name="yellow">Yellow</resource>
+</language></languageResources>
+
 		<additionalCssScript><![CDATA[
 #set ($post = false)
 #set ($renderPoster = $core_v2_widget.GetBoolValue('renderPoster', true))
