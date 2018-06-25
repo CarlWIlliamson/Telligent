@@ -1,0 +1,103 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_FavoriteContentList_Name}" version="10.1.8.10498" description="${resource:Core_FavoriteContentList_Description}" instanceIdentifier="91326de3c3324680882c61a8a2d08d7f" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="favorable-content-list">
+		<contentScript><![CDATA[
+#set ($queryType = $core_v2_widget.GetStringValue('queryType', 'context'))
+#set ($user = false)
+#if ($queryType == 'accessing')
+	#set ($user = $core_v2_user.Accessing)
+#elseif($queryType == 'context')
+	#set ($user = $core_v2_user.Current)
+#end
+#if (!$user)
+	$core_v2_widget.Hide()
+#end
+
+## hide widget if the contextual user hasn't enabled favorite sharing
+#if ($queryType == 'context' && !$user.EnableFavoriteSharing && $user.Id != $core_v2_user.Accessing.Id)
+	$core_v2_widget.Hide()
+#end
+
+#set ($filter = false)
+#set ($filter = $core_v2_page.GetQueryStringValue('bookmark-filter'))
+
+<ul class="filter">
+	<li class="filter-option#if(!$filter || $filter == 'content') selected #end"><a href="$core_v2_encoding.HtmlAttributeEncode($core_v2_page.AdjustQueryString($core_v2_page.Url, "bookmark-filter=content"))" class="type internal-link">$core_v2_language.GetResource('filter_content')</a></li>
+	<li class="filter-option#if($filter == 'applications') selected #end"><a href="$core_v2_encoding.HtmlAttributeEncode($core_v2_page.AdjustQueryString($core_v2_page.Url, "bookmark-filter=applications"))" class="type internal-link">$core_v2_language.GetResource('filter_applications')</a></li>
+	<li class="filter-option#if($filter == 'groups') selected #end"><a href="$core_v2_encoding.HtmlAttributeEncode($core_v2_page.AdjustQueryString($core_v2_page.Url, "bookmark-filter=groups"))" class="type internal-link">$core_v2_language.GetResource('filter_groups')</a></li>
+	<li class="filter-option#if($filter == 'users') selected #end"><a href="$core_v2_encoding.HtmlAttributeEncode($core_v2_page.AdjustQueryString($core_v2_page.Url, "bookmark-filter=users"))" class="type internal-link">$core_v2_language.GetResource('filter_users')</a></li>
+</ul>
+
+$core_v2_ui.PagedContent('bookmarks.vm')
+$core_v2_ui.Pager($bookmarks.PageIndex, $bookmarks.PageSize, $bookmarks.TotalCount, "%{PagedContentFile='bookmarks.vm'}")
+		]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Core_FavoriteContentList_Name}'))
+		]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Core_FavoriteContentList_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="pageSize" resourceName="Configuration_PageSize" dataType="int" defaultValue="15">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="100" />
+	</property>
+	<property id="queryType" resourceName="CF_FavorableContent_ShowFavoritesFor" dataType="string" defaultValue="context">
+		<propertyValue value="context" resourceName="CF_FavorableContent_ShowFavoritesFor_Contextual" />
+		<propertyValue value="accessing" resourceName="CF_FavorableContent_ShowFavoritesFor_Accessing" />
+	</property>
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_FavorableContent_ShowFavoritesFor">Show Bookmarks For</resource>
+  <resource name="CF_FavorableContent_ShowFavoritesFor_Accessing">Accessing User</resource>
+  <resource name="CF_FavorableContent_ShowFavoritesFor_Contextual">Contextual User</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Configuration_PageSize">Page Size</resource>
+  <resource name="Core_FavorableContentList_Title_Favorites">Bookmarks</resource>
+  <resource name="Core_FavoriteContentList_Description">Displays list of bookmarked content for a user.</resource>
+  <resource name="Core_FavoriteContentList_Name">Bookmarks List</resource>
+  <resource name="Favorites_RemoveToFavorites">Remove bookmark</resource>
+  <resource name="filter_applications">Applications</resource>
+  <resource name="filter_content">Content</resource>
+  <resource name="filter_groups">Groups</resource>
+  <resource name="filter_users">People</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Profile_NoFavoritePosts">{0} has no bookmarks of this type.</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_FavorableContent_ShowFavoritesFor">显示书签</resource>
+  <resource name="CF_FavorableContent_ShowFavoritesFor_Accessing">访问用户</resource>
+  <resource name="CF_FavorableContent_ShowFavoritesFor_Contextual">上下文用户</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Configuration_PageSize">页面大小</resource>
+  <resource name="Core_FavorableContentList_Title_Favorites">书签</resource>
+  <resource name="Core_FavoriteContentList_Description">为用户显示已加入书签的内容的列表。</resource>
+  <resource name="Core_FavoriteContentList_Name">书签列表</resource>
+  <resource name="Favorites_RemoveToFavorites">移除书签</resource>
+  <resource name="filter_applications">应用程序</resource>
+  <resource name="filter_content">内容</resource>
+  <resource name="filter_groups">社区</resource>
+  <resource name="filter_users">用户</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Profile_NoFavoritePosts">{0} 没有此类型的书签。</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_FavorableContent_ShowFavoritesFor">顯示書籤</resource>
+  <resource name="CF_FavorableContent_ShowFavoritesFor_Accessing">存取中使用者</resource>
+  <resource name="CF_FavorableContent_ShowFavoritesFor_Contextual">內容相關使用者</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Configuration_PageSize">頁面大小</resource>
+  <resource name="Core_FavorableContentList_Title_Favorites">書籤</resource>
+  <resource name="Core_FavoriteContentList_Description">顯示使用者已加入書籤的內容清單。</resource>
+  <resource name="Core_FavoriteContentList_Name">書籤清單</resource>
+  <resource name="Favorites_RemoveToFavorites">移除書籤</resource>
+  <resource name="filter_applications">應用程式</resource>
+  <resource name="filter_content">內容</resource>
+  <resource name="filter_groups">社群</resource>
+  <resource name="filter_users">人員</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Profile_NoFavoritePosts">{0} 沒有此類型的書籤。</resource>
+</language></languageResources>
+		<files>
+			<file name="bookmarks.vm">I3NldCAoJHBhZ2VJbmRleCA9ICRjb3JlX3YyX3VpLkdldEN1cnJlbnRQYWdlSW5kZXgoKSkNCiNzZXQgKCRxdWVyeVR5cGUgPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ3F1ZXJ5VHlwZScsICdjb250ZXh0JykpDQojc2V0ICgkcGFnZVNpemUgPSAkY29yZV92Ml93aWRnZXQuR2V0SW50VmFsdWUoJ3BhZ2VTaXplJywgMTUpKQ0KDQojc2V0ICgkdXNlciA9IGZhbHNlKQ0KI2lmICgkcXVlcnlUeXBlID09ICdhY2Nlc3NpbmcnKQ0KCSNzZXQgKCR1c2VyID0gJGNvcmVfdjJfdXNlci5BY2Nlc3NpbmcpDQojZWxzZWlmKCRxdWVyeVR5cGUgPT0gJ2NvbnRleHQnKQ0KCSNzZXQgKCR1c2VyID0gJGNvcmVfdjJfdXNlci5DdXJyZW50KQ0KI2VuZA0KDQojc2V0ICgkaXNUYXJnZXRVc2VyID0gZmFsc2UpDQojaWYgKCR1c2VyLklkID09ICRjb3JlX3YyX3VzZXIuQWNjZXNzaW5nLklkKQ0KCSNzZXQgKCRpc1RhcmdldFVzZXIgPSB0cnVlKQ0KI2VuZA0KDQojc2V0KCRxdWVyeSA9ICIleyBVc2VySWQgPSAkdXNlci5JZCwgUGFnZVNpemUgPSAkcGFnZVNpemUsIFBhZ2VJbmRleCA9ICRwYWdlSW5kZXggfSIpDQoNCiNzZXQgKCRmaWx0ZXIgPSBmYWxzZSkNCiNzZXQgKCRmaWx0ZXIgPSAkY29yZV92Ml9wYWdlLkdldFF1ZXJ5U3RyaW5nVmFsdWUoJ2Jvb2ttYXJrLWZpbHRlcicpKQ0KDQojc2V0ICgkYWxsQ29udGVudFR5cGVzID0gJGNvcmVfdjJfY29udGVudFR5cGUuTGlzdCgpKQ0KI3NldCAoJGNvbnRlbnRUeXBlcyA9ICIiKQ0KI3NldCAoJGFwcGxpY2F0aW9uQ29udGVudFR5cGVzID0gIiIpDQojZm9yZWFjaCAoJHR5cGUgaW4gJGFsbENvbnRlbnRUeXBlcykNCiAgICAjaWYgKCRjb3JlX3YyX2Jvb2ttYXJrLlN1cHBvcnRzQm9va21hcmtzKCR0eXBlLklkKSkNCiAgICAgICAgI3NldCAoJGNvbnRhaW5lclR5cGUgPSBmYWxzZSkNCiAgICAgICAgI3NldCAoJGNvbnRhaW5lclR5cGUgPSAkY29yZV92Ml9jb250YWluZXJUeXBlLkdldCgkdHlwZS5JZCkpDQogICAgICAgICNpZiAoISRjb250YWluZXJUeXBlIHx8ICEkY29udGFpbmVyVHlwZS5JZCkNCiAgICAgICAgICAgICNzZXQgKCRhcHBsaWNhdGlvblR5cGUgPSBmYWxzZSkNCiAgICAgICAgICAgICNzZXQgKCRhcHBsaWNhdGlvblR5cGUgPSAkY29yZV92Ml9hcHBsaWNhdGlvblR5cGUuR2V0KCR0eXBlLklkKSkNCiAgICAgICAgICAgICNpZiAoJGFwcGxpY2F0aW9uVHlwZSAmJiAkYXBwbGljYXRpb25UeXBlLklkKQ0KICAgICAgICAgICAgICAgICNzZXQgKCRhcHBsaWNhdGlvbkNvbnRlbnRUeXBlcyA9ICIke2FwcGxpY2F0aW9uQ29udGVudFR5cGVzfSR7dHlwZS5JZH0sIikNCiAgICAgICAgICAgICNlbHNlDQogICAgICAgICAgICAgICAgI3NldCAoJGNvbnRlbnRUeXBlcyA9ICIke2NvbnRlbnRUeXBlc30ke3R5cGUuSWR9LCIpDQogICAgICAgICAgICAjZW5kDQogICAgICAgICNlbmQNCiAgICAjZW5kDQojZW5kDQoNCiNpZiAoISRmaWx0ZXIgfHwgJGZpbHRlciA9PSAnY29udGVudCcpDQoJJHF1ZXJ5LkFkZCgnQ29udGVudFR5cGVJZHMnLCAkY29udGVudFR5cGVzKQ0KI2Vsc2VpZiAoJGZpbHRlciA9PSAnYXBwbGljYXRpb25zJykNCgkkcXVlcnkuQWRkKCdDb250ZW50VHlwZUlkcycsICRhcHBsaWNhdGlvbkNvbnRlbnRUeXBlcykNCiNlbHNlaWYgKCRmaWx0ZXIgPT0gJ2dyb3VwcycpDQoJJHF1ZXJ5LkFkZCgnQ29udGVudFR5cGVJZHMnLCAkY29yZV92Ml9ncm91cC5Db250ZW50VHlwZUlkKQ0KI2Vsc2VpZiAoJGZpbHRlciA9PSAndXNlcnMnKQ0KCSRxdWVyeS5BZGQoJ0NvbnRlbnRUeXBlSWRzJywgJGNvcmVfdjJfdXNlci5Db250ZW50VHlwZUlkKQ0KI2VuZA0KDQojc2V0ICgkYm9va21hcmtzID0gJGNvcmVfdjJfYm9va21hcmsuTGlzdCgkcXVlcnkpKQ0KI2ZvcmVhY2ggKCRib29rbWFyayBpbiAkYm9va21hcmtzKQ0KI2JlZm9yZWFsbA0KCTx1bCBjbGFzcz0iY29udGVudC1saXN0IGNvbnRlbnQgbWFyZ2luLWJvdHRvbSI+DQojZWFjaA0KCTxsaSBjbGFzcz0iY29udGVudC1pdGVtIiAjaWYgKCRib29rbWFyay5Db250ZW50LlVybCkgZGF0YS1ocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRib29rbWFyay5Db250ZW50LlVybCkiICNlbmQ+DQoJCSNzZXQgKCRyZXN1bHRIdG1sID0gZmFsc2UpDQoJCSNzZXQgKCRyZXN1bHRIdG1sID0gJGJvb2ttYXJrLkNvbnRlbnQuVmlld0h0bWwoKSkNCgkJI2lmICgkcmVzdWx0SHRtbCkNCgkJCSRyZXN1bHRIdG1sDQoJCSNlbmQNCgkJI2lmICgkaXNUYXJnZXRVc2VyKQ0KCQkJPGRpdiBjbGFzcz0iY29udGVudC1hY3Rpb25zIj4NCgkJCQk8ZGl2IGNsYXNzPSJ1aS1saW5rcyBuYXZpZ2F0aW9uLWxpc3QiIGRhdGEtbWlubGlua3M9IjEiIGRhdGEtZGlyZWN0aW9uPSJob3Jpem9udGFsIiBkYXRhLW1heGxpbmtzPSIxIj4NCgkJCQkJPHVsIGNsYXNzPSJuYXZpZ2F0aW9uLWxpc3QiPg0KCQkJCQkJPGxpIGNsYXNzPSJuYXZpZ2F0aW9uLWxpc3QtaXRlbSI+DQoJCQkJCQkJPGEgaHJlZj0iIyIgY2xhc3M9ImludGVybmFsLWxpbmsgZmF2b3JpdGUtb24iIGRhdGEtY29udGVudGlkPSIkYm9va21hcmsuQ29udGVudC5Db250ZW50SWQuVG9TdHJpbmcoKSI+DQoJCQkJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdGYXZvcml0ZXNfUmVtb3ZlVG9GYXZvcml0ZXMnKQ0KCQkJCQkJCTwvYT4NCgkJCQkJCTwvbGk+DQoJCQkJCTwvdWw+DQoJCQkJPC9kaXY+DQoJCQk8L2Rpdj4NCgkJI2VuZA0KCTwvbGk+DQojYWZ0ZXJhbGwNCgk8L3VsPg0KI25vZGF0YQ0KCTxkaXYgY2xhc3M9Im1lc3NhZ2Ugbm9yZWNvcmRzIj4NCgkJJGNvcmVfdjJfbGFuZ3VhZ2UuRm9ybWF0U3RyaW5nKCRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdQcm9maWxlX05vRmF2b3JpdGVQb3N0cycpLCAkdXNlci5EaXNwbGF5TmFtZSkNCgk8L2Rpdj4NCiNlbmQNCg0KI2lmICgkaXNUYXJnZXRVc2VyKQ0KCSNyZWdpc3RlckVuZE9mUGFnZUh0bWwoKQ0KCQk8c2NyaXB0IHR5cGU9InRleHQvamF2YXNjcmlwdCI+DQoJCQlqUXVlcnkoZnVuY3Rpb24oail7DQoJCQkJaignIyRjb3JlX3YyX3dpZGdldC5XcmFwcGVyRWxlbWVudElkIGEuZmF2b3JpdGUtb24nKS5saXZlKCdjbGljaycsIGZ1bmN0aW9uKGUsZGF0YSl7DQoJCQkJCXZhciBlID0gaih0aGlzKTsNCgkJCQkJdmFyIGNvbnRlbnRJZCA9IGUuZGF0YSgnY29udGVudGlkJyk7DQoJCQkJCXZhciBwYXJlbnQgPSBlLnBhcmVudHMoJy5jb250ZW50LWl0ZW0nKTsNCgkJCQkJDQoJCQkJCWoudGVsbGlnZW50LmV2b2x1dGlvbi5kZWwoew0KCQkJCQkJdXJsOiBqLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvYm9va21hcmsuanNvbicsDQoJCQkJCQlkYXRhOiB7DQoJCQkJCQkJQ29udGVudElkOiBjb250ZW50SWQsDQoJCQkJCQl9LA0KCQkJCQkJc3VjY2VzczogZnVuY3Rpb24ocmVzcG9uc2UpIHsNCgkJCQkJCQlwYXJlbnQuZmFkZU91dCgyMDAsIGZ1bmN0aW9uKCl7DQoJCQkJCQkJCXBhcmVudC5yZW1vdmUoKTsNCgkJCQkJCQl9KTsNCgkJCQkJCX0NCgkJCQkJfSk7DQoNCgkJCQkJcmV0dXJuIGZhbHNlOw0KCQkJCX0pOw0KCQkJfSk7DQoJCTwvc2NyaXB0Pg0KCSNlbmQNCiNlbmQ=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

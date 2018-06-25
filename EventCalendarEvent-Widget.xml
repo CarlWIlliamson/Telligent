@@ -1,0 +1,457 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Calendar_EventWidget_Name}" version="10.1.8.10498" description="${resource:Calendar_EventWidget_Description}" instanceIdentifier="e3edd58fe7234374ae00e52bcbad33c3" theme="" isCacheable="false" varyCacheByUser="false" showHeaderByDefault="true" cssClass="event-widget">
+		<contentScript><![CDATA[#set($links = $core_v2_page.ParseQueryString($core_v2_widget.GetCustomValue('links','Link=eventSubscribe&amp;Link=eventEdit&amp;Link=viewRegistrations&amp;Link=cancelEvent&amp;Link=deleteEvent&amp;Link=download&amp;Link=rss')))
+#set($currentCalendar = $calendar_v1_calendars.Current)
+
+#set($userId = $core_v2_user.Accessing.Id)
+#set($userTimeZoneId = $core_v2_user.Accessing.TimeZoneId)
+#set($userTimeZone = false)
+#if ($core_v2_user.Accessing.TimeZoneInfo)
+    #set($userTimeZone = $core_v2_user.Accessing.TimeZoneInfo)
+#end
+
+#set($event = false)
+#set($event = $calendar_v1_events.Current)
+#if (!$event)
+    $core_v2_widget.Hide()
+#end
+
+#set ($hasModifyEventPermission =  $calendar_v1_events.HasPermission($event.Id,$calendar_v1_permissions.EditEvent))
+
+#set($currentDate =  $calendar_v1_UI.AdjustForUserTime($core_v2_utility.CurrentDate))
+#set($startDate = $event.EventStartDate)
+#set($endDate = $event.EventEndDate)
+
+#if ($core_v2_user.Accessing.DateFormat)
+    #set($eventDateTimeFormatString = "$core_v2_user.Accessing.DateFormat $core_v2_configuration.TimeFormat")
+#else
+    #set($eventDateTimeFormatString = "yyyy-M-d $core_v2_configuration.TimeFormat")
+#end
+
+#if($startDate.Date == $endDate.Date)
+  #set($eventEndTimeFormatString = $core_v2_configuration.TimeFormat)
+#else
+  #set($eventEndTimeFormatString = $eventDateTimeFormatString)
+#end
+
+#if($currentDate > $endDate)
+	<div class="message warning">$core_v2_language.GetResource('calendar_event_past')</div>
+#end
+#if($currentDate >= $startDate && $currentDate <= $endDate)
+	<div class="message success">$core_v2_language.GetResource('calendar_event_insession')</div>
+#end
+#if($event.IsCancelled)
+	<div class="message error">$core_v2_language.GetResource('calendar_event_cancelled')</div>
+#end
+#if($event.RegistrationType != "NotSet" && $event.RegistrationType != "InvitationOnly")
+	#if(($event.TotalRegistrations >= $event.MaximumRegistrationsAllowed) &&  $event.MaximumRegistrationsAllowed > 0)
+		<div class="message error">$core_v2_language.GetResource('calendar_registration_nospace')</div>
+	#end
+#end
+
+<div class="content full without-author">
+
+  #set($registration = false)
+  #set($registration = $calendar_v1_registrations.Current)
+  #if (!$registration)
+    #set($registration = $calendar_v1_registrations.Get($event.Id, $userId))
+  #end
+
+  #set($userIsRegistered = $core_v2_user.IsRegistered($userId))
+
+  #set($showRegistrationButton = true)
+
+  #if ($event.IsCancelled || $event.EventEndDate <= $core_v2_utility.CurrentDate)
+    #set($showRegistrationButton = false)
+  #end
+
+  #if($event.RegistrationType == 'NotSet' || (!$event.AllowAnonymousRegistrations && !$userIsRegistered) || ($event.RegistrationType == 'InvitationOnly' && !$registration))
+    #set($showRegistrationButton = false)
+  #end
+
+  #if(($event.TotalRegistrations >= $event.MaximumRegistrationsAllowed) &&  $event.MaximumRegistrationsAllowed > 0)
+    #set($showRegistrationButton = false)
+  #end
+
+  #if ($showRegistrationButton)
+      <div class="actions register top">
+        <a id="$core_v2_widget.UniqueId('register')" href="#" class="button">
+        	#if ($registration && $registration.Status == 'Confirmed')
+        		$core_v2_language.GetResource('ModifyRegistration')
+        	#else
+        		$core_v2_language.GetResource('Register')
+        	#end
+        </a>
+      </div>
+  #end
+
+  <h2 class="name" id="$core_v2_widget.UniqueId('eventTitle')">
+  	$event.EventTitle
+  </h2>
+
+    <div class="event-details">
+        #if($event.EventLocation.length > 0)
+            #set($imgUrl = false)
+            #set($mapUrl = false)
+            #if ($geocoding_v1_core.IsEnabled)
+                #set ($latitude = $event.Latitude)
+                #set ($longitude = $event.Longitude)
+                
+                #if ($latitude > -90 && $longitude > -180)
+                	#set ($imgUrl = $geocoding_v1_core.GetMapUrl($latitude, $longitude))
+                	#set ($mapUrl = $geocoding_v1_core.GetServiceRedirectUrl($event.AddressString))
+                #end
+            #end
+        #end
+        
+        #if ($mapUrl && $imgUrl) 
+            <div class="geocoded-map-content">
+                <a href="$mapUrl" target="_blank" rel="nofollow" class="map_view_service_link"><img src="$imgUrl" /></a>
+            </div>
+        #end
+        
+        <h3>$core_v2_language.GetResource('label_when')</h3>
+        <div class="event-date">
+            $core_v2_language.FormatDate($startDate, "%{Format = $eventDateTimeFormatString, TimeZoneId = $event.TimeZone.Id}")
+            $core_v2_language.GetResource("to")
+            $core_v2_language.FormatDate($endDate, "%{Format = $eventEndTimeFormatString, TimeZoneId = $event.TimeZone.Id}")
+
+            <span class="event-timezone">
+                $!core_v2_configuration.GetTimeZone($event.TimeZone.Id, $startDate).NameWithoutOffset
+            </span>
+        </div>
+        #if ($userIsRegistered && $userTimeZoneId != $event.TimeZone.Id && $userTimeZone)
+            <div class="event-date event-your-time">
+                $core_v2_language.FormatDate($startDate, "%{Format = $eventDateTimeFormatString}")
+                $core_v2_language.GetResource("to")
+                $core_v2_language.FormatDate($endDate, "%{Format = $eventEndTimeFormatString}")
+                
+                <span class="event-timezone">
+                    $!core_v2_configuration.GetTimeZone($userTimeZone.Id, $startDate).NameWithoutOffset
+                </span>
+            </div>
+        #end
+        #if($event.EventLocation.length > 0)
+            <h3>$core_v2_language.GetResource('label_where')</h3>
+            <div class="event-location">
+                #if ($mapUrl)
+                    <a href="$core_v2_encoding.HtmlAttributeEncode($mapUrl)">$event.EventLocation</a>
+                #else
+                    $event.EventLocation
+                #end
+            </div>
+        #end
+    </div>
+    
+  #if ($event.IsExternal)
+    <div class="external-preview" data-url="$core_v2_encoding.HtmlAttributeEncode($event.EventReferenceUrl)">
+      <span class="ui-webpreview" data-configuration="url=$core_v2_encoding.HtmlAttributeEncode($core_v2_encoding.UrlEncode($event.EventReferenceUrl))">
+        <a href="$core_v2_encoding.HtmlAttributeEncode($event.EventReferenceUrl)">$core_v2_encoding.HtmlAttributeEncode($event.EventReferenceUrl)</a>
+      </span>
+    </div>
+  #end
+  <div class="post-content content user-defined-markup margin-bottom">
+  	$event.EventDescription
+  </div>
+
+  $core_v2_widget.ExecuteFile("subview-tags.vm")
+
+  <div class="actions">
+
+#foreach($link in $links.Values('Link'))
+#beforeall
+
+    <div class="ui-links navigation-list" data-minlinks="2" data-direction="horizontal" data-maxlinks="2">
+      <ul class="navigation-list">
+        #set($likeFormat = "{count}")
+        #if ($core_v2_like.CanLike($event.ContentId, $event.ContentTypeId))
+          #set($likeFormat = "{toggle} {count}")
+        #end
+        <li class="navigation-list-item like">
+          $core_v2_ui.Like($event.ContentId, $event.ContentTypeId, "%{ Format = $likeFormat, IncludeTip = 'true' }")
+        </li>
+        <li class="navigation-list-item rating">
+          #set ($readOnly = true)
+          #if ($userIsRegistered)
+            #set ($readOnly = false)
+          #end
+          $core_v2_ui.Rate($event.ContentId, $calendar_v1_events.ContentTypeId, "%{ ReadOnly = $readOnly }")
+        </li>
+
+#each
+
+        #if($link == 'eventEdit' && $calendar_v1_calendars.HasPermission($event.CalendarId,$calendar_v1_permissions.EditEvent))
+          #set($url = $calendar_v1_urls.EditEvent($event.Id))
+          #if ($url)
+            <li class="navigation-list-item">
+              <a href="$core_v2_encoding.HtmlAttributeEncode($url)">$core_v2_language.GetResource('edit')</a>
+            </li>
+          #end
+        #end
+
+        #if ($link == 'convert')
+	        #set($convert = false)
+			#set($convert = $core_v2_ui.ConvertContent($event.ContentId, $event.ContentTypeId))
+			#if ($convert)
+			    <li class="navigation-list-item">
+			        $convert
+			    </li>
+			#end
+		#end
+
+        #if($link == 'viewRegistrations' && $calendar_v1_calendars.HasPermission($event.CalendarId,$calendar_v1_permissions.ViewRegistrations))
+          #set($url = $calendar_v1_urls.RegisteredUsers($event.Id))
+          #if ($url)
+            <li class="navigation-list-item">
+              <a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link view-registrations">
+                $core_v2_language.GetResource('calendar_EventLinks_ViewRegistrations')
+              </a>
+            </li>
+          #end
+        #end
+
+        #if ($link == 'eventSubscribe' && $userIsRegistered && $calendar_v1_calendars.HasPermission($event.CalendarId,$calendar_v1_permissions.ViewCalendar))
+
+          <li class="navigation-list-item">
+	          <a data-messagename="widget.${core_v2_widget.WrapperElementId}.eventSubscribe" data-eventid="$event.Id" data-subscribed="false" href="#" #if($calendar_v1_events.IsSubscribed($event.Id)) style="display:none" #end>$core_v2_language.GetResource('event_Subscribe_Off')</a>
+          </li>
+          <li class="navigation-list-item">
+	          <a data-messagename="widget.${core_v2_widget.WrapperElementId}.eventSubscribe" data-eventid="$event.Id" data-subscribed="true" href="#" #if(!$calendar_v1_events.IsSubscribed($event.Id)) style="display:none" #end>$core_v2_language.GetResource('event_Subscribe_On')</a>
+          </li>
+
+          #registerEndOfPageHtml("widget.${core_v2_widget.WrapperElementId}.eventSubscribe")
+	          <script type="text/javascript">
+		          jQuery(function(j){
+			          updateSubscription = function(value, link) {
+				          j.telligent.evolution.post({
+					          url: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('subscribe.vm'))',
+					          data: {
+						          subscribe: value,
+						          eventId: link.data('eventid')
+					          },
+					          dataType: 'json'
+				          }).then(function(response) {
+                    if (response.subscribe) {
+	                    link.closest('ul').find('a[data-subscribed="false"]').hide();
+	                    link.closest('ul').find('a[data-subscribed="true"]').show();
+                    } else {
+	                    link.closest('ul').find('a[data-subscribed="false"]').show();
+	                    link.closest('ul').find('a[data-subscribed="true"]').hide();
+                    }
+
+                    if (response.warnings && response.warnings.length > 0) {
+	                    j.telligent.evolution.notifications.show(response.warnings[0], { type: 'warning' });
+                    }
+                  });
+                };
+
+                j.telligent.evolution.messaging.subscribe('widget.${core_v2_widget.WrapperElementId}.eventSubscribe', function(data){
+                  updateSubscription(!j(data.target).data('subscribed'), j(data.target));
+                });
+		          });
+	          </script>
+          #end
+
+        #end
+
+        #if($link == 'cancelEvent' && $calendar_v1_calendars.HasPermission($currentCalendar.Id,$calendar_v1_permissions.EditEvent) && $event.IsCancelled == false)
+
+          <li class="navigation-list-item" id="$core_v2_widget.UniqueId('cancelEventItem')">
+            <a data-messagename="widget.${core_v2_widget.WrapperElementId}.eventCancel" data-eventid="$event.Id" href="#" class="internal-link delete-post">
+              $core_v2_language.GetResource('calendar_EventLinks_CancelEvent')
+            </a>
+          </li>
+
+          #registerEndOfPageHtml()
+            <script type="text/javascript">
+              jQuery(function(){
+                cancelEvent = function(link) {
+                  if (window.confirm('$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_CancelEventConfirmation'))'))
+                  {
+                    jQuery.telligent.evolution.del({
+                      url: jQuery.telligent.evolution.site.getBaseUrl() + 'api.ashx/v2/calendars/events/{Id}.json',
+                      data: {Id: link.data('eventid'), CancelOnly: true},
+                      defaultErrorMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_CancelEventError'))'
+                    }).then(function(response) {
+                      jQuery.telligent.evolution.notifications.show('$core_v2_language.GetResource('calendar_event_cancelled_confirmation')');
+                      link.hide();
+                    });
+                  }
+                };
+
+                jQuery.telligent.evolution.messaging.subscribe('widget.${core_v2_widget.WrapperElementId}.eventCancel', function(data){
+                  cancelEvent(jQuery(data.target));
+                });
+
+              });
+            </script>
+          #end
+
+          #set($hasLinks = true)
+
+        #end
+
+         #set($perm  = false)
+        #set($perm = $core_v2_permission.Get($calendar_v1_permissions.DeleteEvent,$userId,$event.ContentId,$calendar_v1_events.ContentTypeId))
+        #if ($link == 'deleteEvent' &&  $perm && $perm.IsAllowed)
+          <li class="navigation-list-item">
+            <a href="#" onclick="deleteEvent(event);">$core_v2_language.GetResource('delete')</a>
+          </li>
+
+          #registerEndOfPageHtml()
+            <script type="text/javascript">
+              jQuery(function(){
+                deleteEvent = function(e) {
+                  e.preventDefault();
+                  if (window.confirm('$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_DeleteEventConfirmation'))'))
+                  {
+                    jQuery.telligent.evolution.del({
+                      url: jQuery.telligent.evolution.site.getBaseUrl() + 'api.ashx/v2/calendars/events/{Id}.json',
+                      data: {Id: $event.Id},
+                      defaultErrorMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_DeleteEventError'))'
+                    }).then(function(response) {
+                      alert((response.Calendar == 'deleted') ? '$core_v2_language.GetResource('calendar_event_deleted')' : '$core_v2_language.GetResource('calendar_event_cancelled_confirmation')');
+                      window.location = '$core_v2_encoding.JavascriptEncode($calendar_v1_urls.HomePage($event.CalendarId))';
+                    });
+                  }
+                };
+              });
+            </script>
+          #end
+        #end
+
+        #if($link == 'rss' &&  $calendar_v1_calendars.HasPermission($currentCalendar.Id,$calendar_v1_permissions.ViewCalendar))
+          #set($url = $calendar_v1_urls.EventCommentRSS($event.Id))
+          #if($url)
+            <li class="navigation-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link rss"><span></span>$core_v2_language.GetResource('calendar_EventLinks_Rss')</a></li>
+            #set($hasLinks = true)
+          #end
+        #end
+
+        #if($link == 'download' &&  $calendar_v1_calendars.HasPermission($currentCalendar.Id,$calendar_v1_permissions.ViewCalendar))
+          #set($url = $calendar_v1_urls.DownloadEvent($event.Id))
+          #if($url)
+            <li class="navigation-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link download-event"><span></span>$core_v2_language.GetResource('calendar_EventLinks_Download')</a></li>
+            #set($hasLinks = true)
+          #end
+        #end
+
+        #if ($link == 'feature' &&  $core_v3_feature.CanFeature($event.ContentId, $event.ContentTypeId))
+          <li class="navigation-list-item">$core_v2_ui.Feature($event.ContentId, $event.ContentTypeId)</li>
+        #end
+
+        #if ($event && $link == 'abuse' && $core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+          <li class="navigation-item">
+            $core_v2_ui.Moderate($event.ContentId, $calendar_v1_events.ContentTypeId, "%{ }")
+          </li>
+          #set($hasLinks = true)
+				#end
+
+        #if($hasLinks)
+          <li class="navigation-list-item">
+		        <a href="#" data-more>$core_v2_language.GetResource('more')</a>
+		      </li>
+		      <li class="navigation-list-item">
+		        <a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+		      </li>
+        #end
+
+#afterall
+
+      </ul>
+    </div>
+
+#end
+
+  </div>
+
+</div>
+
+#registerEndOfPageHtml('telligent.evolution.widgets.calendarEvent')
+    <script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+#end
+
+#registerEndOfPageHtml()
+    <script type="text/javascript">
+      jQuery(function(){
+        jQuery.telligent.evolution.Calendar.widgets.calendarEvent.register({
+          wrapper        : jQuery('#$core_v2_widget.WrapperElementId'),
+          allTags        : [#if($allTags)$allTags#end],
+          currentTags    : [#if($formattedTags)$formattedTags#end],
+          eventId        : $event.Id,
+          register       : '#$core_v2_widget.UniqueId('register')',
+          registerModal  : '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('register-modal.vm'))',
+          selectTagsText : '$core_v2_language.GetResource('TagEditor_SelectTags')',
+          tagEditor      : jQuery("#$core_v2_widget.UniqueId('tagEditorButton')"),
+          tagList        : jQuery("#$core_v2_widget.UniqueId('taglist')"),
+          tagUrlTemplate :'$core_v2_page.AbsoluteUrl($calendar_v1_urls.TagBrowser($event.CalendarId, $core_v2_utility.MakeList("TAGNAME")))',
+          userId         : $core_v2_user.Accessing.Id
+        });
+
+        #set($invite = $core_v2_page.GetQueryStringValue("invite"))
+        #set($token = $core_v2_page.GetQueryStringValue("token"))
+        #set($registration = false)
+
+        #if ($token)
+          #set($registration = $calendar_v1_registrations.Get($core_v2_utility.ParseGuid($token)))
+          #set($token = $registration.Token)
+          #if (!$registration)
+            jQuery.telligent.evolution.notifications.show('$core_v2_language.GetResource('RegistrationUpdatingExpired')');
+          #end
+        #end
+
+        #if ($registration && $registration.Status == "Invited")
+          #if ($invite == "accept" && $token && $registration.Status != "Confirmed")
+            #set($response = $calendar_v1_registrations.Confirm($token))
+            jQuery.telligent.evolution.notifications.show('$core_v2_language.GetResource('Registration_AttendingEvent')');
+          #end
+
+          #if ($invite == "reject" && $token && $registration.Status != "Cancelled")
+            #set($response = $calendar_v1_registrations.Cancel($token))
+            jQuery.telligent.evolution.notifications.show('$core_v2_language.GetResource('Registration_Cancelled')');
+          #end
+        #end
+
+      });
+  </script>
+#end
+]]></contentScript>
+		<headerScript><![CDATA[$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Calendar_EventWidget_Title}'))]]></headerScript>
+		<configuration><![CDATA[
+      <propertyGroup id="options" resourceName="Options">
+        <property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Calendar_EventWidget_Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+        <property id="mapZoom" resourceName="CalendarMap_MapZoom" dataType="int" defaultValue="15">
+          <propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="9999" />
+        </property>
+        <property id="mapHeight" resourceName="CalendarMap_MapHeight" dataType="int" defaultValue="300">
+          <propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="9999" />
+        </property>
+        <property id="mapWidth" resourceName="CalendarMap_MapWidth" dataType="int" defaultValue="920">
+          <propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="9999" />
+        </property>
+        <property id="links" resourceName="event_Links" dataType="custom" defaultValue="Link=eventSubscribe&amp;Link=feature&amp;Link=eventEdit&amp;Link=viewRegistrations&amp;Link=cancelEvent&amp;Link=deleteEvent&amp;Link=convert&amp;Link=download&amp;Link=rss&amp;Link=abuse" controlType="Telligent.Evolution.Controls.SortableListControl, Telligent.Evolution.Platform" height="300" key="Link" >
+          <propertyValue value="eventSubscribe" resourceName="calendar_EventLinks_Subscribe" />
+          <propertyValue value="eventEdit" resourceName="calendar_EventLinks_EditLink" />
+          <propertyValue value="viewRegistrations" resourceName="calendar_EventLinks_ViewRegistrationsLink" />
+          <propertyValue value="cancelEvent" resourceName="calendar_EventLinks_CancelEventLink" />
+          <propertyValue value="deleteEvent" resourceName="calendar_EventLinks_DeleteEventLink" />
+          <propertyValue value="convert" resourceName="Convert" />
+          <propertyValue value="download" resourceName="calendar_EventLinks_DownloadLink" />
+          <propertyValue value="rss" resourceName="calendar_EventLinks_RssLink" />
+          <propertyValue value="feature" resourceName="CF_Feature" />
+          <propertyValue value="abuse" resourceName="calendar_EventLinks_AbuseLink" />
+        </property>
+      </propertyGroup>
+      ]]></configuration>
+		<languageResources><language key="en-us"><resource name="AcceptInvitation">Accept</resource><resource name="AddRegistration">Register</resource><resource name="calendar_CancelEventConfirmation">Are you sure you wish to cancel this event? This cannot be undone.</resource><resource name="calendar_CancelEventError">An error occurred while canceling the event.</resource><resource name="calendar_DeleteEventConfirmation">Are you sure you wish to delete this event?  This will cause the event to first be cancelled along with any/all registrations.  This cannot be undone.</resource><resource name="calendar_DeleteEventError">An error occurred while deleting the event.</resource><resource name="calendar_event_cancelled">This event has been cancelled.</resource><resource name="calendar_event_cancelled_confirmation">This event has been cancelled</resource><resource name="calendar_event_deleted">This event has been deleted</resource><resource name="calendar_event_insession">This event is occurring now.</resource><resource name="calendar_event_past">This event occurred in the past.</resource><resource name="calendar_EventLinks_AbuseLink">Abuse</resource><resource name="calendar_EventLinks_CancelEvent">Cancel Event</resource><resource name="calendar_EventLinks_CancelEventLink">Cancel Event</resource><resource name="calendar_EventLinks_DeleteEventLink">Delete Event</resource><resource name="calendar_EventLinks_Download">Download to my calendar</resource><resource name="calendar_EventLinks_DownloadLink">Download to my calendar</resource><resource name="calendar_EventLinks_EditLink">Edit Event</resource><resource name="calendar_EventLinks_Rss">RSS</resource><resource name="calendar_EventLinks_RssLink">Rss</resource><resource name="calendar_EventLinks_Subscribe">Email Subscribe</resource><resource name="calendar_EventLinks_ViewRegistrations">Registrations</resource><resource name="calendar_EventLinks_ViewRegistrationsLink">Registrations</resource><resource name="Calendar_EventWidget_Description">Displays details of a single calendar event</resource><resource name="Calendar_EventWidget_Name">Event Calendar - Event</resource><resource name="Calendar_EventWidget_Title">Event Calendar - Event</resource><resource name="calendar_GenericError">An error occurred.</resource><resource name="calendar_preview_failed">Failed to load preview for redirect url.</resource><resource name="calendar_registration_nospace">This event is currently full or registration has been closed</resource><resource name="calendar_validator_emailFormat">Invalid Email Address</resource><resource name="calendar_validator_emailLength">Email Address Length should not exceed 256 characters</resource><resource name="calendar_validator_emailRequired">Email Address is required</resource><resource name="calendar_validator_firstNameLength">First Name should not exceed 128 characters</resource><resource name="calendar_validator_firstNameRequired">First Name is required</resource><resource name="calendar_validator_lastNameLength">Last Name should not exceed 128 characters</resource><resource name="calendar_validator_lastNameRequired">Last Name is required</resource><resource name="CalendarMap_GoToMap">Go To Map</resource><resource name="CalendarMap_MapHeight">Height</resource><resource name="CalendarMap_MapWidth">Width</resource><resource name="CalendarMap_MapZoom">Zoom</resource><resource name="cancel">Cancel</resource><resource name="CancelRegistration">Cancel Registration</resource><resource name="CF_Feature">Feature</resource><resource name="CF_Title">Widget Title</resource><resource name="Convert">Move</resource><resource name="Date">Date: </resource><resource name="delete">Delete</resource><resource name="edit">Edit</resource><resource name="EmailAddress">Email address</resource><resource name="event_Links">Links</resource><resource name="event_Subscribe_Off">Turn Event notifications on</resource><resource name="event_Subscribe_On">Turn Event notifications off</resource><resource name="FirstName">First name</resource><resource name="invalid_Guid">Registration code is not valid</resource><resource name="label_when">When</resource><resource name="label_where">Where</resource><resource name="LastName">Last name</resource><resource name="Location">Location: </resource><resource name="ModifyRegistration">Update/Cancel Registration</resource><resource name="more">More</resource><resource name="Options">Options</resource><resource name="Register">Register</resource><resource name="Registration_AttendingEvent">You are currently attending this event.</resource><resource name="Registration_Cancelled">Your registration has been cancelled.</resource><resource name="Registration_Invited">You have been invited to attend this event.</resource><resource name="Registration_RequestSuccessful">Your registration request has been received. You will receive further information soon.</resource><resource name="RegistrationCancelling">Cancelling Registration...</resource><resource name="RegistrationCancellingError">An error occurred cancelling Event Registration, it may have already been cancelled.</resource><resource name="RegistrationCancellingSuccess">Registration cancelled successfully</resource><resource name="RegistrationCode">Registration code</resource><resource name="RegistrationSaving">Saving Registration...</resource><resource name="RegistrationSavingError">An error occurred creating Event Registration</resource><resource name="RegistrationSavingSuccess">Registration created successfully</resource><resource name="RegistrationTitle">Registration for</resource><resource name="RegistrationUpdating">Updating Registration...</resource><resource name="RegistrationUpdatingError">An error occurred updating Event Registration</resource><resource name="RegistrationUpdatingExpired">A Registration error occurred, your invitation may have expired.</resource><resource name="RegistrationUpdatingSuccess">Registration updated successfully</resource><resource name="RejectInvitation">Reject</resource><resource name="TagEditor_EditTags">&lt;span&gt;&lt;/span&gt;Edit tags</resource><resource name="TagEditor_SelectTags">Select Tags...</resource><resource name="to">to</resource><resource name="UpdateRegistration">Update</resource></language></languageResources>
+		<files>
+			<file name="cancel.vm">77u/JGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoNCiNzZXQoJGV2ZW50SWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdFdmVudElkJykpKQ0KI3NldCgkZXZlbnQgPSBmYWxzZSkNCiNzZXQoJGV2ZW50ID0gJGNhbGVuZGFyX3YxX2V2ZW50cy5TaG93KCRldmVudElkKSkNCiNpZighJGV2ZW50KQ0KICAgICRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcignVGhlIHNwZWNpZmllZCBldmVudCBjYW5ub3QgYmUgcmV0cmlldmVkJykNCiNlbmQNCg0KI3NldCgkdG9rZW4gPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlR3VpZCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnVG9rZW4nKSkpDQoNCiNzZXQoJHJlZ2lzdHJhdGlvbiA9ICRjYWxlbmRhcl92MV9yZWdpc3RyYXRpb25zLkNhbmNlbCgkdG9rZW4pKQ0KDQojaWYoISRyZWdpc3RyYXRpb24pDQogICAgJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCdUaGUgcmVnaXN0cmF0aW9uIGhhcyBub3QgYmVlbiBmb3VuZCcpDQojZWxzZQ0KDQoJI2lmKCRyZWdpc3RyYXRpb24uRXJyb3JzLkNvdW50ID4gMCkNCgkJJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCRyZWdpc3RyYXRpb24uRXJyb3JzKQ0KCSNlbHNlDQoNCgkJI3NldCAoJHF1ZXJ5c3RyaW5nID0gJ2NhbmNlbGxlZD10cnVlJykNCgkJI3NldCAoJHVybCA9ICRjYWxlbmRhcl92MV91cmxzLkV2ZW50KCRldmVudElkKSkNCg0KCQl7InJlZGlyZWN0VXJsIjoiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkY29yZV92Ml9wYWdlLkFkanVzdFF1ZXJ5U3RyaW5nKCR1cmwsICRxdWVyeXN0cmluZykpIn0NCgkjZW5kDQoNCiNlbmQ=</file>
+			<file name="register-modal.vm">I3NldCgkZXZlbnRJZCA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VJbnQoJGNvcmVfdjJfcGFnZS5HZXRRdWVyeVN0cmluZ1ZhbHVlKCdldmVudElkJykpKQ0KI3NldCgkZXZlbnQgPSAkY2FsZW5kYXJfdjFfZXZlbnRzLlNob3coJGV2ZW50SWQpKQ0KDQojc2V0KCR1c2VySWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgndXNlcklkJykpKQ0KI3NldCgkdXNlciA9ICRjb3JlX3YyX3VzZXIuR2V0KCIle0lkID0gJHVzZXJJZH0iKSkNCg0KI3NldCgkcmVnaXN0cmF0aW9uID0gZmFsc2UpDQoNCjwhRE9DVFlQRSBodG1sPg0KPGh0bWwgbGFuZz0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkY29yZV92Ml9sYW5ndWFnZS5Db2RlKSIgI2lmKCRjb3JlX3YyX2xhbmd1YWdlLklzUmlnaHRUb0xlZnQpIGNsYXNzPSJkaXJlY3Rpb24tcnRsIiBzdHlsZT0iZGlyZWN0aW9uOiBydGw7IiAjZWxzZSBjbGFzcz0iZGlyZWN0aW9uLWx0ciIgc3R5bGU9ImRpcmVjdGlvbjogbHRyOyIgI2VuZD4NCgk8aGVhZD4NCgkJPHRpdGxlPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCJSZWdpc3RyYXRpb25UaXRsZSIpICRldmVudC5FdmVudFRpdGxlPC90aXRsZT4NCg0KCQkjc2V0KCRpc01vZGFsID0gdHJ1ZSkNCgkJJGNvcmVfdjJfcGFnZS5SZW5kZXJUaGVtZUhlYWRlcnMoIiV7IElzTW9kYWwgPSAkaXNNb2RhbH0iKQ0KCTwvaGVhZD4NCgk8Ym9keT4NCgkJPGZvcm0+DQoJCQkjc2V0KCR1c2VySXNSZWdpc3RlcmVkID0gJGNvcmVfdjJfdXNlci5Jc1JlZ2lzdGVyZWQoJHVzZXJJZCkpDQoJCQkjaWYgKCEkdXNlcklzUmVnaXN0ZXJlZCkNCgkJCQkjc2V0KCR1c2VySWQgPS0xKQ0KCQkJI2VuZA0KDQoJCQkjc2V0KCRmaXJzdE5hbWUgPSAiIikNCgkJCSNzZXQoJGxhc3ROYW1lID0gIiIpDQoJCQkjaWYgKCR1c2VySXNSZWdpc3RlcmVkKQ0KCQkJCSNzZXQoJG5hbWVBcnJheSA9ICRjb3JlX3YyX3V0aWxpdHkuU3BsaXQoIiAiLCAkdXNlci5EaXNwbGF5TmFtZSkuVG9BcnJheSgpKQ0KCQkJCSNzZXQoJGZpcnN0TmFtZSA9ICRuYW1lQXJyYXkuZ2V0KDApKQ0KCQkJCSNpZiAoJG5hbWVBcnJheS5Db3VudCA+IDEpDQoJCQkJCSNzZXQoJGxhc3ROYW1lID0gJGNvcmVfdjJfdXRpbGl0eS5UcmltKCR1c2VyLkRpc3BsYXlOYW1lLlN1YnN0cmluZygkZmlyc3ROYW1lLkxlbmd0aCkpKQ0KCQkJCSNlbmQNCgkJCSNlbmQNCg0KCQkJI3NldCgkZ3JvdXAgPSBmYWxzZSkNCgkJCSNzZXQoJGdyb3VwID0gJGNvcmVfdjJfZ3JvdXAuQ3VycmVudCkNCg0KCQkJI2lmICghJHJlZ2lzdHJhdGlvbikNCgkJCQkjc2V0KCRyZWdpc3RyYXRpb24gPSAkY2FsZW5kYXJfdjFfcmVnaXN0cmF0aW9ucy5HZXQoJGV2ZW50LklkLCAkdXNlci5JZCkpDQoJCQkjZW5kDQoNCgkJCTxkaXYgaWQ9IiRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnc3VjY2Vzc01lc3NhZ2UnKSIgY2xhc3M9Im1lc3NhZ2Ugc3VjY2VzcyIgc3R5bGU9ImRpc3BsYXk6bm9uZSI+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoIlJlZ2lzdHJhdGlvblNhdmluZ1N1Y2Nlc3MiKTwvZGl2Pg0KCQkJPGRpdiBpZD0iJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdlcnJvck1lc3NhZ2UnKSIgY2xhc3M9Im1lc3NhZ2UgZXJyb3IiIHN0eWxlPSJkaXNwbGF5Om5vbmUiPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCJjYWxlbmRhcl9HZW5lcmljRXJyb3IiKTwvZGl2Pg0KDQoJCQk8ZGl2IGlkPSIkY29yZV92Ml93aWRnZXQuVW5pcXVlSWQoJ2luZm9NZXNzYWdlV3JhcHBlcicpIiBjbGFzcz0ibWVzc2FnZSBzdWNjZXNzIiBzdHlsZT0iZGlzcGxheTpub25lIiA+PC9kaXY+DQoNCgkJCTxkaXYgaWQ9IiRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnZm9ybScpIj4NCgkJCQk8ZGl2IGNsYXNzPSJmaWVsZC1saXN0LWhlYWRlciI+PC9kaXY+DQoJCQkJPGZpZWxkc2V0IGNsYXNzPSJmaWVsZC1saXN0Ij4NCgkJCQk8dWwgY2xhc3M9ImZpZWxkLWxpc3QiPg0KCQkJCQk8bGkgY2xhc3M9ImZpZWxkLWl0ZW0gZW1haWwtYWRkcmVzcyI+DQoJCQkJCTxsYWJlbCBjbGFzcz0iZmllbGQtaXRlbS1oZWFkZXIiIGZvcj0iJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdlbWFpbCcpIj4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiRW1haWxBZGRyZXNzIik8L2xhYmVsPg0KCQkJCQk8c3BhbiBjbGFzcz0iZmllbGQtaXRlbS1pbnB1dCI+DQoJCQkJCQk8aW5wdXQgdHlwZT0idGV4dCIgaWQ9IiRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnZW1haWwnKSIgc2l6ZT0iNjAiIG5hbWU9IiRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnZW1haWwnKSIgdmFsdWU9IiNpZigkcmVnaXN0cmF0aW9uICYmICRyZWdpc3RyYXRpb24uRW1haWxBZGRyZXNzLmxlbmd0aCA+IDApJHJlZ2lzdHJhdGlvbi5FbWFpbEFkZHJlc3MjZWxzZWlmKCRjb3JlX3YyX3VzZXIuSXNSZWdpc3RlcmVkKCR1c2VySWQpKSR1c2VyLlByaXZhdGVFbWFpbCNlbmQiIC8+DQoJCQkJCTwvc3Bhbj4NCgkJCQkJPHNwYW4gY2xhc3M9ImZpZWxkLWl0ZW0tdmFsaWRhdGlvbiIgc3R5bGU9ImRpc3BsYXk6IG5vbmU7Ij48L3NwYW4+DQoJCQkJCTwvbGk+DQoJCQkJCTxsaSBjbGFzcz0iZmllbGQtaXRlbSBmaXJzdC1uYW1lIj4NCgkJCQkJPGxhYmVsIGNsYXNzPSJmaWVsZC1pdGVtLWhlYWRlciIgZm9yPSIkY29yZV92Ml93aWRnZXQuVW5pcXVlSWQoJ2ZpcnN0TmFtZScpIj4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiRmlyc3ROYW1lIik8L2xhYmVsPg0KCQkJCQk8c3BhbiBjbGFzcz0iZmllbGQtaXRlbS1pbnB1dCI+DQoJCQkJCQk8aW5wdXQgdHlwZT0idGV4dCIgaWQ9IiRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnZmlyc3ROYW1lJykiIHNpemU9IjYwIiBuYW1lPSIkY29yZV92Ml93aWRnZXQuVW5pcXVlSWQoJ2ZpcnN0TmFtZScpIiB2YWx1ZT0iI2lmKCRyZWdpc3RyYXRpb24gJiYgJHJlZ2lzdHJhdGlvbi5GaXJzdE5hbWUubGVuZ3RoID4gMCkkcmVnaXN0cmF0aW9uLkZpcnN0TmFtZSNlbHNlJGZpcnN0TmFtZSNlbmQiIC8+DQoJCQkJCTwvc3Bhbj4NCgkJCQkJPHNwYW4gY2xhc3M9ImZpZWxkLWl0ZW0tdmFsaWRhdGlvbiIgc3R5bGU9ImRpc3BsYXk6IG5vbmU7Ij48L3NwYW4+DQoJCQkJCTwvbGk+DQoJCQkJCTxsaSBjbGFzcz0iZmllbGQtaXRlbSBsYXN0LW5hbWUiPg0KCQkJCQk8bGFiZWwgY2xhc3M9ImZpZWxkLWl0ZW0taGVhZGVyIiBmb3I9IiRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnbGFzdE5hbWUnKSI+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoIkxhc3ROYW1lIik8L2xhYmVsPg0KCQkJCQk8c3BhbiBjbGFzcz0iZmllbGQtaXRlbS1pbnB1dCI+DQoJCQkJCQk8aW5wdXQgdHlwZT0idGV4dCIgaWQ9IiRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnbGFzdE5hbWUnKSIgc2l6ZT0iNjAiIG5hbWU9IiRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnbGFzdE5hbWUnKSIgdmFsdWU9IiNpZigkcmVnaXN0cmF0aW9uICYmICRyZWdpc3RyYXRpb24uTGFzdE5hbWUubGVuZ3RoID4gMCkkcmVnaXN0cmF0aW9uLkxhc3ROYW1lI2Vsc2UkbGFzdE5hbWUjZW5kIiAvPg0KCQkJCQk8L3NwYW4+DQoJCQkJCTxzcGFuIGNsYXNzPSJmaWVsZC1pdGVtLXZhbGlkYXRpb24iIHN0eWxlPSJkaXNwbGF5OiBub25lOyI+PC9zcGFuPg0KCQkJCQk8L2xpPg0KCQkJCQk8bGkgY2xhc3M9ImZpZWxkLWl0ZW0gcmVnaXN0cmF0aW9uLWJ1dHRvbnMiPg0KCQkJCQkjaWYgKCRyZWdpc3RyYXRpb24gPT0gZmFsc2UgfHwgJHJlZ2lzdHJhdGlvbi5TdGF0dXMgPT0gJ0NhbmNlbGxlZCcpDQoJCQkJCQk8c3Bhbj4NCgkJCQkJCQk8YSBpZD0iJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdzYXZlJykiIG9uY2xpY2s9InJldHVybiBmYWxzZTsiIGNsYXNzPSJpbnRlcm5hbC1saW5rIGJ1dHRvbiBzYXZlIiBocmVmPSIjIj48c3Bhbj48L3NwYW4+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ0FkZFJlZ2lzdHJhdGlvbicpPC9hPg0KCQkJCQkJCTxzcGFuIGNsYXNzPSJwcm9jZXNzaW5nIiBzdHlsZT0iZGlzcGxheTpub25lOyI+PHNwYW4gY2xhc3M9InVpLWxvYWRpbmciIGRhdGEtd2lkdGg9IjQ1IiBkYXRhLWhlaWdodD0iMTUiPjwvc3Bhbj48L3NwYW4+DQoJCQkJCQk8L3NwYW4+DQoJCQkJCSNlbHNlaWYgKCRyZWdpc3RyYXRpb24gJiYgKCRyZWdpc3RyYXRpb24uU3RhdHVzID09ICdDb25maXJtZWQnIHx8ICRyZWdpc3RyYXRpb24uU3RhdHVzID09ICdOb3RBcHByb3ZlZCcpKQ0KCQkJCQkJPHNwYW4+DQoJCQkJCQkJPGEgaWQ9IiRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgndXBkYXRlJykiIG9uY2xpY2s9InJldHVybiBmYWxzZTsiIGNsYXNzPSJpbnRlcm5hbC1saW5rIGJ1dHRvbiB1cGRhdGUiIGhyZWY9IiMiPjxzcGFuPjwvc3Bhbj4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnVXBkYXRlUmVnaXN0cmF0aW9uJyk8L2E+DQoJCQkJCQkJPHNwYW4gY2xhc3M9InByb2Nlc3NpbmciIHN0eWxlPSJkaXNwbGF5Om5vbmU7Ij48c3BhbiBjbGFzcz0idWktbG9hZGluZyIgZGF0YS13aWR0aD0iNDUiIGRhdGEtaGVpZ2h0PSIxNSI+PC9zcGFuPjwvc3Bhbj4NCgkJCQkJCTwvc3Bhbj4NCgkJCQkJCTxzcGFuPg0KCQkJCQkJCTxhIGlkPSIkY29yZV92Ml93aWRnZXQuVW5pcXVlSWQoJ2NhbmNlbCcpIiBvbmNsaWNrPSJyZXR1cm4gZmFsc2U7IiBjbGFzcz0iaW50ZXJuYWwtbGluayBidXR0b24gY2FuY2VsLWJ1dHRvbiIgaHJlZj0iIyI+PHNwYW4+PC9zcGFuPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdDYW5jZWxSZWdpc3RyYXRpb24nKTwvYT4NCgkJCQkJCQk8c3BhbiBjbGFzcz0icHJvY2Vzc2luZyIgc3R5bGU9ImRpc3BsYXk6bm9uZTsiPjxzcGFuIGNsYXNzPSJ1aS1sb2FkaW5nIiBkYXRhLXdpZHRoPSI0NSIgZGF0YS1oZWlnaHQ9IjE1Ij48L3NwYW4+PC9zcGFuPg0KCQkJCQkJPC9zcGFuPg0KCQkJCQkjZWxzZWlmICgkcmVnaXN0cmF0aW9uICYmICRyZWdpc3RyYXRpb24uU3RhdHVzID09ICdJbnZpdGVkJykNCgkJCQkJCTxzcGFuPg0KCQkJCQkJCTxhIGlkPSIkY29yZV92Ml93aWRnZXQuVW5pcXVlSWQoJ3VwZGF0ZScpIiBvbmNsaWNrPSJyZXR1cm4gZmFsc2U7IiBjbGFzcz0iaW50ZXJuYWwtbGluayBidXR0b24gdXBkYXRlIiBocmVmPSIjIj48c3Bhbj48L3NwYW4+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ0FjY2VwdEludml0YXRpb24nKTwvYT4NCgkJCQkJCQk8c3BhbiBjbGFzcz0icHJvY2Vzc2luZyIgc3R5bGU9ImRpc3BsYXk6bm9uZTsiPjxzcGFuIGNsYXNzPSJ1aS1sb2FkaW5nIiBkYXRhLXdpZHRoPSI0NSIgZGF0YS1oZWlnaHQ9IjE1Ij48L3NwYW4+PC9zcGFuPg0KCQkJCQkJPC9zcGFuPg0KCQkJCQkJPHNwYW4+DQoJCQkJCQkJPGEgaWQ9IiRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnY2FuY2VsJykiIG9uY2xpY2s9InJldHVybiBmYWxzZTsiIGNsYXNzPSJpbnRlcm5hbC1saW5rIGJ1dHRvbiBjYW5jZWwtYnV0dG9uIiBocmVmPSIjIj48c3Bhbj48L3NwYW4+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1JlamVjdEludml0YXRpb24nKTwvYT4NCgkJCQkJCQk8c3BhbiBjbGFzcz0icHJvY2Vzc2luZyIgc3R5bGU9ImRpc3BsYXk6bm9uZTsiPjxzcGFuIGNsYXNzPSJ1aS1sb2FkaW5nIiBkYXRhLXdpZHRoPSI0NSIgZGF0YS1oZWlnaHQ9IjE1Ij48L3NwYW4+PC9zcGFuPg0KCQkJCQkJPC9zcGFuPg0KCQkJCQkjZW5kDQoNCgkJCQkJPC9saT4NCgkJCQk8L3VsPg0KCQkJCTwvZmllbGRzZXQ+DQoJCQkJPGRpdiBjbGFzcz0iZmllbGQtbGlzdC1mb290ZXIiPjwvZGl2Pg0KCQkJPC9kaXY+DQoJCTwvZm9ybT4NCg0KCQkjaWYgKCEkdXNlcklzUmVnaXN0ZXJlZCkNCgkJCTxkaXYgaWQ9IiRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnY2FuY2VsRm9ybScpIj4NCgkJCTxkaXYgY2xhc3M9ImZpZWxkLWxpc3QtaGVhZGVyIj48L2Rpdj4NCgkJCTxmaWVsZHNldCBjbGFzcz0iZmllbGQtbGlzdCI+DQoJCQkJPHVsIGNsYXNzPSJmaWVsZC1saXN0Ij4NCgkJCQk8bGkgY2xhc3M9ImZpZWxkLWl0ZW0gcmVnaXN0cmF0aW9uLWNvZGUiPg0KCQkJCQk8bGFiZWwgY2xhc3M9ImZpZWxkLWl0ZW0taGVhZGVyIiBmb3I9IiRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnY29kZScpIj4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiUmVnaXN0cmF0aW9uQ29kZSIpPC9sYWJlbD4NCgkJCQkJPHNwYW4gY2xhc3M9ImZpZWxkLWl0ZW0taW5wdXQiPg0KCQkJCQk8aW5wdXQgdHlwZT0idGV4dCIgaWQ9IiRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnY29kZScpIiBzaXplPSI2MCIgbmFtZT0iJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdyZWdpc3RyYXRpb25Db2RlJykiIC8+DQoJCQkJCTwvc3Bhbj4NCgkJCQkJPHNwYW4gY2xhc3M9ImZpZWxkLWl0ZW0tdmFsaWRhdGlvbiIgc3R5bGU9ImRpc3BsYXk6IG5vbmU7Ij48L3NwYW4+DQoJCQkJPC9saT4NCgkJCQkJPGxpIGNsYXNzPSJmaWVsZC1pdGVtIHJlZ2lzdHJhdGlvbi1jYW5jZWwiPg0KCQkJCQkJPHNwYW4gY2xhc3M9ImZpZWxkLWl0ZW0taW5wdXQiPg0KCQkJCQkJPGEgaWQ9IiRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnY2FuY2VsV2l0aENvZGUnKSIgb25jbGljaz0icmV0dXJuIGZhbHNlOyIgY2xhc3M9ImludGVybmFsLWxpbmsgc3VibWl0LWJ1dHRvbiBjYW5jZWwtYnV0dG9uIiBocmVmPSIjIj48c3Bhbj48L3NwYW4+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ0NhbmNlbFJlZ2lzdHJhdGlvbicpPC9hPg0KCQkJCQkJPHNwYW4gY2xhc3M9InByb2Nlc3NpbmciIHN0eWxlPSJkaXNwbGF5Om5vbmU7Ij48c3BhbiBjbGFzcz0idWktbG9hZGluZyIgZGF0YS13aWR0aD0iNDUiIGRhdGEtaGVpZ2h0PSIxNSI+PC9zcGFuPjwvc3Bhbj4NCgkJCQkJCTwvc3Bhbj4NCgkJCQkJPC9saT4NCgkJCQk8L3VsPg0KCQkJCTwvZmllbGRzZXQ+DQoJCQkJPGRpdiBjbGFzcz0iZmllbGQtbGlzdC1mb290ZXIiPjwvZGl2Pg0KCQkJPC9kaXY+DQoJCSNlbmQNCg0KCQkjcmVnaXN0ZXJFbmRPZlBhZ2VIdG1sKCd0ZWxsaWdlbnQuZXZvbHV0aW9uLkNhbGVuZGFyLndpZGdldHMuZXZlbnRyZWdpc3RyYXRpb25hZGQnKQ0KCQkJPHNjcmlwdCB0eXBlPSJ0ZXh0L2phdmFzY3JpcHQiIHNyYz0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkY29yZV92Ml93aWRnZXQuR2V0RmlsZVVybCgncmVnaXN0ZXItdWkuanMnKSkiPjwvc2NyaXB0Pg0KCQkjZW5kDQoNCgkJI3JlZ2lzdGVyRW5kT2ZQYWdlSHRtbCgpDQoJCQk8c2NyaXB0IHR5cGU9InRleHQvamF2YXNjcmlwdCI+DQoJCQkvLzwhW0NEQVRBWw0KCQkJalF1ZXJ5KGRvY3VtZW50KS5yZWFkeShmdW5jdGlvbihqKQ0KCQkJew0KCQkJai50ZWxsaWdlbnQuZXZvbHV0aW9uLkNhbGVuZGFyLndpZGdldHMuZXZlbnRSZWdpc3RyYXRpb25BZGQucmVnaXN0ZXIoew0KCQkJCXdyYXBwZXJJZDonJGNvcmVfdjJfd2lkZ2V0LldyYXBwZXJFbGVtZW50SWQnLA0KCQkJCXJlc3VsdE1lc3NhZ2VXcmFwcGVyOicjJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdpbmZvTWVzc2FnZVdyYXBwZXInKScsDQoJCQkJZWxlbWVudHMgOiB7DQoJCQkJc2F2ZSA6ICcjJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdzYXZlJyknLA0KCQkJCXVwZGF0ZTogJyMkY29yZV92Ml93aWRnZXQuVW5pcXVlSWQoJ3VwZGF0ZScpJywNCgkJCQljYW5jZWw6ICcjJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdjYW5jZWwnKScsDQoJCQkJY2FuY2VsV2l0aENvZGU6ICcjJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdjYW5jZWxXaXRoQ29kZScpJywNCgkJCQlhY2NlcHQ6ICcjJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdhY2NlcHQnKScsDQoJCQkJcmVqZWN0OiAnIyRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgncmVqZWN0JyknDQoJCQl9LA0KCQkJCWlucHV0czogew0KCQkJCQllbWFpbDonIyRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnZW1haWwnKScsDQoJCQkJCWZpcnN0TmFtZTonIyRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnZmlyc3ROYW1lJyknLA0KCQkJCQlsYXN0TmFtZTonIyRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnbGFzdE5hbWUnKScsDQoJCQkJCWNvZGU6JyMkY29yZV92Ml93aWRnZXQuVW5pcXVlSWQoJ2NvZGUnKScsDQoJCQkJfSwNCgkJCQlldmVudElkOiNpZigkZXZlbnQpJGV2ZW50LklkI2Vsc2UtMSNlbmQsDQoJCQkJZXZlbnRSZWdpc3RyYXRpb25UeXBlOiNpZigkZXZlbnQpJyRldmVudC5SZWdpc3RyYXRpb25UeXBlJyNlbHNlJ05vdFNldCcjZW5kLA0KCQkJCXRva2VuOiNpZigkcmVnaXN0cmF0aW9uKSckcmVnaXN0cmF0aW9uLlRva2VuJyNlbHNlLTEjZW5kLA0KCQkJCXN0YXR1czojaWYoJHJlZ2lzdHJhdGlvbiknJHJlZ2lzdHJhdGlvbi5TdGF0dXMnI2Vsc2UnTm90U2V0JyNlbmQsDQoJCQkJdXNlcjokdXNlcklkLA0KCQkJCXVzZXJJc1JlZ2lzdGVyZWQ6I2lmKCR1c2VySXNSZWdpc3RlcmVkID09ICdUcnVlJyl0cnVlICNlbHNlIGZhbHNlICNlbmQsDQoJCQkJcmVzb3VyY2VzOiB7DQoJCQkJCWVtYWlsUmVxdWlyZWRNZXNzYWdlOickY29yZV92Ml9lbmNvZGluZy5KYXZhc2NyaXB0RW5jb2RlKCRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdjYWxlbmRhcl92YWxpZGF0b3JfZW1haWxSZXF1aXJlZCcpKScsDQoJCQkJCWVtYWlsTGVuZ3RoTWVzc2FnZTonJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnY2FsZW5kYXJfdmFsaWRhdG9yX2VtYWlsTGVuZ3RoJykpJywNCgkJCQkJZW1haWxGb3JtYXRNZXNzYWdlOickY29yZV92Ml9lbmNvZGluZy5KYXZhc2NyaXB0RW5jb2RlKCRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdjYWxlbmRhcl92YWxpZGF0b3JfZW1haWxGb3JtYXQnKSknLA0KCQkJCQlmaXJzdE5hbWVSZXF1aXJlZE1lc3NhZ2U6JyRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ2NhbGVuZGFyX3ZhbGlkYXRvcl9maXJzdE5hbWVSZXF1aXJlZCcpKScsDQoJCQkJCWZpcnN0TmFtZUxlbmd0aE1lc3NhZ2U6JyRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ2NhbGVuZGFyX3ZhbGlkYXRvcl9maXJzdE5hbWVMZW5ndGgnKSknLA0KCQkJCQlsYXN0TmFtZVJlcXVpcmVkTWVzc2FnZTonJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnY2FsZW5kYXJfdmFsaWRhdG9yX2xhc3ROYW1lUmVxdWlyZWQnKSknLA0KCQkJCQlsYXN0TmFtZUxlbmd0aE1lc3NhZ2U6JyRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ2NhbGVuZGFyX3ZhbGlkYXRvcl9sYXN0TmFtZUxlbmd0aCcpKScsDQoJCQkJCXNhdmVQcm9jZXNzaW5nTWVzc2FnZTonJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnUmVnaXN0cmF0aW9uU2F2aW5nJykpJywNCgkJCQkJdXBkYXRlUHJvY2Vzc2luZ01lc3NhZ2U6JyRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1JlZ2lzdHJhdGlvblVwZGF0aW5nJykpJywNCgkJCQkJY2FuY2VscHJvY2Vzc2luZ01lc3NhZ2U6JyRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1JlZ2lzdHJhdGlvbkNhbmNlbGxpbmcnKSknLA0KCQkJCQlzYXZlU3VjY2Vzc01lc3NhZ2U6aignIyRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnUmVnaXN0cmF0aW9uU2F2aW5nU3VjY2VzcycpJyksDQoJCQkJCXVwZGF0ZVN1Y2Nlc3NNZXNzYWdlOickY29yZV92Ml9lbmNvZGluZy5KYXZhc2NyaXB0RW5jb2RlKCRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdSZWdpc3RyYXRpb25VcGRhdGluZ1N1Y2Nlc3MnKSknLA0KCQkJCQljYW5jZWxTdWNjZXNzTWVzc2FnZTonJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnUmVnaXN0cmF0aW9uQ2FuY2VsbGluZ1N1Y2Nlc3MnKSknLA0KCQkJCQlzYXZlRXJyb3JNZXNzYWdlOickY29yZV92Ml9lbmNvZGluZy5KYXZhc2NyaXB0RW5jb2RlKCRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdSZWdpc3RyYXRpb25TYXZpbmdFcnJvcicpKScsDQoJCQkJCXVwZGF0ZUVycm9yTWVzc2FnZTonJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnUmVnaXN0cmF0aW9uVXBkYXRpbmdFcnJvcicpKScsDQoJCQkJCWNhbmNlbEVycm9yTWVzc2FnZTonJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnUmVnaXN0cmF0aW9uQ2FuY2VsbGluZ0Vycm9yJykpJywNCgkJCQkJcmVnaXN0cmF0aW9uU3VjY2Vzc01lc3NhZ2U6JyRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1JlZ2lzdHJhdGlvbl9SZXF1ZXN0U3VjY2Vzc2Z1bCcpKScsDQoJCQkJCXVwZGF0ZVJlZ1N1Y2Nlc3NNZXNzYWdlOickY29yZV92Ml9lbmNvZGluZy5KYXZhc2NyaXB0RW5jb2RlKCRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdSZWdpc3RyYXRpb25VcGRhdGluZ1N1Y2Nlc3MnKSknLA0KCQkJCQlpbnZhbGlkR3VpZE1lc3NhZ2U6JyRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ2ludmFsaWRfR3VpZCcpKScNCgkJCQl9LA0KCQkJCXNhdmVVcmw6ICckY29yZV92Ml9lbmNvZGluZy5KYXZhc2NyaXB0RW5jb2RlKCRjb3JlX3YyX3dpZGdldC5HZXRFeGVjdXRlZEZpbGVVcmwoJ3NhdmUudm0nKSknLA0KCQkJCWNhbmNlbFVybDogJyRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJGNvcmVfdjJfd2lkZ2V0LkdldEV4ZWN1dGVkRmlsZVVybCgnY2FuY2VsLnZtJykpJywNCgkJCX0pOw0KCQkJfSk7DQoNCgkJCS8vXV0+DQoJCQk8L3NjcmlwdD4NCgkJI2VuZA0KCTwvYm9keT4NCjwvaHRtbD4NCg==</file>
+			<file name="register-ui.js">KGZ1bmN0aW9uICgkLCBnbG9iYWwpIHsNCiAgICBpZiAodHlwZW9mICQudGVsbGlnZW50ID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudCA9IHt9OyB9DQogICAgaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbiA9IHt9OyB9DQogICAgaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPSB7fTsgfQ0KICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLkNhbGVuZGFyID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24uQ2FsZW5kYXIgPSB7fTsgfQ0KICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLkNhbGVuZGFyLndpZGdldHMgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi5DYWxlbmRhci53aWRnZXRzID0ge307IH0NCg0KICAgIHZhciBidXR0b25UZXh0ID0gIiIsDQogICAgIF9zZXRFcnJvciA9IGZ1bmN0aW9uIChjb250ZXh0KSB7DQogICAgICAgICBjb250ZXh0LmVycm9yTWVzc2FnZS5zbGlkZURvd24oKTsNCiAgICAgICAgIGdsb2JhbC5zZXRUaW1lb3V0KGZ1bmN0aW9uICgpIHsNCiAgICAgICAgICAgICBjb250ZXh0LmVycm9yTWVzc2FnZS5mYWRlT3V0KCkuc2xpZGVVcCgpOw0KICAgICAgICAgfSwgOTk5OSk7DQogICAgIH0sDQogICAgX3NldFN1Y2Nlc3MgPSBmdW5jdGlvbiAod3JhcHBlcikgew0KICAgICAgICB3cmFwcGVyLnNsaWRlVXAoZnVuY3Rpb24gKCkgew0KICAgICAgICAgICAgd3JhcHBlci5zbGlkZURvd24oKTsNCiAgICAgICAgfSk7DQogICAgfSwNCiAgICBfc2V0V2FpdCA9IGZ1bmN0aW9uIChjb250ZXh0LCBidXR0b24pIHsNCiAgICAgICAgdmFyIHNwaW5uZXIgPSAnPHNwYW4gY2xhc3M9InVpLWxvYWRpbmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PC9zcGFuPic7DQogICAgICAgIGJ1dHRvbi5hdHRyKCJkaXNhYmxlZCIsIHRydWUpOw0KICAgICAgICBidXR0b25UZXh0ID0gYnV0dG9uLnZhbCgpOw0KICAgICAgICBidXR0b24udmFsKGNvbnRleHQucHJvY2Vzc2luZ01lc3NhZ2UpOw0KICAgICAgICAkKCcucHJvY2Vzc2luZycsICQoJyMnICsgY29udGV4dC53cmFwcGVySWQpKS5odG1sKHNwaW5uZXIpLnNob3coKTsNCiAgICB9LA0KICAgIF9jbGVhcldhaXQgPSBmdW5jdGlvbiAoY29udGV4dCwgYnV0dG9uKSB7DQogICAgICAgIGJ1dHRvbi5yZW1vdmVBdHRyKCJkaXNhYmxlZCIpOw0KICAgICAgICBidXR0b24udmFsKGJ1dHRvblRleHQpOw0KICAgICAgICAkKCcucHJvY2Vzc2luZycsICQoJyMnICsgY29udGV4dC53cmFwcGVySWQpKS5odG1sKCcnKS5oaWRlKCk7DQogICAgfSwNCglfYXR0YWNoSGFuZGxlcnMgPSBmdW5jdGlvbiAoY29udGV4dCkgew0KCSAgICAkY2FuY2VsV2l0aENvZGUgPSAkKGNvbnRleHQuZWxlbWVudHMuY2FuY2VsV2l0aENvZGUpOw0KCSAgICAkY2FuY2VsV2l0aENvZGUuZXZvbHV0aW9uVmFsaWRhdGlvbih7DQoJICAgICAgICBvblZhbGlkYXRlZDogZnVuY3Rpb24gKGlzVmFsaWQsIGJ1dHRvbkNsaWNrZWQsIGMpIHsgaWYgKGlzVmFsaWQpIHsgJGNhbmNlbFdpdGhDb2RlLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOyB9IGVsc2UgeyAkY2FuY2VsV2l0aENvZGUuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7IH0gfSwNCgkgICAgICAgIG9uU3VjY2Vzc2Z1bENsaWNrOiBmdW5jdGlvbiAoZSkgeyBfY2FuY2VsUmVnaXN0cmF0aW9uV2l0aENvZGUoY29udGV4dCk7IH0NCgkgICAgfSk7DQoJICAgICRjYW5jZWxXaXRoQ29kZS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRDdXN0b21WYWxpZGF0aW9uJywgY29udGV4dC5pbnB1dHMuY29kZSwgZnVuY3Rpb24gKCkgew0KCSAgICAgICAgcmV0dXJuIF90ZXN0R3VpZCgkKGNvbnRleHQuaW5wdXRzLmNvZGUpLnZhbCgpKTsNCgkgICAgfSwgY29udGV4dC5yZXNvdXJjZXMuaW52YWxpZEd1aWRNZXNzYWdlLCAnIycgKyBjb250ZXh0LndyYXBwZXJJZCArICcgLmZpZWxkLWl0ZW0ucmVnaXN0cmF0aW9uLWNvZGUgLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicsIG51bGwpOw0KDQoJICAgICRzYXZlID0gJChjb250ZXh0LmVsZW1lbnRzLnNhdmUpOw0KCSAgICAkc2F2ZS5ldm9sdXRpb25WYWxpZGF0aW9uKHsNCgkgICAgICAgIG9uVmFsaWRhdGVkOiBmdW5jdGlvbiAoaXNWYWxpZCwgYnV0dG9uQ2xpY2tlZCwgYykgeyBpZiAoaXNWYWxpZCkgeyAkc2F2ZS5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsgfSBlbHNlIHsgJHNhdmUuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7IH0gfSwNCgkgICAgICAgIG9uU3VjY2Vzc2Z1bENsaWNrOiBmdW5jdGlvbiAoZSkgeyBfc2F2ZVJlZ2lzdHJhdGlvbihjb250ZXh0KTsgfQ0KCSAgICB9KTsNCgkgICAgJHNhdmUuZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkRmllbGQnLCBjb250ZXh0LmlucHV0cy5lbWFpbCwgeyBlbWFpbDogdHJ1ZSwgcmVxdWlyZWQ6IHRydWUsIG1lc3NhZ2VzOiB7IGVtYWlsOiBjb250ZXh0LnJlc291cmNlcy5lbWFpbEZvcm1hdE1lc3NhZ2UsIHJlcXVpcmVkOiBjb250ZXh0LnJlc291cmNlcy5lbWFpbFJlcXVpcmVkTWVzc2FnZSB9IH0sICcuZmllbGQtaXRlbS5lbWFpbC1hZGRyZXNzIC5maWVsZC1pdGVtLXZhbGlkYXRpb24nLCBudWxsKTsNCgkgICAgJHNhdmUuZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkRmllbGQnLCBjb250ZXh0LmlucHV0cy5maXJzdE5hbWUsIHsgcmVxdWlyZWQ6IHRydWUsIG1lc3NhZ2VzOiB7IHJlcXVpcmVkOiBjb250ZXh0LnJlc291cmNlcy5maXJzdE5hbWVSZXF1aXJlZE1lc3NhZ2UgfSB9LCAnLmZpZWxkLWl0ZW0uZmlyc3QtbmFtZSAuZmllbGQtaXRlbS12YWxpZGF0aW9uJywgbnVsbCk7DQoJICAgICRzYXZlLmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEZpZWxkJywgY29udGV4dC5pbnB1dHMubGFzdE5hbWUsIHsgcmVxdWlyZWQ6IHRydWUsIG1lc3NhZ2VzOiB7IHJlcXVpcmVkOiBjb250ZXh0LnJlc291cmNlcy5sYXN0TmFtZVJlcXVpcmVkTWVzc2FnZSB9IH0sICcuZmllbGQtaXRlbS5sYXN0LW5hbWUgLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicsIG51bGwpDQoNCgkgICAgJHVwZGF0ZSA9ICQoY29udGV4dC5lbGVtZW50cy51cGRhdGUpOw0KCSAgICAkdXBkYXRlLmV2b2x1dGlvblZhbGlkYXRpb24oew0KCSAgICAgICAgb25WYWxpZGF0ZWQ6IGZ1bmN0aW9uIChpc1ZhbGlkLCBidXR0b25DbGlja2VkLCBjKSB7IGlmIChpc1ZhbGlkKSB7ICR1cGRhdGUucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7IH0gZWxzZSB7ICR1cGRhdGUuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7IH0gfSwNCgkgICAgICAgIG9uU3VjY2Vzc2Z1bENsaWNrOiBmdW5jdGlvbiAoZSkgeyBfdXBkYXRlUmVnaXN0cmF0aW9uKGNvbnRleHQpOyB9DQoJICAgIH0pOw0KCSAgICAkdXBkYXRlLmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEZpZWxkJywgY29udGV4dC5pbnB1dHMuZW1haWwsIHsgZW1haWw6IHRydWUsIHJlcXVpcmVkOiB0cnVlLCBtZXNzYWdlczogeyBlbWFpbDogY29udGV4dC5yZXNvdXJjZXMuZW1haWxGb3JtYXRNZXNzYWdlLCByZXF1aXJlZDogY29udGV4dC5yZXNvdXJjZXMuZW1haWxSZXF1aXJlZE1lc3NhZ2UgfSB9LCAnLmZpZWxkLWl0ZW0uZW1haWwtYWRkcmVzcyAuZmllbGQtaXRlbS12YWxpZGF0aW9uJywgbnVsbCk7DQoJICAgICR1cGRhdGUuZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkRmllbGQnLCBjb250ZXh0LmlucHV0cy5maXJzdE5hbWUsIHsgcmVxdWlyZWQ6IHRydWUsIG1lc3NhZ2VzOiB7IHJlcXVpcmVkOiBjb250ZXh0LnJlc291cmNlcy5maXJzdE5hbWVSZXF1aXJlZE1lc3NhZ2UgfSB9LCAnLmZpZWxkLWl0ZW0uZmlyc3QtbmFtZSAuZmllbGQtaXRlbS12YWxpZGF0aW9uJywgbnVsbCk7DQoJICAgICR1cGRhdGUuZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkRmllbGQnLCBjb250ZXh0LmlucHV0cy5sYXN0TmFtZSwgeyByZXF1aXJlZDogdHJ1ZSwgbWVzc2FnZXM6IHsgcmVxdWlyZWQ6IGNvbnRleHQucmVzb3VyY2VzLmxhc3ROYW1lUmVxdWlyZWRNZXNzYWdlIH0gfSwgJy5maWVsZC1pdGVtLmxhc3QtbmFtZSAuZmllbGQtaXRlbS12YWxpZGF0aW9uJywgbnVsbCk7DQoNCgkgICAgJChjb250ZXh0LmVsZW1lbnRzLmNhbmNlbCkuY2xpY2soZnVuY3Rpb24gKCkgew0KCSAgICAgICAgX2NhbmNlbFJlZ2lzdHJhdGlvbihjb250ZXh0KTsNCgkgICAgICAgIHJldHVybiBmYWxzZTsNCgkgICAgfSk7DQoJfSwNCglfc2F2ZVJlZ2lzdHJhdGlvbiA9IGZ1bmN0aW9uIChjb250ZXh0KSB7DQoNCgkgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KCSAgICAgICAgdXJsOiBjb250ZXh0LnNhdmVVcmwsDQoJICAgICAgICBkYXRhOiBfcG9wdWxhdGVEYXRhKGNvbnRleHQsIHRydWUpLA0KCSAgICAgICAgc3VjY2VzczogZnVuY3Rpb24gKHJlc3BvbnNlKSB7DQoJICAgICAgICAgICAgaWYgKHJlc3BvbnNlLnJlZGlyZWN0VXJsKSB7DQoJICAgICAgICAgICAgICAgIHdpbmRvdy5wYXJlbnQuJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyhjb250ZXh0LnJlc291cmNlcy5yZWdpc3RyYXRpb25TdWNjZXNzTWVzc2FnZSk7DQoJICAgICAgICAgICAgICAgIHdpbmRvdy5wYXJlbnQuJC5nbG93TW9kYWwub3BlbmVyKHdpbmRvdykuJC5nbG93TW9kYWwuY2xvc2UoJ3JldHVybiB2YWx1ZScpOw0KCSAgICAgICAgICAgIH0NCgkgICAgICAgICAgICBlbHNlIGlmIChyZXNwb25zZS5lcnJvcnMpIHsNCgkgICAgICAgICAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyhjb250ZXh0LnJlc291cmNlcy5zYXZlRXJyb3JNZXNzYWdlICsgJyAnICsgcmVzcG9uc2UuZXJyb3JzWzBdLmVycm9yLCB7IHR5cGU6ICd3YXJuaW5nJyB9KTsNCgkgICAgICAgICAgICAgICAgJChjb250ZXh0LmVsZW1lbnRzLnNhdmUpLnBhcmVudCgpLnJlbW92ZUNsYXNzKCdwcm9jZXNzaW5nJyk7DQoJICAgICAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy5zYXZlKS5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsNCgkgICAgICAgICAgICB9DQoJICAgICAgICB9LA0KCSAgICAgICAgZGVmYXVsdEVycm9yTWVzc2FnZTogY29udGV4dC5yZXNvdXJjZXMuc2F2ZUVycm9yTWVzc2FnZSwNCgkgICAgICAgIGVycm9yOiBmdW5jdGlvbiAoeGhyLCBkZXNjLCBleCkgew0KCSAgICAgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coZGVzYywgeyB0eXBlOiAnZXJyb3InIH0pOw0KCSAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy5zYXZlKS5wYXJlbnQoKS5yZW1vdmVDbGFzcygncHJvY2Vzc2luZycpOw0KCSAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy5zYXZlKS5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsNCgkgICAgICAgIH0NCgkgICAgfSk7DQoNCgl9LA0KCV91cGRhdGVSZWdpc3RyYXRpb24gPSBmdW5jdGlvbiAoY29udGV4dCkgew0KDQoJICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5wb3N0KHsNCgkgICAgICAgIHVybDogY29udGV4dC5zYXZlVXJsLA0KCSAgICAgICAgZGF0YTogX3BvcHVsYXRlRGF0YShjb250ZXh0LCBmYWxzZSksDQoJICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsNCgkgICAgICAgICAgICBpZiAocmVzcG9uc2UucmVkaXJlY3RVcmwpIHsNCgkgICAgICAgICAgICAgICAgd2luZG93LnBhcmVudC4kLmdsb3dNb2RhbC5vcGVuZXIod2luZG93KS4kLmdsb3dNb2RhbC5jbG9zZSgncmV0dXJuIHZhbHVlJyk7DQoJICAgICAgICAgICAgfQ0KCSAgICAgICAgICAgIGVsc2UgaWYgKHJlc3BvbnNlLmVycm9ycykgew0KCSAgICAgICAgICAgICAgICBhbGVydChjb250ZXh0LnJlc291cmNlcy51cGRhdGVFcnJvck1lc3NhZ2UgKyAnXG5cbicgKyByZXNwb25zZS5lcnJvcnNbMF0uZXJyb3IpOw0KCSAgICAgICAgICAgICAgICAkKGNvbnRleHQuZWxlbWVudHMudWRwYXRlKS5wYXJlbnQoKS5yZW1vdmVDbGFzcygncHJvY2Vzc2luZycpOw0KCSAgICAgICAgICAgICAgICAkKGNvbnRleHQuZWxlbWVudHMudWRwYXRlKS5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsNCgkgICAgICAgICAgICB9DQoJICAgICAgICAgICAgZWxzZSB7DQoJICAgICAgICAgICAgICAgICQoY29udGV4dC5yZXN1bHRNZXNzYWdlV3JhcHBlcikuaHRtbChjb250ZXh0LnJlc291cmNlcy51cGRhdGVSZWdTdWNjZXNzTWVzc2FnZSk7DQoJICAgICAgICAgICAgICAgIF9zZXRTdWNjZXNzKCQoY29udGV4dC5yZXN1bHRNZXNzYWdlV3JhcHBlcikpOw0KCSAgICAgICAgICAgIH0NCgkgICAgICAgIH0sDQoJICAgICAgICBkZWZhdWx0RXJyb3JNZXNzYWdlOiBjb250ZXh0LnJlc291cmNlcy51cGRhdGVFcnJvck1lc3NhZ2UsDQoJICAgICAgICBlcnJvcjogZnVuY3Rpb24gKHhociwgZGVzYywgZXgpIHsNCgkgICAgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ubm90aWZpY2F0aW9ucy5zaG93KGRlc2MsIHsgdHlwZTogJ2Vycm9yJyB9KTsNCgkgICAgICAgICAgICAkKGNvbnRleHQuZWxlbWVudHMudWRwYXRlKS5wYXJlbnQoKS5yZW1vdmVDbGFzcygncHJvY2Vzc2luZycpOw0KCSAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy51ZHBhdGUpLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCSAgICAgICAgfQ0KCSAgICB9KTsNCg0KCX0sDQoJX2NhbmNlbFJlZ2lzdHJhdGlvbiA9IGZ1bmN0aW9uIChjb250ZXh0KSB7DQoNCgkgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KCSAgICAgICAgdXJsOiBjb250ZXh0LmNhbmNlbFVybCwNCgkgICAgICAgIGRhdGE6IF9wb3B1bGF0ZUNhbmNlbERhdGEoY29udGV4dCksDQoJICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsNCgkgICAgICAgICAgICBpZiAocmVzcG9uc2UucmVkaXJlY3RVcmwpIHsNCgkgICAgICAgICAgICAgICAgd2luZG93LnBhcmVudC4kLmdsb3dNb2RhbC5vcGVuZXIod2luZG93KS4kLmdsb3dNb2RhbC5jbG9zZSgncmV0dXJuIHZhbHVlJyk7DQoJICAgICAgICAgICAgfQ0KCSAgICAgICAgICAgIGVsc2UgaWYgKHJlc3BvbnNlLmVycm9ycykgew0KCSAgICAgICAgICAgICAgICBhbGVydChjb250ZXh0LnJlc291cmNlcy5jYW5jZWxFcnJvck1lc3NhZ2UgKyAnXG5cbicgKyByZXNwb25zZS5lcnJvcnNbMF0uZXJyb3IpOw0KDQoJICAgICAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy5jYW5jZWwpLnBhcmVudCgpLnJlbW92ZUNsYXNzKCdwcm9jZXNzaW5nJyk7DQoJICAgICAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy5jYW5jZWwpLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCSAgICAgICAgICAgIH0NCgkgICAgICAgIH0sDQoJICAgICAgICBkZWZhdWx0RXJyb3JNZXNzYWdlOiBjb250ZXh0LnJlc291cmNlcy5jYW5jZWxFcnJvck1lc3NhZ2UsDQoJICAgICAgICBlcnJvcjogZnVuY3Rpb24gKHhociwgZGVzYywgZXgpIHsNCgkgICAgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ubm90aWZpY2F0aW9ucy5zaG93KGRlc2MsIHsgdHlwZTogJ2Vycm9yJyB9KTsNCgkgICAgICAgICAgICAkKGNvbnRleHQuZWxlbWVudHMuY2FuY2VsKS5wYXJlbnQoKS5yZW1vdmVDbGFzcygncHJvY2Vzc2luZycpOw0KCSAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy5jYW5jZWwpLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCSAgICAgICAgfQ0KCSAgICB9KTsNCgl9LA0KDQogICAgX3BvcHVsYXRlRGF0YSA9IGZ1bmN0aW9uIChjb250ZXh0LCBpc05ldykgew0KICAgICAgICB2YXIgZGF0YSA9IHsNCiAgICAgICAgICAgIEV2ZW50SWQ6IGNvbnRleHQuZXZlbnRJZCwNCiAgICAgICAgICAgIFVzZXJJZDogY29udGV4dC51c2VyLA0KICAgICAgICAgICAgVG9rZW46IGNvbnRleHQudG9rZW4NCiAgICAgICAgfTsNCg0KICAgICAgICBpZiAoJChjb250ZXh0LmlucHV0cy5lbWFpbCkubGVuZ3RoID4gMCkgew0KICAgICAgICAgICAgZGF0YS5FbWFpbCA9ICQoY29udGV4dC5pbnB1dHMuZW1haWwpLnZhbCgpOw0KICAgICAgICB9DQoNCiAgICAgICAgaWYgKCQoY29udGV4dC5pbnB1dHMuZmlyc3ROYW1lKS5sZW5ndGggPiAwKSB7DQogICAgICAgICAgICBkYXRhLkZpcnN0TmFtZSA9ICQoY29udGV4dC5pbnB1dHMuZmlyc3ROYW1lKS52YWwoKTsNCiAgICAgICAgfQ0KDQogICAgICAgIGlmICgkKGNvbnRleHQuaW5wdXRzLmxhc3ROYW1lKS5sZW5ndGggPiAwKSB7DQogICAgICAgICAgICBkYXRhLkxhc3ROYW1lID0gJChjb250ZXh0LmlucHV0cy5sYXN0TmFtZSkudmFsKCk7DQogICAgICAgIH0NCg0KICAgICAgICBpZiAoaXNOZXcgfHwgY29udGV4dC5zdGF0dXMgPT0gJ0NhbmNlbGxlZCcgfHwgY29udGV4dC5zdGF0dXMgPT0gJ05vdFNldCcpIHsNCiAgICAgICAgICAgIGlmIChjb250ZXh0LmV2ZW50UmVnaXN0cmF0aW9uVHlwZSA9PSAnT3BlbicgJiYgY29udGV4dC51c2VySXNSZWdpc3RlcmVkKQ0KICAgICAgICAgICAgICAgIGRhdGEuU3RhdHVzID0gJ0NvbmZpcm1lZCc7DQogICAgICAgICAgICBlbHNlDQogICAgICAgICAgICAgICAgZGF0YS5TdGF0dXMgPSAnTm90QXBwcm92ZWQnOw0KICAgICAgICB9DQogICAgICAgIGVsc2Ugew0KICAgICAgICAgICAgaWYgKGNvbnRleHQuc3RhdHVzID09ICdJbnZpdGVkJykNCiAgICAgICAgICAgICAgICBkYXRhLlN0YXR1cyA9ICdDb25maXJtZWQnOw0KICAgICAgICB9DQogICAgICAgIHJldHVybiBkYXRhOw0KICAgIH0sDQoNCiAgICBfcG9wdWxhdGVDYW5jZWxEYXRhID0gZnVuY3Rpb24gKGNvbnRleHQpIHsNCiAgICAgICAgdmFyIGRhdGEgPSB7DQogICAgICAgICAgICBFdmVudElkOiBjb250ZXh0LmV2ZW50SWQsDQogICAgICAgICAgICBUb2tlbjogY29udGV4dC50b2tlbg0KICAgICAgICB9Ow0KDQogICAgICAgIHJldHVybiBkYXRhOw0KICAgIH0sDQoNCiAgICBfY2FuY2VsUmVnaXN0cmF0aW9uV2l0aENvZGUgPSBmdW5jdGlvbiAoY29udGV4dCkgew0KDQogICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5wb3N0KHsNCiAgICAgICAgICAgIHVybDogY29udGV4dC5jYW5jZWxVcmwsDQogICAgICAgICAgICBkYXRhOiBfcG9wdWxhdGVDYW5jZWxXaXRoQ29kZURhdGEoY29udGV4dCksDQogICAgICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsNCiAgICAgICAgICAgICAgICBpZiAocmVzcG9uc2UucmVkaXJlY3RVcmwpIHsNCiAgICAgICAgICAgICAgICAgICAgd2luZG93LnBhcmVudC4kLnRlbGxpZ2VudC5ldm9sdXRpb24ubm90aWZpY2F0aW9ucy5zaG93KGNvbnRleHQucmVzb3VyY2VzLmNhbmNlbFN1Y2Nlc3NNZXNzYWdlKTsNCiAgICAgICAgICAgICAgICAgICAgd2luZG93LnBhcmVudC4kLmdsb3dNb2RhbC5vcGVuZXIod2luZG93KS4kLmdsb3dNb2RhbC5jbG9zZSgncmV0dXJuIHZhbHVlJyk7DQogICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgICAgIGVsc2UgaWYgKHJlc3BvbnNlLmVycm9ycykgew0KICAgICAgICAgICAgICAgICAgICBhbGVydChjb250ZXh0LnJlc291cmNlcy5jYW5jZWxFcnJvck1lc3NhZ2UgKyAnXG5cbicgKyByZXNwb25zZS5lcnJvcnNbMF0uZXJyb3IpOw0KDQogICAgICAgICAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy5jYW5jZWwpLnBhcmVudCgpLnJlbW92ZUNsYXNzKCdwcm9jZXNzaW5nJyk7DQogICAgICAgICAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy5jYW5jZWwpLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KICAgICAgICAgICAgICAgIH0NCiAgICAgICAgICAgIH0sDQogICAgICAgICAgICBkZWZhdWx0RXJyb3JNZXNzYWdlOiBjb250ZXh0LnJlc291cmNlcy5jYW5jZWxFcnJvck1lc3NhZ2UsDQogICAgICAgICAgICBlcnJvcjogZnVuY3Rpb24gKHhociwgZGVzYywgZXgpIHsNCiAgICAgICAgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ubm90aWZpY2F0aW9ucy5zaG93KGRlc2MsIHsgdHlwZTogJ2Vycm9yJyB9KTsNCiAgICAgICAgICAgICAgICAkKGNvbnRleHQuZWxlbWVudHMuY2FuY2VsKS5wYXJlbnQoKS5yZW1vdmVDbGFzcygncHJvY2Vzc2luZycpOw0KICAgICAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy5jYW5jZWwpLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KICAgICAgICAgICAgfQ0KICAgICAgICB9KTsNCiAgICB9LA0KDQogICAgX3BvcHVsYXRlQ2FuY2VsV2l0aENvZGVEYXRhID0gZnVuY3Rpb24gKGNvbnRleHQpIHsNCiAgICAgICAgdmFyIGRhdGEgPSB7DQogICAgICAgICAgICBFdmVudElkOiBjb250ZXh0LmV2ZW50SWQNCiAgICAgICAgfTsNCg0KICAgICAgICBpZiAoJChjb250ZXh0LmlucHV0cy5jb2RlKS5sZW5ndGggPiAwKSB7DQogICAgICAgICAgICBkYXRhLlRva2VuID0gJChjb250ZXh0LmlucHV0cy5jb2RlKS52YWwoKTsNCiAgICAgICAgfQ0KDQogICAgICAgIHJldHVybiBkYXRhOw0KICAgIH07DQoNCiAgICBfdGVzdEd1aWQgPSBmdW5jdGlvbiAodmFsdWUpIHsNCiAgICAgICAgdmFyIHZhbGlkR3VpZCA9IC9eKHt8KCk/WzAtOWEtZkEtRl17OH0tKFswLTlhLWZBLUZdezR9LSl7M31bMC05YS1mQS1GXXsxMn0ofXwpKT8kLzsNCiAgICAgICAgdmFyIGVtcHR5R3VpZCA9IC9eKHt8KCk/MHs4fS0oMHs0fS0pezN9MHsxMn0ofXwpKT8kLzsNCiAgICAgICAgcmV0dXJuIHZhbGlkR3VpZC50ZXN0KHZhbHVlKSAmJiAhZW1wdHlHdWlkLnRlc3QodmFsdWUpOw0KICAgIH07DQoNCiAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24uQ2FsZW5kYXIud2lkZ2V0cy5ldmVudFJlZ2lzdHJhdGlvbkFkZCA9IHsNCiAgICAgICAgcmVnaXN0ZXI6IGZ1bmN0aW9uIChjb250ZXh0KSB7DQogICAgICAgICAgICBfYXR0YWNoSGFuZGxlcnMoY29udGV4dCk7DQogICAgICAgIH0NCiAgICB9Ow0KDQp9KShqUXVlcnksIHdpbmRvdyk7DQo=</file>
+			<file name="save.vm">77u/JGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoNCiNzZXQoJGV2ZW50SWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdFdmVudElkJykpKQ0KI3NldCgkZXZlbnQgPSBmYWxzZSkNCiNzZXQoJGV2ZW50ID0gJGNhbGVuZGFyX3YxX2V2ZW50cy5TaG93KCRldmVudElkKSkNCiNpZighJGV2ZW50KQ0KICAgICRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcignVGhlIHNwZWNpZmllZCBldmVudCBub3QgYmUgcmV0cmlldmVkJykNCiNlbmQNCg0KI3NldCgkdG9rZW4gPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlR3VpZCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnVG9rZW4nKSkpDQoNCiNzZXQoJHJlZ2lzdHJhdGlvbiA9IGZhbHNlKQ0KDQojc2V0KCRlbWFpbCA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdFbWFpbCcpKQ0KI3NldCgkdXNlcklkID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ1VzZXJJZCcpKQ0KI3NldCgkZmlyc3ROYW1lID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0ZpcnN0TmFtZScpKQ0KI3NldCgkbGFzdE5hbWUgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnTGFzdE5hbWUnKSkNCiNzZXQoJHN0YXR1cyA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdTdGF0dXMnKSkNCg0KI2lmICgkdG9rZW4gPT0gJzAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCcpDQogICAgI3NldCgkb3B0aW9ucyA9ICIle0VtYWlsPSRlbWFpbCxVc2VySWQ9JHVzZXJJZCxGaXJzdE5hbWU9JGZpcnN0TmFtZSxMYXN0TmFtZT0kbGFzdE5hbWUsU3RhdHVzPSRzdGF0dXN9IikNCiAgICAjc2V0KCRyZWdpc3RyYXRpb24gPSAkY2FsZW5kYXJfdjFfcmVnaXN0cmF0aW9ucy5DcmVhdGUoJGV2ZW50SWQsICRvcHRpb25zKSkNCiNlbHNlDQogICAgI3NldCgkb3B0aW9ucyA9ICIle0VtYWlsPSRlbWFpbCxGaXJzdE5hbWU9JGZpcnN0TmFtZSxMYXN0TmFtZT0kbGFzdE5hbWUsU3RhdHVzPSRzdGF0dXN9IikNCiAgICAjc2V0KCRyZWdpc3RyYXRpb24gPSAkY2FsZW5kYXJfdjFfcmVnaXN0cmF0aW9ucy5VcGRhdGUoJHRva2VuLCAkb3B0aW9ucykpDQojZW5kDQoNCiNpZigkcmVnaXN0cmF0aW9uLkVycm9ycy5Db3VudCA+IDApDQogICAgJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCRyZWdpc3RyYXRpb24uRXJyb3JzKQ0KI2VuZA0KDQojaWYgKCR1c2VySWQgPT0gLTEpDQogICAgI3NldCAoJHF1ZXJ5c3RyaW5nID0gInRrbj0kcmVnaXN0cmF0aW9uLlRva2VuJnJlZ2lzdGVyZWQ9JHJlZ2lzdHJhdGlvbi5TdGF0dXMuVG9TdHJpbmcoKSIpDQojZWxzZQ0KICAgICNzZXQgKCRxdWVyeXN0cmluZyA9ICJyZWdpc3RlcmVkPSRyZWdpc3RyYXRpb24uU3RhdHVzLlRvU3RyaW5nKCkiKQ0KI2VuZA0KDQojc2V0ICgkdXJsID0gJGNhbGVuZGFyX3YxX3VybHMuRXZlbnQoJGV2ZW50SWQpKQ0KDQp7InJlZGlyZWN0VXJsIjoiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkY29yZV92Ml9wYWdlLkFkanVzdFF1ZXJ5U3RyaW5nKCR1cmwsICRxdWVyeXN0cmluZykpIn0=</file>
+			<file name="subscribe.vm">77u/I3NldCgkdHlwZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCd0eXBlJykpDQojc2V0KCRzdWJzY3JpYmUgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlQm9vbCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnc3Vic2NyaWJlJykpKQ0KJGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoNCiRjYWxlbmRhcl92MV9ldmVudHMuU2V0U3Vic2NyaWJlZCgkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdldmVudElkJykpLCAkc3Vic2NyaWJlKQ0KeyJzdWJzY3JpYmUiOiNpZigkc3Vic2NyaWJlKSB0cnVlI2Vsc2UgZmFsc2UjZW5kfQ==</file>
+			<file name="subview-tags.vm">77u/I2ZvcmVhY2ggKCR0YWcgaW4gJGV2ZW50LlRhZ3MpDQogICNiZWZvcmVhbGwNCiAgICA8ZGl2IGNsYXNzPSJjb250ZW50LXRhZ3MiPg0KICAgIDx1bCBjbGFzcz0idGFnLWxpc3QiPg0KICAjZWFjaA0KICAgICNzZXQoJHRhZ1VybCA9IGZhbHNlKQ0KICAgICNzZXQoJHRhZ1VybCA9ICRjb3JlX3YyX3VybHMuVGFncygkY29yZV92Ml91dGlsaXR5Lk1ha2VMaXN0KCR0YWcpKSkNCiAgICAjaWYgKCR0YWdVcmwpDQogICAgICA8bGkgY2xhc3M9InRhZy1pdGVtIj4NCiAgICAgICAgPGEgaHJlZj0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkdGFnVXJsKSIgcmVsPSJ0YWciPiR0YWc8L2E+DQogICAgICA8L2xpPg0KICAgICNlbmQNCiAgI2FmdGVyYWxsDQogICAgPC91bD4NCiAgICA8L2Rpdj4NCiNlbmQ=</file>
+			<file name="ui.js">KGZ1bmN0aW9uICgkKSB7DQogICAgDQogICAgaWYgKHR5cGVvZiAkLnRlbGxpZ2VudCA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQgPSB7fTsgfQ0KICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSB7fTsgfQ0KICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID0ge307IH0NCiAgICBpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbi5DYWxlbmRhciA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLkNhbGVuZGFyID0ge307IH0NCiAgICBpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbi5DYWxlbmRhci53aWRnZXRzID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24uQ2FsZW5kYXIud2lkZ2V0cyA9IHt9OyB9DQoNCiAgICB2YXIgc2F2ZVRhZ3MgPSBmdW5jdGlvbiAoY29udGV4dCwgdGFncywgc3VjY2Vzc0ZuKSB7DQogICAgICAgIHZhciBkYXRhID0gew0KICAgICAgICAgICAgVGFnczogdGFncy5sZW5ndGggPiAwID8gdGFncy5qb2luKCcsJykgOiAnJywNCiAgICAgICAgICAgIElkOiBjb250ZXh0LmV2ZW50SWQNCiAgICAgICAgfTsNCiAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnB1dCh7DQogICAgICAgICAgICB1cmw6ICQudGVsbGlnZW50LmV2b2x1dGlvbi5zaXRlLmdldEJhc2VVcmwoKSArICdhcGkuYXNoeC92Mi9jYWxlbmRhcnMvZXZlbnRzL3tJZH0uanNvbicsDQogICAgICAgICAgICBkYXRhOiBkYXRhLA0KICAgICAgICAgICAgZGF0YVR5cGU6ICdqc29uJywNCiAgICAgICAgICAgIHN1Y2Nlc3M6IGZ1bmN0aW9uIChyZXNwb25zZSkgew0KICAgICAgICAgICAgICAgIHN1Y2Nlc3NGbigpOw0KICAgICAgICAgICAgICAgIGNvbnRleHQuY3VycmVudFRhZ3MgPSB0YWdzOw0KICAgICAgICAgICAgICAgIHZhciB0YWdzSHRtbCA9ICcnOw0KICAgICAgICAgICAgICAgIGZvciAodmFyIGkgPSAwOyBpIDwgY29udGV4dC5jdXJyZW50VGFncy5sZW5ndGg7IGkrKykgew0KICAgICAgICAgICAgICAgICAgICB2YXIgdGFnTmFtZSA9ICQudHJpbShjb250ZXh0LmN1cnJlbnRUYWdzW2ldKTsNCiAgICAgICAgICAgICAgICAgICAgdmFyIHRhZ1VybCA9IGNvbnRleHQudGFnVXJsVGVtcGxhdGUucmVwbGFjZSgvVEFHTkFNRS9nLCBlbmNvZGVVUklDb21wb25lbnQodGFnTmFtZS5yZXBsYWNlKC8gL2csICcrJykpKTsNCiAgICAgICAgICAgICAgICAgICAgdGFnc0h0bWwgPSB0YWdzSHRtbCArICc8YSBocmVmPSInICsgdGFnVXJsICsgJyI+JyArICQoJzxkaXYvPicpLnRleHQodGFnTmFtZSkuaHRtbCgpICsgJzwvYT4nOw0KICAgICAgICAgICAgICAgICAgICBpZiAoaSArIDEgPCBjb250ZXh0LmN1cnJlbnRUYWdzLmxlbmd0aCkgdGFnc0h0bWwgPSB0YWdzSHRtbCArICcsICc7DQogICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgICAgIGNvbnRleHQudGFnTGlzdC5odG1sKHRhZ3NIdG1sKTsNCiAgICAgICAgICAgIH0sDQogICAgICAgICAgICBlcnJvcjogZnVuY3Rpb24gKHhociwgZGVzYywgZXgpIHsNCiAgICAgICAgICAgICAgICBhbGVydChkZXNjKTsNCiAgICAgICAgICAgIH0NCiAgICAgICAgfSk7DQogICAgfSwNCiAgICBzaG93UmVnaXN0cmF0aW9uID0gZnVuY3Rpb24gKGNvbnRleHQpIHsNCiAgICAgICAgJC5nbG93TW9kYWwoW2NvbnRleHQucmVnaXN0ZXJNb2RhbCwgJyZldmVudElkPScsIGNvbnRleHQuZXZlbnRJZCwgJyZ1c2VySWQ9JywgY29udGV4dC51c2VySWRdLmpvaW4oJycpLCB7DQogICAgICAgICAgICB3aWR0aDogNTAwLA0KICAgICAgICAgICAgaGVpZ2h0OiAzMDANCiAgICAgICAgfSk7DQogICAgfTsNCg0KICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5DYWxlbmRhci53aWRnZXRzLmNhbGVuZGFyRXZlbnQgPSB7DQogICAgICAgIHJlZ2lzdGVyOiBmdW5jdGlvbiAoY29udGV4dCkgew0KICAgICAgICAgICAgaWYgKGNvbnRleHQudGFnRWRpdG9yKSBjb250ZXh0LnRhZ0VkaXRvci5ldm9sdXRpb25JbmxpbmVUYWdFZGl0b3Ioew0KICAgICAgICAgICAgICAgIGFsbFRhZ3M6IGNvbnRleHQuYWxsVGFncywNCiAgICAgICAgICAgICAgICBjdXJyZW50VGFnczogY29udGV4dC5jdXJyZW50VGFncywNCiAgICAgICAgICAgICAgICBzZWxlY3RUYWdzVGV4dDogY29udGV4dC5zZWxlY3RUYWdzVGV4dCwNCiAgICAgICAgICAgICAgICBvblNhdmU6IGZ1bmN0aW9uICh0YWdzLCBzdWNjZXNzRm4pIHsNCiAgICAgICAgICAgICAgICAgICAgc2F2ZVRhZ3MoY29udGV4dCwgdGFncywgc3VjY2Vzc0ZuKTsNCiAgICAgICAgICAgICAgICB9DQogICAgICAgICAgICB9KTsNCiAgICAgICAgICAgIA0KICAgICAgICAgICAgJCgnLmV4dGVybmFsLXByZXZpZXcnLCBjb250ZXh0LndyYXBwZXIpLm9uKCdjbGljaycsIGZ1bmN0aW9uKCkgew0KICAgICAgICAgICAgICAgIHZhciBlID0gJCh0aGlzKTsNCiAgICAgICAgICAgICAgICB3aW5kb3cubG9jYXRpb24gPSBlLmRhdGEoJ3VybCcpOw0KICAgICAgICAgICAgfSk7DQoNCiAgICAgICAgICAgICQoY29udGV4dC5yZWdpc3RlcikuY2xpY2soZnVuY3Rpb24gKCkgew0KICAgICAgICAgICAgICAgIHNob3dSZWdpc3RyYXRpb24oY29udGV4dCk7DQogICAgICAgICAgICB9KTsNCiAgICAgICAgfQ0KICAgIH07DQoNCn0pKGpRdWVyeSwgd2luZG93KTsNCg==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

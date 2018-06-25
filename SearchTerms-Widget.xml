@@ -1,0 +1,120 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Widget_Title}" version="10.1.8.10498" description="${resource:Widget_Description}" instanceIdentifier="8a453d2764bd4325afc68600abc6be04" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="track-term-search">
+		<contentScript><![CDATA[
+#set($enableAjax = $core_v2_widget.GetBoolValue('EnableAjax', true))
+#if ($enableAjax)
+	<div id="$core_v2_widget.UniqueId('wrapper')" style="display:none;"></div>
+	#registerEndOfPageHtml('telligent.evolution.widgets.trackTermSearch')
+		<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl("ui.js"))"></script>
+	#end
+	#registerEndOfPageHtml()
+		<script type="text/javascript">
+			jQuery(function(){
+				jQuery.telligent.evolution.widgets.trackTermSearch.register({
+					wrapper:jQuery('#$core_v2_widget.UniqueId('wrapper')'),
+					loadUrl:'$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('load.vm'))',
+					baseUrl: '$core_v2_page.Url',
+					pageIndexQueryKey: '$core_v2_ui.PageIndexQueryStringKey',
+					noSearchItemsHtml: '$core_v2_language.GetResource('Html_NoSearchItems')'
+				});
+			});
+		</script>
+	#end
+#else
+	#set($searchTerm = $core_v2_widget.GetStringValue('SearchTerm', 'Sample'))
+	#set($sort = $core_v2_widget.GetStringValue('SortBy', 'date desc'))
+	#set($pageSize = $core_v2_widget.GetIntValue('NumResults', 5))
+	#set($pageIndex = $core_v2_ui.GetCurrentPageIndex())
+
+	#set($searchResults = $core_v2_searchResult.List("%{PageIndex = $pageIndex, PageSize = $pageSize, Query = $searchTerm, Sort = $sort}"))
+	#if ($searchResults.HasErrors())
+		#foreach ($error in $searchResults.Errors)
+			$error
+			$core_v2_widget.Hide()
+		#end
+	#end
+
+	$core_v2_widget.ExecuteFile('list.vm')
+
+	#if($searchResults && $searchResults.TotalCount > 0)
+		$core_v2_ui.Pager($searchResults.PageIndex, $searchResults.PageSize, $searchResults.TotalCount)
+	#end
+#end
+]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('Title', '${resource:Widget_Title}'))
+]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="group1" resourceName="Property_Options">
+	<property id="Title" resourceName="Property_Title" dataType="String" defaultValue="${resource:Widget_Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="SearchTerm" resourceName="Property_SearchTerm" dataType="String" defaultValue="Sample" />
+	<property id="SortBy" resourceName="Property_SortBy" dataType="String" defaultValue="date desc">
+		<propertyValue resourceName="Property_SortBy_DateDesc" value="date desc" />
+		<propertyValue resourceName="Property_SortBy_DateAsc" value="date asc" />
+		<propertyValue resourceName="Property_SortBy_TitleDesc" value="titlesort desc" />
+		<propertyValue resourceName="Property_SortBy_TitleAsc" value="titlesort asc" />
+	</property>
+	<property id="NumResults" resourceName="Property_NumResults" dataType="Int" defaultValue="5">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="100" />
+	</property>
+	<property id="EnableAjax" resourceName="Property_EnableAjax" dataType="Bool" defaultValue="true" />
+</propertyGroup>
+]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Html_NoSearchItems">&lt;div class="message norecords"&gt;No search items found for the provided terms&lt;/div&gt;</resource>
+  <resource name="Property_EnableAjax">Load results asynchronously</resource>
+  <resource name="Property_NumResults">Number of results to display</resource>
+  <resource name="Property_Options">Options</resource>
+  <resource name="Property_SearchTerm">Search term</resource>
+  <resource name="Property_SortBy">Sort by</resource>
+  <resource name="Property_SortBy_DateAsc">Date (ascending)</resource>
+  <resource name="Property_SortBy_DateDesc">Date (descending)</resource>
+  <resource name="Property_SortBy_TitleAsc">Title (ascending)</resource>
+  <resource name="Property_SortBy_TitleDesc">Title (descending)</resource>
+  <resource name="Property_Title">Widget title</resource>
+  <resource name="Text_By">By</resource>
+  <resource name="Text_CustomSearchResultsFor">Custom search results for &amp;quot;{0}&amp;quot;</resource>
+  <resource name="Widget_Description">This widget allows you to track the search results for a specific term.</resource>
+  <resource name="Widget_Title">Search Terms</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Html_NoSearchItems">&lt;div class="message norecords"&gt;未找到提供的项的搜索项&lt;/div&gt;</resource>
+  <resource name="Property_EnableAjax">异步加载结果</resource>
+  <resource name="Property_NumResults">要显示的结果的数目</resource>
+  <resource name="Property_Options">选项</resource>
+  <resource name="Property_SearchTerm">搜索项</resource>
+  <resource name="Property_SortBy">排序方式</resource>
+  <resource name="Property_SortBy_DateAsc">日期(升序)</resource>
+  <resource name="Property_SortBy_DateDesc">日期(降序)</resource>
+  <resource name="Property_SortBy_TitleAsc">标题(升序)</resource>
+  <resource name="Property_SortBy_TitleDesc">标题(降序)</resource>
+  <resource name="Property_Title">小组件标题</resource>
+  <resource name="Text_By">排序方式</resource>
+  <resource name="Text_CustomSearchResultsFor">&amp;quot;{0}&amp;quot; 的自定义搜索结果</resource>
+  <resource name="Widget_Description">此小工具允许您跟踪特定项的搜索结果。</resource>
+  <resource name="Widget_Title">搜索项</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Html_NoSearchItems">&lt;div class="message norecords"&gt;找不到所提供詞彙的搜尋詞彙&lt;/div&gt;</resource>
+  <resource name="Property_EnableAjax">同步載入結果</resource>
+  <resource name="Property_NumResults">要顯示的結果數目</resource>
+  <resource name="Property_Options">選項</resource>
+  <resource name="Property_SearchTerm">搜尋詞彙</resource>
+  <resource name="Property_SortBy">排序依據</resource>
+  <resource name="Property_SortBy_DateAsc">日期 (遞增)</resource>
+  <resource name="Property_SortBy_DateDesc">日期 (遞減)</resource>
+  <resource name="Property_SortBy_TitleAsc">標題 (遞增)</resource>
+  <resource name="Property_SortBy_TitleDesc">標題 (遞減)</resource>
+  <resource name="Property_Title">Widget 標題</resource>
+  <resource name="Text_By">由</resource>
+  <resource name="Text_CustomSearchResultsFor">&amp;quot;{0}&amp;quot;的自訂搜尋結果</resource>
+  <resource name="Widget_Description">此 Widget 可讓您追蹤特定詞彙的搜尋結果。</resource>
+  <resource name="Widget_Title">搜尋詞彙</resource>
+</language></languageResources>
+		<files>
+			<file name="list.vm">77u/I2ZvcmVhY2goJHNlYXJjaFJlc3VsdCBpbiAkc2VhcmNoUmVzdWx0cykNCiNiZWZvcmVhbGwNCgk8ZGl2IGNsYXNzPSJjb250ZW50LWxpc3QtaGVhZGVyIHNpbXBsZS1leHBhbmRlZCI+PC9kaXY+DQoJPGRpdiBjbGFzcz0iY29udGVudC1saXN0LW5hbWUiPiRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdFN0cmluZygkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnVGV4dF9DdXN0b21TZWFyY2hSZXN1bHRzRm9yJyksICRjb3JlX3YyX2VuY29kaW5nLkh0bWxFbmNvZGUoJHNlYXJjaFRlcm0pKTwvZGl2Pg0KCTx1bCBjbGFzcz0iY29udGVudC1saXN0IHNpbXBsZS1leHBhbmRlZCI+DQojZWFjaA0KCTxsaSBjbGFzcz0iY29udGVudC1pdGVtIj4NCgkJPGRpdiBjbGFzcz0iYWJicmV2aWF0ZWQtcG9zdC1oZWFkZXIiPjwvZGl2Pg0KCQk8ZGl2IGNsYXNzPSJhYmJyZXZpYXRlZC1wb3N0Ij4NCgkJCTxoNCBjbGFzcz0icG9zdC1uYW1lIj4NCgkJCQk8YSBjbGFzcz0iaW50ZXJuYWwtbGluayB2aWV3LXBvc3QiIGhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJHNlYXJjaFJlc3VsdC5VcmwpIj4kc2VhcmNoUmVzdWx0LlRpdGxlPC9hPg0KCQkJPC9oND4NCgkJCTxkaXYgY2xhc3M9InBvc3QtYXV0aG9yIj4NCgkJCQkjaWYgKCRzZWFyY2hSZXN1bHQuQ29udGVudFR5cGUgPT0gJ2ZvcnVtYXBwJyB8fCAkc2VhcmNoUmVzdWx0LkNvbnRlbnRUeXBlID09ICdibG9nYXBwJyB8fCAkc2VhcmNoUmVzdWx0LkNvbnRlbnRUeXBlID09ICd3aWtpYXBwJyB8fCAkc2VhcmNoUmVzdWx0LkNvbnRlbnRUeXBlID09ICdmaWxlYXBwJyB8fCAkc2VhcmNoUmVzdWx0ID09ICdwYWdlJykNCgkJCQkJPGEgaHJlZj0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkc2VhcmNoUmVzdWx0LlVybCkiPjxzcGFuIGNsYXNzPSJhdmF0YXIgJGNvcmVfdjJfbGFuZ3VhZ2UuTG93ZXJjYXNlKCRzZWFyY2hSZXN1bHQuQ29udGVudFR5cGUpIj48L3NwYW4+PC9hPg0KCQkJCSNlbHNlaWYgKCRzZWFyY2hSZXN1bHQuQ29udGVudFR5cGUgPT0gJ2dyb3VwJykNCgkJCQkJPHNwYW4gY2xhc3M9ImF2YXRhciI+PGEgaHJlZj0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkc2VhcmNoUmVzdWx0LlVybCkiPiRjb3JlX3YyX3VpLkdldFJlc2l6ZWRJbWFnZUh0bWwoJHNlYXJjaFJlc3VsdC5Hcm91cC5BdmF0YXJVcmwsIDM0LCAzNCwgIiV7IGJvcmRlciA9IDAsIGFsdCA9ICRzZWFyY2hSZXN1bHQuR3JvdXAuTmFtZSB9Iik8L2E+PC9zcGFuPg0KCQkJCSNlbHNlaWYgKCRzZWFyY2hSZXN1bHQuVXNlcnMuQ291bnQgPT0gMSkNCgkJCQkJI2ZvcmVhY2goJHVzZXIgaW4gJHNlYXJjaFJlc3VsdC5Vc2VycykNCgkJCQkJCSNpZiAoJHVzZXIuUHJvZmlsZVVybCkNCgkJCQkJCQk8c3BhbiBjbGFzcz0iYXZhdGFyIj48YSBocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCR1c2VyLlByb2ZpbGVVcmwpIj4kY29yZV92Ml91aS5HZXRSZXNpemVkSW1hZ2VIdG1sKCR1c2VyLkF2YXRhclVybCwgMzQsIDM0LCAiJXsgYm9yZGVyID0gMCwgYWx0ID0gJHVzZXIuRGlzcGxheU5hbWUgfSIpPC9hPjwvc3Bhbj4NCgkJCQkJCSNlbHNlDQoJCQkJCQkJPHNwYW4gY2xhc3M9ImF2YXRhciI+JGNvcmVfdjJfdWkuR2V0UmVzaXplZEltYWdlSHRtbCgkdXNlci5BdmF0YXJVcmwsIDM0LCAzNCwgIiV7Ym9yZGVyPScwJywgYWx0PSR1c2VyLkRpc3BsYXlOYW1lfSIpPC9zcGFuPg0KCQkJCQkJI2VuZA0KCQkJCQkjZW5kDQoJCQkJI2VuZA0KCQkJCSNpZiAoJHNlYXJjaFJlc3VsdC5Vc2Vycy5Db3VudCA9PSAxKQ0KCQkJCQkjZm9yZWFjaCgkdXNlciBpbiAkc2VhcmNoUmVzdWx0LlVzZXJzKQ0KCQkJCQkJI2lmICgkdXNlci5Qcm9maWxlVXJsKQ0KCQkJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdUZXh0X0J5JykgPHNwYW4gY2xhc3M9InVzZXItbmFtZSI+PGEgY2xhc3M9ImludGVybmFsLWxpbmsgdmlldy11c2VyLXByb2ZpbGUiIGhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJHVzZXIuUHJvZmlsZVVybCkiPiR1c2VyLkRpc3BsYXlOYW1lPC9hPjwvc3Bhbj4NCgkJCQkJCSNlbHNlDQoJCQkJCQkJJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1RleHRfQnknKSA8c3BhbiBjbGFzcz0idXNlci1uYW1lIj4kdXNlci5EaXNwbGF5TmFtZTwvc3Bhbj4NCgkJCQkJCSNlbmQNCgkJCQkJI2VuZA0KCQkJCSNlbmQNCgkJCTwvZGl2Pg0KCQkJPGRpdiBjbGFzcz0icG9zdC1kYXRlIj4NCgkJCQk8c3BhbiBjbGFzcz0idmFsdWUiPiQhY29yZV92Ml9sYW5ndWFnZS5Gb3JtYXREYXRlKCRzZWFyY2hSZXN1bHQuRGF0ZSk8L3NwYW4+DQoJCQk8L2Rpdj4NCgkJPC9kaXY+DQoJCTxkaXYgY2xhc3M9ImFiYnJldmlhdGVkLXBvc3QtZm9vdGVyIj48L2Rpdj4NCgk8L2xpPg0KI2FmdGVyYWxsDQoJPC91bD4NCgk8ZGl2IGNsYXNzPSJjb250ZW50LWxpc3QtZm9vdGVyIHNpbXBsZS1leHBhbmRlZCI+PC9kaXY+DQojZW5k</file>
+			<file name="load.vm">77u/I3NldCgkc2VhcmNoVGVybSA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgnU2VhcmNoVGVybScsICdTYW1wbGUnKSkNCiNzZXQoJHNvcnQgPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ1NvcnRCeScsICdkYXRlIGRlc2MnKSkNCiNzZXQoJHBhZ2VTaXplID0gJGNvcmVfdjJfd2lkZ2V0LkdldEludFZhbHVlKCdOdW1SZXN1bHRzJywgNSkpDQojc2V0KCRiYXNlVXJsID0gJGNvcmVfdjJfcGFnZS5HZXRRdWVyeVN0cmluZ1ZhbHVlKCdCYXNlVXJsJykpDQojc2V0KCRwYWdlSW5kZXggPSAkY29yZV92Ml9wYWdlLkdldFF1ZXJ5U3RyaW5nVmFsdWUoJ1BhZ2VJbmRleCcpKQ0KI2lmICghJHBhZ2VJbmRleCkNCgkjc2V0KCRwYWdlSW5kZXggPSAkY29yZV92Ml91aS5HZXRDdXJyZW50UGFnZUluZGV4KCkpDQojZW5kDQoNCiNzZXQoJHNlYXJjaFJlc3VsdHMgPSAkY29yZV92Ml9zZWFyY2hSZXN1bHQuTGlzdCgiJXtQYWdlSW5kZXggPSAkcGFnZUluZGV4LCBQYWdlU2l6ZSA9ICRwYWdlU2l6ZSwgUXVlcnkgPSAkc2VhcmNoVGVybSwgU29ydCA9ICRzb3J0fSIpKQ0KI2lmICgkc2VhcmNoUmVzdWx0cy5IYXNFcnJvcnMoKSkNCgkjZm9yZWFjaCAoJGVycm9yIGluICRzZWFyY2hSZXN1bHRzLkVycm9ycykNCgkJJGVycm9yDQoJCSRjb3JlX3YyX3dpZGdldC5IaWRlKCkNCgkjZW5kDQojZW5kDQoNCiRjb3JlX3YyX3dpZGdldC5FeGVjdXRlRmlsZSgnbGlzdC52bScpDQoNCiNpZigkc2VhcmNoUmVzdWx0cyAmJiAkc2VhcmNoUmVzdWx0cy5Ub3RhbENvdW50ID4gMCkNCgkkY29yZV92Ml91aS5QYWdlcigkc2VhcmNoUmVzdWx0cy5QYWdlSW5kZXgsICRzZWFyY2hSZXN1bHRzLlBhZ2VTaXplLCAkc2VhcmNoUmVzdWx0cy5Ub3RhbENvdW50LCAiJXtCYXNlVXJsID0gJyR7YmFzZVVybH0nfSIpDQojZW5k</file>
+			<file name="ui.js">KGZ1bmN0aW9uKCQpDQp7DQoJaWYgKHR5cGVvZiAkLnRlbGxpZ2VudCA9PT0gJ3VuZGVmaW5lZCcpDQoJCSQudGVsbGlnZW50ID0ge307DQoNCglpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbiA9PT0gJ3VuZGVmaW5lZCcpDQoJCSQudGVsbGlnZW50LmV2b2x1dGlvbiA9IHt9Ow0KDQoJaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9PT0gJ3VuZGVmaW5lZCcpDQoJCSQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID0ge307DQoNCgl2YXIgbG9hZCA9IGZ1bmN0aW9uIChjb250ZXh0LCBwYWdlSW5kZXgpIHsNCgkJdmFyIGRhdGEgPSB7IEJhc2VVcmw6IGNvbnRleHQuYmFzZVVybCB9Ow0KCQlpZiAocGFnZUluZGV4KQ0KCQkJZGF0YS5QYWdlSW5kZXggPSBwYWdlSW5kZXggLSAxOw0KCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24uZ2V0KHsNCgkJCXVybDogY29udGV4dC5sb2FkVXJsLA0KCQkJZGF0YTogZGF0YSwNCgkJCXN1Y2Nlc3M6IGZ1bmN0aW9uKHJlc3BvbnNlKQ0KCQkJew0KCQkJCWNvbnRleHQud3JhcHBlci5mYWRlT3V0KCdmYXN0JywgZnVuY3Rpb24oKSB7DQoJCQkJCSQodGhpcykuaHRtbCgkLnRyaW0ocmVzcG9uc2UpID09ICcnID8gY29udGV4dC5ub1NlYXJjaEl0ZW1zSHRtbCA6IHJlc3BvbnNlKS5mYWRlSW4oJ2Zhc3QnKTsNCgkJCQkJYXR0YWNoSGFuZGxlcnMoY29udGV4dCk7DQoJCQkJfSk7DQoJCQl9DQoJCX0pOw0KCX07DQoNCgl2YXIgYXR0YWNoSGFuZGxlcnMgPSBmdW5jdGlvbiAoY29udGV4dCkgew0KCQkkKCcucGFnZXIgYScsIGNvbnRleHQud3JhcHBlcikuY2xpY2soZnVuY3Rpb24oKSB7DQoJCQl2YXIgbWF0Y2ggPSBSZWdFeHAoJ1s/Jl0nICsgY29udGV4dC5wYWdlSW5kZXhRdWVyeUtleSArICc9KFteJl0qKScpLmV4ZWModGhpcy5ocmVmKTsNCgkJCWlmIChtYXRjaCAmJiBtYXRjaFsxXSkgew0KCQkJCWxvYWQoY29udGV4dCwgcGFyc2VJbnQobWF0Y2hbMV0pKTsNCgkJCQlyZXR1cm4gZmFsc2U7DQoJCQl9DQoJCX0pOw0KCX07DQoJDQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMudHJhY2tUZXJtU2VhcmNoID0gDQoJew0KCQlyZWdpc3RlcjogZnVuY3Rpb24oY29udGV4dCkgDQoJCXsNCgkJCWxvYWQoY29udGV4dCk7DQoJCX0NCgl9Ow0KfSkoalF1ZXJ5KTsNCg==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

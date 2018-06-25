@@ -1,0 +1,299 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_FriendshipList_Name}" version="10.1.8.10498" description="${resource:Core_FriendshipList_Description}" instanceIdentifier="133a73e034ea4500939f774b78d3d683" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="friendship-list">
+		<contentScript><![CDATA[#set ($queryType = $core_v2_widget.GetStringValue('queryType', 'currentUser'))
+#set ($enablePaging = $core_v2_widget.GetBoolValue('enablePaging', true))
+
+#set ($targetUser = false)
+#if ($queryType == "accessingUser")
+	#set ($targetUser = $core_v2_user.Accessing)
+#elseif ($queryType == "currentUser")
+	#set ($targetUser = $core_v2_user.Current)
+#end
+
+## if there is no accessing or current user, hide widget
+#if (!$targetUser)
+	$core_v2_widget.Hide();
+#end
+
+#set ($isUserAccessing = false)
+#if ($targetUser.Id == $core_v2_user.Accessing.Id)
+	#set ($isUserAccessing = true)
+#end
+
+#set ($viewType = "Friends")
+#set ($viewType = $core_v2_page.GetQueryStringValue('Show'))
+
+$core_v2_widget.ExecuteFile('inSidebar.vm')
+
+#if ($isUserAccessing && !$inSidebar && $enablePaging)
+	<div id="$core_v2_widget.UniqueId('edit-form')" style="display: none;">
+		<fieldset>
+			<div id="$core_v2_widget.UniqueId('edit-mode-message')"></div>
+			<ul class="field-list">
+		        <li class="field-item submit-button">
+		            <span class="field-item-input">
+		                <a href="javascript:void(0);" class="internal-link disabled button unfriend-all" data-confirmation="$core_v2_encoding.HtmlAttributeEncode($core_v2_language.GetResource('unfriend_all_confirmation'))" data-success="$core_v2_encoding.HtmlAttributeEncode($core_v2_language.GetResource('unfriend_all_success'))">$core_v2_language.GetResource('unfriend_all')</a>
+		                <a href="javascript:void(0);" class="internal-link disabled button follow-all" data-confirmation="$core_v2_encoding.HtmlAttributeEncode($core_v2_language.GetResource('follow_all_confirmation'))" data-success="$core_v2_encoding.HtmlAttributeEncode($core_v2_language.GetResource('follow_all_success'))">$core_v2_language.GetResource('follow_all')</a>
+		                <a href="javascript:void(0);" class="internal-link disabled button unfollow-all" data-confirmation="$core_v2_encoding.HtmlAttributeEncode($core_v2_language.GetResource('unfollow_all_confirmation'))" data-success="$core_v2_encoding.HtmlAttributeEncode($core_v2_language.GetResource('unfollow_all_success'))">$core_v2_language.GetResource('unfollow_all')</a>
+		                <a href="javascript:void(0);" class="internal-link button done">$core_v2_language.GetResource('done')</a>
+		                <span class="processing" style="visibility: hidden;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+		            </span>
+		        </li>
+		    </ul>
+		</fieldset>
+	</div>
+
+	<div class="navigation-list navigation">
+		<ul>
+			<li class="navigation-list-item"><a href="#" class="internal-link edit-mode-toggle" id="$core_v2_widget.UniqueId('edit-mode')">$core_v2_language.GetResource('edit')</a></li>
+		</ul>
+	</div>
+
+	<div class="view">
+	    <div>
+	        <select class="ui-select" data-update="$core_v2_encoding.HtmlAttributeEncode($core_v2_page.AdjustQueryString($core_v2_page.Url, "Show=OPTIONVALUE"))">
+	            <option value="Friends"#if($viewType == 'Friends') selected #end">$core_v2_language.GetResource('Friends')</option>
+				<option value="Review"#if($viewType == 'Review') selected #end>$core_v2_language.GetResource('Friends_RequestsReview')</option>
+				<option value="Pending"#if($viewType == 'Pending') selected #end>$core_v2_language.GetResource('Friends_YourRequests')</option>
+				<option value="Following"#if($viewType == 'Following') selected #end>$core_v2_language.GetResource('Core_FriendshipList_Filter_Following')</option>
+				<option value="Followers"#if($viewType == 'Followers') selected #end>$core_v2_language.GetResource('Followers')</option>
+				<option value="Recommendations"#if($viewType == 'Recommendations') selected #end>$core_v2_language.GetResource('Recommendations')</option>
+	        </select>
+	    </div>
+	</div>
+#end
+
+$core_v2_widget.ExecuteFile('list.vm')
+
+#if ($inSidebar || !$enablePaging)
+    #if ($queryType == 'accesingUser')
+        #set($remaining = $total - $pageSize)
+        #set($url = false)
+        #set($url = $core_v2_urls.Friends($core_v2_user.Acessing.Id))
+        #if ($url)
+            #if ($remaining == 1)
+                <a href="$core_v2_encoding.HtmlAttributeEncode($url)">$core_v2_language.FormatString($core_v2_language.GetResource('And_One_More'), $core_v2_language.FormatNumber($remaining))</a>
+            #elseif ($remaining > 1)
+                <a href="$core_v2_encoding.HtmlAttributeEncode($url)">$core_v2_language.FormatString($core_v2_language.GetResource('And_Multiple_More'), $core_v2_language.FormatNumber($remaining))</a>
+            #end
+        #end
+    #elseif($queryType == 'currentUser')
+        #set($remaining = $total - $pageSize)
+        #set($url = false)
+        #set($url = $core_v2_urls.Friends($core_v2_user.Current.Id))
+        #if ($url)
+            #if ($remaining == 1)
+                <a href="$core_v2_encoding.HtmlAttributeEncode($url)">$core_v2_language.FormatString($core_v2_language.GetResource('And_One_More'), $core_v2_language.FormatNumber($remaining))</a>
+            #elseif ($remaining > 1)
+                <a href="$core_v2_encoding.HtmlAttributeEncode($url)">$core_v2_language.FormatString($core_v2_language.GetResource('And_Multiple_More'), $core_v2_language.FormatNumber($remaining))</a>
+            #end
+        #end
+    #end
+    #registerEndOfPageHtml ()
+        <script type="text/javascript">
+    	jQuery(document).ready(function() {
+		    jQuery('#$core_v2_encoding.JavascriptEncode($core_v2_widget.UniqueId('thumbnails'))').on('click', '.content-item', function(e){
+				window.location = jQuery(this).data('url');
+			});
+		});
+		</script>
+    #end
+#else
+    #registerEndOfPageHtml('telligent.evolution.widgets.friendshipList')
+    	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+    #end
+    #registerEndOfPageHtml()
+    	<script type="text/javascript">
+    	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+    	jQuery(document).ready(function()
+    	{
+    		jQuery.telligent.evolution.widgets.friendshipList.register({
+    			wrapper: jQuery('#$core_v2_widget.WrapperElementId'),
+    			loadUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('list.vm'))',
+    			pageIndexKey: '$core_v2_encoding.JavascriptEncode($core_v2_ui.PageIndexQueryStringKey)',
+    			thumbnailsContainer: jQuery('#$core_v2_encoding.JavascriptEncode($core_v2_widget.UniqueId('thumbnails'))'),
+    			hasMore: '$hasMore',
+    			editMode: jQuery('#$core_v2_widget.UniqueId('edit-mode')'),
+    			editForm: jQuery('#$core_v2_widget.UniqueId('edit-form')'),
+    			editModeMessage: jQuery('#$core_v2_widget.UniqueId('edit-mode-message')'),
+    			selectedUserMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('selected_user'))',
+    			selectedUsersMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('selected_users'))',
+    			editMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('edit'))',
+    			cancelMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('cancel'))',
+    			searchUrl: '$core_v2_encoding.JavaScriptEncode($core_v2_widget.GetExecutedFileUrl('search.vm'))',
+    			searchFilterText: '$core_v2_encoding.JavascriptEncode($core_v2_language.FormatString($core_v2_language.GetResource('friends_filter'), $targetUser.DisplayName))',
+    			searchFilterDefault: #if($core_v2_urls.Current == 'Friends') true #else false #end
+    		});
+    	});
+    	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+    	</script>
+    #end
+#end]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Core_FriendshipList_Name}'))
+		]]></headerScript>
+		<configuration><![CDATA[<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Core_FriendshipList_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="queryType" resourceName="Core_FriendshipList_QueryType" dataType="string" defaultValue="currentUser">
+		<propertyValue value="currentUser" resourceName="Core_FriendshipList_QueryType_CurrentUser" />
+		<propertyValue value="accessingUser" resourceName="Core_FriendshipList_QueryType_AccessingUser" />
+	</property>
+    <property id="pageSize" resourceName="Pagesize" dataType="int" defaultValue="21">
+        <propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="100" />
+    </property>
+    <property id="enablePaging" resourceName="EnablePaging" dataType="bool" defaultValue="True" />
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="And_Multiple_More">And {0} more...</resource>
+  <resource name="And_One_More">And 1 more...</resource>
+  <resource name="ApproveDeny">Accept/Reject</resource>
+  <resource name="cancel">Cancel</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Connect">Connect</resource>
+  <resource name="Core_FriendshipList_Description">Displays a list of pending and approved ${friendships_lowercase}.</resource>
+  <resource name="Core_FriendshipList_Filter_Following">Following</resource>
+  <resource name="Core_FriendshipList_Name">${friendship_propercase} List</resource>
+  <resource name="Core_FriendshipList_QueryType">Show ${friends_propercase} For:</resource>
+  <resource name="Core_FriendshipList_QueryType_AccessingUser">Accessing User</resource>
+  <resource name="Core_FriendshipList_QueryType_CurrentUser">Current Contextual User</resource>
+  <resource name="Core_FriendshipList_Title_Friends">${friends_propercase}</resource>
+  <resource name="done">Done</resource>
+  <resource name="edit">Edit</resource>
+  <resource name="EditProfile_Friends_None">No users have been added to {0}'s ${friends_lowercase} list.</resource>
+  <resource name="EnablePaging">Enable paging</resource>
+  <resource name="follow_all">Follow all</resource>
+  <resource name="follow_all_confirmation">Are you sure you want to follow all of the selected people?</resource>
+  <resource name="follow_all_success">You are now following the selected people.</resource>
+  <resource name="Followers">Followers</resource>
+  <resource name="Followers_None">You do not have any followers yet.</resource>
+  <resource name="Following_None">You are not following anyone yet.</resource>
+  <resource name="FriendRequest_Accepted_Confirmation">You are now ${friends_lowercase} with {0}.</resource>
+  <resource name="FriendRequest_Accepted_Notification">You have accepted a ${friendship_lowercase} request from {0}.</resource>
+  <resource name="FriendRequest_NoneToReview">You do not have any ${friendship_lowercase} requests to review.</resource>
+  <resource name="FriendRequest_Rejected_Notification">You have denied a ${friendship_lowercase} request from {0}.</resource>
+  <resource name="Friends">${friends_propercase}</resource>
+  <resource name="friends_filter">{0}'s Friends</resource>
+  <resource name="Friends_None">No users have been added to your ${friends_lowercase} list.</resource>
+  <resource name="Friends_RequestsReview">Requests to Review</resource>
+  <resource name="Friends_YourRequests">Your Requests</resource>
+  <resource name="ignore_user_recommendation">Ignore recommendation</resource>
+  <resource name="more">More</resource>
+  <resource name="no_search_matches_found">No matching friends were found.</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Pagesize">Number of friends to display</resource>
+  <resource name="Recommendations">Find Friends</resource>
+  <resource name="Recommendations_None">You do not have any suggestions to review.</resource>
+  <resource name="selected_user">{0} person selected</resource>
+  <resource name="selected_users">{0} people selected</resource>
+  <resource name="unfollow_all">Unfollow all</resource>
+  <resource name="unfollow_all_confirmation">Are you sure you want to stop following all of the selected people?</resource>
+  <resource name="unfollow_all_success">You are no longer following any of the selected people.</resource>
+  <resource name="unfriend_all">Unfriend all</resource>
+  <resource name="unfriend_all_confirmation">Are you sure you want to remove all of the selected friendships?</resource>
+  <resource name="unfriend_all_success">The selected friendships have been removed.</resource>
+</language>
+<language key="zh-cn">
+  <resource name="ApproveDeny">接受/拒绝</resource>
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Connect">连接</resource>
+  <resource name="Core_FriendshipList_Description">显示待定和已批准 ${friendships_lowercase} 的列表。</resource>
+  <resource name="Core_FriendshipList_Filter_Following">关注</resource>
+  <resource name="Core_FriendshipList_Name">${friendship_propercase} 列表</resource>
+  <resource name="Core_FriendshipList_QueryType">为以下用户显示 ${friends_propercase}:</resource>
+  <resource name="Core_FriendshipList_QueryType_AccessingUser">访问用户</resource>
+  <resource name="Core_FriendshipList_QueryType_CurrentUser">当前上下文用户</resource>
+  <resource name="Core_FriendshipList_Title_Friends">${friends_propercase}</resource>
+  <resource name="done">完成</resource>
+  <resource name="edit">编辑</resource>
+  <resource name="EditProfile_Friends_None">尚未将任何用户添加至 {0} 的 ${friends_lowercase} 列表。</resource>
+  <resource name="follow_all">全部关注</resource>
+  <resource name="follow_all_confirmation">是否确定要关注所有所选用户?</resource>
+  <resource name="follow_all_success">现在，您已关注所选用户。</resource>
+  <resource name="Followers">关注者</resource>
+  <resource name="Followers_None">您没有任何粉丝。</resource>
+  <resource name="Following_None">您未关注任何人。</resource>
+  <resource name="FriendRequest_Accepted_Confirmation">您现在是 {0} 的 ${friends_lowercase}。</resource>
+  <resource name="FriendRequest_Accepted_Notification">您已接受来自 {0} 的 ${friendship_lowercase} 请求。</resource>
+  <resource name="FriendRequest_NoneToReview">您没有任何要审查的 ${friendship_lowercase} 请求。</resource>
+  <resource name="FriendRequest_Rejected_Notification">您已拒绝来自 {0} 的 ${friendship_lowercase} 请求。</resource>
+  <resource name="Friends">${friends_propercase}</resource>
+  <resource name="friends_filter">{0} 的好友</resource>
+  <resource name="Friends_None">尚未将任何用户添加至您的 ${friends_lowercase} 列表。</resource>
+  <resource name="Friends_RequestsReview">要审查的请求</resource>
+  <resource name="Friends_YourRequests">您的请求</resource>
+  <resource name="ignore_user_recommendation">忽略建议</resource>
+  <resource name="more">更多</resource>
+  <resource name="no_search_matches_found">未找到匹配好友。</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Recommendations">查找朋友</resource>
+  <resource name="Recommendations_None">您没有任何要审查的建议。</resource>
+  <resource name="selected_user">已选择 {0} 用户</resource>
+  <resource name="selected_users">已选择 {0} 用户</resource>
+  <resource name="unfollow_all">全部取消关注</resource>
+  <resource name="unfollow_all_confirmation">是否确定要停止关注所有所选用户?</resource>
+  <resource name="unfollow_all_success">您已不再关注任何所选用户。</resource>
+  <resource name="unfriend_all">删除全部好友</resource>
+  <resource name="unfriend_all_confirmation">是否确定要移除所有所选好友?</resource>
+  <resource name="unfriend_all_success">已移除所选好友。</resource>
+</language>
+<language key="zh-tw">
+  <resource name="ApproveDeny">接受/拒絕</resource>
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Connect">連接</resource>
+  <resource name="Core_FriendshipList_Description">顯示待處理和已核准 ${friendships_lowercase} 的清單。</resource>
+  <resource name="Core_FriendshipList_Filter_Following">關注中</resource>
+  <resource name="Core_FriendshipList_Name">${friendship_propercase} 清單</resource>
+  <resource name="Core_FriendshipList_QueryType">顯示 ${friends_propercase}:</resource>
+  <resource name="Core_FriendshipList_QueryType_AccessingUser">存取中使用者</resource>
+  <resource name="Core_FriendshipList_QueryType_CurrentUser">目前內容相關使用者</resource>
+  <resource name="Core_FriendshipList_Title_Friends">${friends_propercase}</resource>
+  <resource name="done">已完成</resource>
+  <resource name="edit">編輯</resource>
+  <resource name="EditProfile_Friends_None">尚未將任何使用者新增至 {0} 的 ${friends_lowercase} 清單。</resource>
+  <resource name="follow_all">全部關注</resource>
+  <resource name="follow_all_confirmation">您確定要關注所有選取的人員嗎?</resource>
+  <resource name="follow_all_success">您現在正在關注選取的人員。</resource>
+  <resource name="Followers">關注者</resource>
+  <resource name="Followers_None">您目前沒有任何關注者。</resource>
+  <resource name="Following_None">您尚未關注任何人。</resource>
+  <resource name="FriendRequest_Accepted_Confirmation">您現在是 {0} 的 ${friends_lowercase} 了。</resource>
+  <resource name="FriendRequest_Accepted_Notification">您已接受來自 {0} 的 ${friendship_lowercase} 要求。</resource>
+  <resource name="FriendRequest_NoneToReview">您沒有任何 ${friendship_lowercase} 要求可檢閱。</resource>
+  <resource name="FriendRequest_Rejected_Notification">您已拒絕來自 {0} 的 ${friendship_lowercase} 要求。</resource>
+  <resource name="Friends">${friends_propercase}</resource>
+  <resource name="friends_filter">{0} 的朋友</resource>
+  <resource name="Friends_None">尚未將任何使用者新增至您的 ${friends_lowercase} 清單。</resource>
+  <resource name="Friends_RequestsReview">要檢閱的要求</resource>
+  <resource name="Friends_YourRequests">您的要求</resource>
+  <resource name="ignore_user_recommendation">忽略建議</resource>
+  <resource name="more">更多</resource>
+  <resource name="no_search_matches_found">找不到相符的朋友。</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Recommendations">尋找朋友</resource>
+  <resource name="Recommendations_None">您沒有任何建議可檢閱。</resource>
+  <resource name="selected_user">{0} 個選取的人員</resource>
+  <resource name="selected_users">{0} 個選取的人員</resource>
+  <resource name="unfollow_all">全部取消關注</resource>
+  <resource name="unfollow_all_confirmation">您確定要停止關注所有選取的人員嗎?</resource>
+  <resource name="unfollow_all_success">您將不再關注任何選取的人員。</resource>
+  <resource name="unfriend_all">移除所有朋友</resource>
+  <resource name="unfriend_all_confirmation">您確定要移除所有選取的友誼嗎?</resource>
+  <resource name="unfriend_all_success">已移除選取的友誼嗎。</resource>
+</language></languageResources>
+		<files>
+			<file name="followers.vm">I3NldCAoJHVzZXJzID0gJGNvcmVfdjJfZm9sbG93ZXIuTGlzdCgiJXsgVXNlcklkID0gJHRhcmdldFVzZXIuSWQsIFBhZ2VTaXplID0gJHBhZ2VTaXplLCBQYWdlSW5kZXggPSAkcGFnZUluZGV4LCBTb3J0Qnk9J0Rpc3BsYXlOYW1lJywgU29ydE9yZGVyPSdBc2NlbmRpbmcnIH0iKSkNCiNzZXQoJHRvdGFsID0gJHVzZXJzLlRvdGFsQ291bnQpDQoNCiNzZXQgKCRoYXNNb3JlID0gZmFsc2UpDQojc2V0ICgkY3VycmVudFBhZ2VkUXVhbnRpdHkgPSAoJHVzZXJzLlBhZ2VJbmRleCArIDEpICogJHVzZXJzLlBhZ2VTaXplKQ0KI2lmICgkdXNlcnMuVG90YWxDb3VudCA+ICRjdXJyZW50UGFnZWRRdWFudGl0eSkNCgkJI3NldCAoJGhhc01vcmUgPSB0cnVlKQ0KI2VuZA0KDQojZm9yZWFjaCAoJHVzZXIgaW4gJHVzZXJzKQ0KI2JlZm9yZWFsbA0KCTxkaXYgY2xhc3M9ImNvbnRlbnQtbGlzdCB0aHVtYm5haWwgdWktbWFzb25yeSBtYXJnaW4tdG9wIiBpZD0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkY29yZV92Ml93aWRnZXQuVW5pcXVlSWQoJ3RodW1ibmFpbHMnKSkiIGRhdGEtY29sdW1uY2xhc3M9InRodW1ibmFpbC1jb2x1bW4iPg0KI2VhY2gNCgk8ZGl2IGNsYXNzPSJjb250ZW50LWl0ZW0gY29udGVudCB0aHVtYm5haWwiIGRhdGEtaGFzbW9yZT0iJGhhc01vcmUiIGRhdGEtdXNlcmlkPSIkdXNlci5JZCIgc3R5bGU9ImN1cnNvcjogcG9pbnRlcjsiIGRhdGEtdXJsPSIkIWNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkdXNlci5Qcm9maWxlVXJsKSI+DQoJCTxkaXYgY2xhc3M9ImF2YXRhciI+DQoJCQkkY29yZV92Ml91aS5HZXRSZXNpemVkSW1hZ2VIdG1sKCR1c2VyLkF2YXRhclVybCwgMTQwLCAxNDAsICIle2FsdD0kdXNlci5EaXNwbGF5TmFtZSxib3JkZXI9JzAnLFJlc2l6ZU1ldGhvZCA9ICdab29tQW5kQ3JvcCd9IikNCgkJCQkJPC9kaXY+DQoJCQkJCTxoMyBjbGFzcz0ibmFtZSI+DQoJCQkJCQkJJHVzZXIuRGlzcGxheU5hbWUNCgkJCQkJPC9oMz4NCgkJPGRpdiBjbGFzcz0iYWN0aW9ucyI+DQoJCQk8ZGl2IGNsYXNzPSIgbmF2aWdhdGlvbi1saXN0IHVpLWxpbmtzIiBkYXRhLW1pbmxpbmtzPSIwIiBkYXRhLW1heGxpbmtzPSIwIiBkYXRhLWRpcmVjdGlvbj0iaG9yaXpvbnRhbCI+DQoJCQkJPHVsPg0KCQkJCQkjZm9yZWFjaCgkYWN0aW9uIGluICRjb3JlX3YyX3VzZXIuTGlzdEFjdGlvbkxpbmtzKCR1c2VyLklkKSkNCgkJCQkJCTxsaSBjbGFzcz0ibmF2aWdhdGlvbi1saXN0LWl0ZW0iPiRhY3Rpb24uSHRtbDwvbGk+DQoJCQkJCSNlbmQNCgkJCQkJPGxpIGNsYXNzPSJuYXZpZ2F0aW9uLWxpc3QtaXRlbSI+DQoJCQkJCQkJCQkJPGEgaHJlZj0iIyIgZGF0YS1tb3JlPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdDb25uZWN0Jyk8L2E+DQoJCQkJCQkJCTwvbGk+DQoJCQkJCTxsaSBjbGFzcz0ibmF2aWdhdGlvbi1saXN0LXRlbSI+DQoJCQkJCQkJCQkJCQk8YSBocmVmPSIjIiBkYXRhLWNhbmNlbD4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnY2FuY2VsJyk8L2E+DQoJCQkJCQkJCQkJPC9saT4NCgkJCQk8L3VsPg0KCQkJPC9kaXY+DQoJCTwvZGl2Pg0KCQk8ZGl2IGNsYXNzPSJlZGl0LW1vZGUiIHN0eWxlPSJkaXNwbGF5OiBub25lOyI+DQoJCQk8aW5wdXQgdHlwZT0iY2hlY2tib3giIC8+DQoJCTwvZGl2Pg0KCTwvZGl2Pg0KI2FmdGVyYWxsDQoJPC9kaXY+DQojbm9kYXRhDQoJPGRpdiBjbGFzcz0ibWVzc2FnZSBub3JlY29yZHMiPg0KCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnRm9sbG93ZXJzX05vbmUnKQ0KCTwvZGl2Pg0KI2VuZA0K</file>
+			<file name="following.vm">I3NldCAoJHVzZXJzID0gJGNvcmVfdjJfZm9sbG93aW5nLkxpc3QoIiV7IEZvbGxvd2VySWQgPSAkdGFyZ2V0VXNlci5JZCwgUGFnZVNpemUgPSAkcGFnZVNpemUsIFBhZ2VJbmRleCA9ICRwYWdlSW5kZXgsIFNvcnRCeT0nRGlzcGxheU5hbWUnLCBTb3J0T3JkZXI9J0FzY2VuZGluZycgfSIpKQ0KI3NldCgkdG90YWwgPSAkdXNlcnMuVG90YWxDb3VudCkNCg0KI3NldCAoJGhhc01vcmUgPSBmYWxzZSkNCiNzZXQgKCRjdXJyZW50UGFnZWRRdWFudGl0eSA9ICgkdXNlcnMuUGFnZUluZGV4ICsgMSkgKiAkdXNlcnMuUGFnZVNpemUpDQojaWYgKCR1c2Vycy5Ub3RhbENvdW50ID4gJGN1cnJlbnRQYWdlZFF1YW50aXR5KQ0KCQkjc2V0ICgkaGFzTW9yZSA9IHRydWUpDQojZW5kDQoNCiNmb3JlYWNoICgkdXNlciBpbiAkdXNlcnMpDQojYmVmb3JlYWxsDQoJPGRpdiBjbGFzcz0iY29udGVudC1saXN0IHRodW1ibmFpbCB1aS1tYXNvbnJ5IG1hcmdpbi10b3AiIGlkPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgndGh1bWJuYWlscycpKSIgZGF0YS1jb2x1bW5jbGFzcz0idGh1bWJuYWlsLWNvbHVtbiI+DQojZWFjaA0KCTxkaXYgY2xhc3M9ImNvbnRlbnQtaXRlbSBjb250ZW50IHRodW1ibmFpbCIgZGF0YS1oYXNtb3JlPSIkaGFzTW9yZSIgZGF0YS11c2VyaWQ9IiR1c2VyLklkIiBzdHlsZT0iY3Vyc29yOiBwb2ludGVyOyIgZGF0YS11cmw9IiQhY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCR1c2VyLlByb2ZpbGVVcmwpIj4NCgkJPGRpdiBjbGFzcz0iYXZhdGFyIj4NCgkJCSRjb3JlX3YyX3VpLkdldFJlc2l6ZWRJbWFnZUh0bWwoJHVzZXIuQXZhdGFyVXJsLCAxNDAsIDE0MCwgIiV7YWx0PSR1c2VyLkRpc3BsYXlOYW1lLGJvcmRlcj0nMCcsUmVzaXplTWV0aG9kID0gJ1pvb21BbmRDcm9wJ30iKQ0KCQkJCQk8L2Rpdj4NCgkJCQkJPGgzIGNsYXNzPSJuYW1lIj4NCgkJCQkJCQkkdXNlci5EaXNwbGF5TmFtZQ0KCQkJCQk8L2gzPg0KCQk8ZGl2IGNsYXNzPSJhY3Rpb25zIj4NCgkJCTxkaXYgY2xhc3M9IiBuYXZpZ2F0aW9uLWxpc3QgdWktbGlua3MiIGRhdGEtbWlubGlua3M9IjAiIGRhdGEtbWF4bGlua3M9IjAiIGRhdGEtZGlyZWN0aW9uPSJob3Jpem9udGFsIj4NCgkJCQk8dWw+DQoJCQkJCSNmb3JlYWNoKCRhY3Rpb24gaW4gJGNvcmVfdjJfdXNlci5MaXN0QWN0aW9uTGlua3MoJHVzZXIuSWQpKQ0KCQkJCQkJPGxpIGNsYXNzPSJuYXZpZ2F0aW9uLWxpc3QtaXRlbSI+JGFjdGlvbi5IdG1sPC9saT4NCgkJCQkJI2VuZA0KCQkJCQk8bGkgY2xhc3M9Im5hdmlnYXRpb24tbGlzdC1pdGVtIj4NCgkJCQkJCQkJCQk8YSBocmVmPSIjIiBkYXRhLW1vcmU+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ0Nvbm5lY3QnKTwvYT4NCgkJCQkJCQkJPC9saT4NCgkJCQkJPGxpIGNsYXNzPSJuYXZpZ2F0aW9uLWxpc3QtdGVtIj4NCgkJCQkJCQkJCQkJCTxhIGhyZWY9IiMiIGRhdGEtY2FuY2VsPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdjYW5jZWwnKTwvYT4NCgkJCQkJCQkJCQk8L2xpPg0KCQkJCTwvdWw+DQoJCQk8L2Rpdj4NCgkJPC9kaXY+DQoJCTxkaXYgY2xhc3M9ImVkaXQtbW9kZSIgc3R5bGU9ImRpc3BsYXk6IG5vbmU7Ij4NCgkJCTxpbnB1dCB0eXBlPSJjaGVja2JveCIgLz4NCgkJPC9kaXY+DQoJPC9kaXY+DQojYWZ0ZXJhbGwNCgk8L2Rpdj4NCiNub2RhdGENCgk8ZGl2IGNsYXNzPSJtZXNzYWdlIG5vcmVjb3JkcyI+DQoJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdGb2xsb3dpbmdfTm9uZScpDQoJPC9kaXY+DQojZW5kDQo=</file>
+			<file name="friends.vm">I3NldCAoJGZyaWVuZHNoaXBzID0gJGNvcmVfdjJfZnJpZW5kc2hpcC5MaXN0KCIleyBGcmllbmRzaGlwU3RhdGUgPSAnQXBwcm92ZWQnLCBSZXF1ZXN0b3JJZCA9ICR0YXJnZXRVc2VyLklkLCBQYWdlSW5kZXggPSAkcGFnZUluZGV4LCBQYWdlU2l6ZSA9ICRwYWdlU2l6ZSwgU29ydEJ5ID0gJ0Rpc3BsYXlOYW1lJywgU29ydE9yZGVyID0gJ0FzY2VuZGluZycgfSIpKQ0KI3NldCgkdG90YWwgPSAkZnJpZW5kc2hpcHMuVG90YWxDb3VudCkNCg0KI3NldCAoJGhhc01vcmUgPSBmYWxzZSkNCiNzZXQgKCRjdXJyZW50UGFnZWRRdWFudGl0eSA9ICgkZnJpZW5kc2hpcHMuUGFnZUluZGV4ICsgMSkgKiAkZnJpZW5kc2hpcHMuUGFnZVNpemUpDQojaWYgKCRmcmllbmRzaGlwcy5Ub3RhbENvdW50ID4gJGN1cnJlbnRQYWdlZFF1YW50aXR5KQ0KCQkjc2V0ICgkaGFzTW9yZSA9IHRydWUpDQojZW5kDQoNCiNmb3JlYWNoICgkZnJpZW5kc2hpcCBpbiAkZnJpZW5kc2hpcHMpDQojYmVmb3JlYWxsDQoJPGRpdiBjbGFzcz0iY29udGVudC1saXN0IHRodW1ibmFpbCB1aS1tYXNvbnJ5IG1hcmdpbi10b3AiIGlkPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgndGh1bWJuYWlscycpKSIgZGF0YS1jb2x1bW5jbGFzcz0idGh1bWJuYWlsLWNvbHVtbiI+DQojZWFjaA0KCSNzZXQgKCR1c2VyID0gZmFsc2UpDQoJI2lmICgkZnJpZW5kc2hpcC5SZWNpcGllbnQgJiYgJGZyaWVuZHNoaXAuUmVjaXBpZW50LklkID09ICR0YXJnZXRVc2VyLklkKQ0KCQkjc2V0ICgkdXNlciA9ICRmcmllbmRzaGlwLlJlcXVlc3RvcikNCgkjZWxzZQ0KCQkjc2V0ICgkdXNlciA9ICRmcmllbmRzaGlwLlJlY2lwaWVudCkNCgkjZW5kDQoJI2lmICgkdXNlcikNCgkJPGRpdiBjbGFzcz0iY29udGVudC1pdGVtIGNvbnRlbnQgdGh1bWJuYWlsIiBkYXRhLWhhc21vcmU9IiRoYXNNb3JlIiBkYXRhLXVzZXJpZD0iJHVzZXIuSWQiIHN0eWxlPSJjdXJzb3I6IHBvaW50ZXI7IiBkYXRhLXVybD0iJCFjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJHVzZXIuUHJvZmlsZVVybCkiPg0KCQkJPGRpdiBjbGFzcz0iYXZhdGFyIj4NCgkJCQkkY29yZV92Ml91aS5HZXRSZXNpemVkSW1hZ2VIdG1sKCR1c2VyLkF2YXRhclVybCwgMTQwLCAxNDAsICIle2FsdD0kdXNlci5EaXNwbGF5TmFtZSxib3JkZXI9JzAnLFJlc2l6ZU1ldGhvZCA9ICdab29tQW5kQ3JvcCd9IikNCgkJCQkJCTwvZGl2Pg0KCQkJCQkJPGgzIGNsYXNzPSJuYW1lIj4NCgkJCQkJCQkJJHVzZXIuRGlzcGxheU5hbWUNCgkJCQkJCTwvaDM+DQoJCQk8ZGl2IGNsYXNzPSJhY3Rpb25zIj4NCgkJCQk8ZGl2IGNsYXNzPSJuYXZpZ2F0aW9uLWxpc3QgdWktbGlua3MiIGRhdGEtbWlubGlua3M9IjAiIGRhdGEtbWF4bGlua3M9IjAiIGRhdGEtZGlyZWN0aW9uPSJob3Jpem9udGFsIj4NCgkJCQkJPHVsPg0KCQkJCQkJI2ZvcmVhY2goJGFjdGlvbiBpbiAkY29yZV92Ml91c2VyLkxpc3RBY3Rpb25MaW5rcygkdXNlci5JZCkpDQoJCQkJCQkJPGxpIGNsYXNzPSJuYXZpZ2F0aW9uLWxpc3QtaXRlbSI+JGFjdGlvbi5IdG1sPC9saT4NCgkJCQkJCSNlbmQNCgkJCQkJCTxsaSBjbGFzcz0ibmF2aWdhdGlvbi1saXN0LWl0ZW0iPg0KCQkJCQkJCQkJCQk8YSBocmVmPSIjIiBkYXRhLW1vcmU+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ0Nvbm5lY3QnKTwvYT4NCgkJCQkJCQkJCTwvbGk+DQoJCQkJCQk8bGkgY2xhc3M9Im5hdmlnYXRpb24tbGlzdC10ZW0iPg0KCQkJCQkJCQkJCQkJCQkJCTxhIGhyZWY9IiMiIGRhdGEtY2FuY2VsPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdjYW5jZWwnKTwvYT4NCgkJCQkJCQkJCQkJCQkJPC9saT4NCgkJCQkJPC91bD4NCgkJCQk8L2Rpdj4NCgkJCTwvZGl2Pg0KCQkJPGRpdiBjbGFzcz0iZWRpdC1tb2RlIiBzdHlsZT0iZGlzcGxheTogbm9uZTsiPg0KCQkJCTxpbnB1dCB0eXBlPSJjaGVja2JveCIgLz4NCgkJCTwvZGl2Pg0KCQk8L2Rpdj4NCgkjZW5kDQojYWZ0ZXJhbGwNCgk8L2Rpdj4NCiNub2RhdGENCgk8ZGl2IGNsYXNzPSJtZXNzYWdlIG5vcmVjb3JkcyI+DQoJCSRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdFN0cmluZygkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnRWRpdFByb2ZpbGVfRnJpZW5kc19Ob25lJyksICR0YXJnZXRVc2VyLkRpc3BsYXlOYW1lKQ0KCTwvZGl2Pg0KI2VuZA0K</file>
+			<file name="inSidebar.vm">I3NldCAoJGluU2lkZWJhciA9IGZhbHNlKQ0KI3NldCAoJHJlZ2lvbiA9ICRjb3JlX3YyX3dpZGdldC5SZWdpb25OYW1lLlRvTG93ZXIoKSkNCiNzZXQgKCRsYXlvdXQgPSAkY29yZV92Ml9wYWdlLkxheW91dC5Ub0xvd2VyKCkpDQoNCiNpZiAoJHJlZ2lvbiA9PSAnc3BsaXQtc2lkZWJhci1sZWZ0JyB8fCAkcmVnaW9uID09ICdzcGxpdC1zaWRlYmFyLXJpZ2h0JyB8fCAkcmVnaW9uID09ICdsZWZ0LXNpZGViYXInKSANCiAgICAjc2V0ICgkaW5TaWRlYmFyID0gdHJ1ZSkNCiNlbHNlaWYgKCRyZWdpb24gPT0gJ3JpZ2h0LXNpZGViYXInICYmICEkbGF5b3V0LkNvbnRhaW5zKCdzcGxpdC1jb250ZW50JykgJiYgISRsYXlvdXQuQ29udGFpbnMoJ3NwbGl0LXNpZGViYXInKSkNCiAgICAjc2V0ICgkaW5TaWRlYmFyID0gdHJ1ZSkNCiNlbmQ=</file>
+			<file name="list.vm">I3NldCAoJHZpZXdUeXBlID0gJGNvcmVfdjJfd2lkZ2V0LkdldFN0cmluZ1ZhbHVlKCd2aWV3VHlwZScsICdzdGFuZGFyZCcpKQ0KI3NldCAoJHF1ZXJ5VHlwZSA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgncXVlcnlUeXBlJywgJ2N1cnJlbnRVc2VyJykpDQojc2V0ICgkcGFnZVNpemUgPSAkY29yZV92Ml93aWRnZXQuR2V0SW50VmFsdWUoJ3BhZ2VTaXplJywgMjEpKQ0KI3NldCAoJHBhZ2VJbmRleCA9ICRjb3JlX3YyX3VpLkdldEN1cnJlbnRQYWdlSW5kZXgoKSkJDQoNCiNzZXQgKCR0YXJnZXRVc2VyID0gZmFsc2UpDQojaWYgKCRxdWVyeVR5cGUgPT0gImFjY2Vzc2luZ1VzZXIiKQ0KCSNzZXQgKCR0YXJnZXRVc2VyID0gJGNvcmVfdjJfdXNlci5BY2Nlc3NpbmcpDQojZWxzZWlmICgkcXVlcnlUeXBlID09ICJjdXJyZW50VXNlciIpDQoJI3NldCAoJHRhcmdldFVzZXIgPSAkY29yZV92Ml91c2VyLkN1cnJlbnQpDQojZW5kDQoNCiNzZXQgKCRpc1VzZXJBY2Nlc3NpbmcgPSBmYWxzZSkNCiNpZiAoJHRhcmdldFVzZXIuSWQgPT0gJGNvcmVfdjJfdXNlci5BY2Nlc3NpbmcuSWQpDQoJI3NldCAoJGlzVXNlckFjY2Vzc2luZyA9IHRydWUpDQojZW5kDQoNCiNzZXQgKCR2aWV3VHlwZSA9ICJGcmllbmRzIikNCiNzZXQgKCR2aWV3VHlwZSA9ICRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgnU2hvdycpKQ0KDQojc2V0ICgkYWNjZXNzaW5nVXNlciA9ICRjb3JlX3YyX3VzZXIuQWNjZXNzaW5nKQ0KI2lmICgkaXNVc2VyQWNjZXNzaW5nKQ0KCSNpZiAoJHZpZXdUeXBlID09ICdGb2xsb3dpbmcnKQ0KCQkkY29yZV92Ml93aWRnZXQuRXhlY3V0ZUZpbGUoJ2ZvbGxvd2luZy52bScpDQoJI2Vsc2VpZiAoJHZpZXdUeXBlID09ICdGb2xsb3dlcnMnKQ0KCQkkY29yZV92Ml93aWRnZXQuRXhlY3V0ZUZpbGUoJ2ZvbGxvd2Vycy52bScpDQoJI2Vsc2VpZiAoJHZpZXdUeXBlID09ICdQZW5kaW5nJykNCgkJJGNvcmVfdjJfd2lkZ2V0LkV4ZWN1dGVGaWxlKCdwZW5kaW5nLnZtJykNCgkjZWxzZWlmICgkdmlld1R5cGUgPT0gJ1JldmlldycpDQoJCSRjb3JlX3YyX3dpZGdldC5FeGVjdXRlRmlsZSgncmV2aWV3LnZtJykNCgkjZWxzZWlmICgkdmlld1R5cGUgPT0gJ1JlY29tbWVuZGF0aW9ucycpDQoJCSRjb3JlX3YyX3dpZGdldC5FeGVjdXRlRmlsZSgncmVjb21tZW5kYXRpb25zLnZtJykNCgkjZWxzZQ0KCQkkY29yZV92Ml93aWRnZXQuRXhlY3V0ZUZpbGUoJ2ZyaWVuZHMudm0nKQ0KCSNlbmQNCiNlbHNlDQoJJGNvcmVfdjJfd2lkZ2V0LkV4ZWN1dGVGaWxlKCdmcmllbmRzLnZtJykNCiNlbmQ=</file>
+			<file name="pending.vm">IyMgbG9hZCBmcmllbmRzaHBzIHRvIHJldmlldw0KI3NldCAoJGZyaWVuZHNoaXBzID0gJGNvcmVfdjJfZnJpZW5kc2hpcC5MaXN0KCIleyBGcmllbmRzaGlwU3RhdGUgPSAnUGVuZGluZycsIFJlcXVlc3RvcklkID0gJHRhcmdldFVzZXIuSWQsIFBhZ2VJbmRleCA9ICRwYWdlSW5kZXgsIFBhZ2VTaXplID0gJHBhZ2VTaXplLCBTb3J0QnkgPSAnTGFzdE1vZGlmaWVkRGF0ZScsIFNvcnRPcmRlciA9ICdEZXNjZW5kaW5nJyB9IikpDQojc2V0KCR0b3RhbCA9ICRmcmllbmRzaGlwcy5Ub3RhbENvdW50KQ0KDQojc2V0ICgkaGFzTW9yZSA9IGZhbHNlKQ0KI3NldCAoJGN1cnJlbnRQYWdlZFF1YW50aXR5ID0gKCRmcmllbmRzaGlwcy5QYWdlSW5kZXggKyAxKSAqICRmcmllbmRzaGlwcy5QYWdlU2l6ZSkNCiNpZiAoJGZyaWVuZHNoaXBzLlRvdGFsQ291bnQgPiAkY3VycmVudFBhZ2VkUXVhbnRpdHkpDQoJCSNzZXQgKCRoYXNNb3JlID0gdHJ1ZSkNCiNlbmQNCg0KI2ZvcmVhY2ggKCRmcmllbmRzaGlwIGluICRmcmllbmRzaGlwcykNCiNiZWZvcmVhbGwNCgk8ZGl2IGNsYXNzPSJjb250ZW50LWxpc3QgdGh1bWJuYWlsIHVpLW1hc29ucnkgbWFyZ2luLXRvcCIgaWQ9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCd0aHVtYm5haWxzJykpIiBkYXRhLWNvbHVtbmNsYXNzPSJ0aHVtYm5haWwtY29sdW1uIj4NCiNlYWNoDQoJI3NldCAoJHVzZXIgPSBmYWxzZSkNCgkjaWYgKCRmcmllbmRzaGlwLlJlY2lwaWVudCAmJiAkZnJpZW5kc2hpcC5SZWNpcGllbnQuSWQgPT0gJHRhcmdldFVzZXIuSWQpDQoJCSNzZXQgKCR1c2VyID0gJGZyaWVuZHNoaXAuUmVxdWVzdG9yKQ0KCSNlbHNlDQoJCSNzZXQgKCR1c2VyID0gJGZyaWVuZHNoaXAuUmVjaXBpZW50KQ0KCSNlbmQNCgkjaWYgKCR1c2VyKQ0KCQk8ZGl2IGNsYXNzPSJjb250ZW50LWl0ZW0gY29udGVudCB0aHVtYm5haWwiIGRhdGEtaGFzbW9yZT0iJGhhc01vcmUiIGRhdGEtdXNlcmlkPSIkdXNlci5JZCIgc3R5bGU9ImN1cnNvcjogcG9pbnRlcjsiIGRhdGEtdXJsPSIkIWNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkdXNlci5Qcm9maWxlVXJsKSI+DQoJCQk8ZGl2IGNsYXNzPSJhdmF0YXIiPg0KCQkJCSRjb3JlX3YyX3VpLkdldFJlc2l6ZWRJbWFnZUh0bWwoJHVzZXIuQXZhdGFyVXJsLCAxNDAsIDE0MCwgIiV7YWx0PSR1c2VyLkRpc3BsYXlOYW1lLGJvcmRlcj0nMCcsUmVzaXplTWV0aG9kID0gJ1pvb21BbmRDcm9wJ30iKQ0KCQkJCQkJPC9kaXY+DQoJCQkJCQk8aDMgY2xhc3M9Im5hbWUiPg0KCQkJCQkJCQkkdXNlci5EaXNwbGF5TmFtZQ0KCQkJCQkJPC9oMz4NCgkJCTxkaXYgY2xhc3M9ImFjdGlvbnMiPg0KCQkJCTxkaXYgY2xhc3M9IiBuYXZpZ2F0aW9uLWxpc3QgdWktbGlua3MiIGRhdGEtbWlubGlua3M9IjAiIGRhdGEtbWF4bGlua3M9IjAiIGRhdGEtZGlyZWN0aW9uPSJob3Jpem9udGFsIj4NCgkJCQkJPHVsPg0KCQkJCQkJI2ZvcmVhY2goJGFjdGlvbiBpbiAkY29yZV92Ml91c2VyLkxpc3RBY3Rpb25MaW5rcygkdXNlci5JZCkpDQoJCQkJCQkJPGxpIGNsYXNzPSJuYXZpZ2F0aW9uLWxpc3QtaXRlbSI+JGFjdGlvbi5IdG1sPC9saT4NCgkJCQkJCSNlbmQNCgkJCQkJCTxsaSBjbGFzcz0ibmF2aWdhdGlvbi1saXN0LWl0ZW0iPg0KCQkJCQkJCQkJCQk8YSBocmVmPSIjIiBkYXRhLW1vcmU+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ2VkaXQnKTwvYT4NCgkJCQkJCQkJCTwvbGk+DQoJCQkJCQk8bGkgY2xhc3M9Im5hdmlnYXRpb24tbGlzdC10ZW0iPg0KCQkJCQkJCQkJCQkJCQkJCTxhIGhyZWY9IiMiIGRhdGEtY2FuY2VsPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdjYW5jZWwnKTwvYT4NCgkJCQkJCQkJCQkJCQkJPC9saT4NCgkJCQkJPC91bD4NCgkJCQk8L2Rpdj4NCgkJCTwvZGl2Pg0KCQkJPGRpdiBjbGFzcz0iZWRpdC1tb2RlIiBzdHlsZT0iZGlzcGxheTogbm9uZTsiPg0KCQkJCTxpbnB1dCB0eXBlPSJjaGVja2JveCIgLz4NCgkJCTwvZGl2Pg0KCQk8L2Rpdj4NCgkjZW5kDQojYWZ0ZXJhbGwNCgk8L2Rpdj4NCiNub2RhdGENCgk8ZGl2IGNsYXNzPSJtZXNzYWdlIG5vcmVjb3JkcyI+DQoJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdGcmllbmRSZXF1ZXN0X05vbmVUb1JldmlldycpDQoJPC9kaXY+DQojZW5kDQo=</file>
+			<file name="recommendations.vm">I3NldCgkdXNlclJlY29tbWVuZGF0aW9ucyA9ICRjb3JlX3YyX3VzZXJSZWNvbW1lbmRhdGlvbi5MaXN0KCIle1BhZ2VTaXplPSRwYWdlU2l6ZSxQYWdlSW5kZXg9JHBhZ2VJbmRleH0iKSkNCiNzZXQoJHRvdGFsID0gJHVzZXJSZWNvbW1lbmRhdGlvbnMuVG90YWxDb3VudCkNCg0KI2ZvcmVhY2ggKCR1c2VyUmVjb21tZW5kYXRpb24gaW4gJHVzZXJSZWNvbW1lbmRhdGlvbnMpDQojYmVmb3JlYWxsDQoJPGRpdiBjbGFzcz0iY29udGVudC1saXN0IHRodW1ibmFpbCB1aS1tYXNvbnJ5IG1hcmdpbi10b3AiIGlkPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgndGh1bWJuYWlscycpKSIgZGF0YS1jb2x1bW5jbGFzcz0idGh1bWJuYWlsLWNvbHVtbiI+DQojZWFjaA0KCSNzZXQgKCR1c2VyID0gZmFsc2UpDQoJI3NldCAoJHVzZXIgPSAkdXNlclJlY29tbWVuZGF0aW9uLlVzZXIpDQoJI2lmICgkdXNlcikNCgkJPGRpdiBjbGFzcz0iY29udGVudC1pdGVtIGNvbnRlbnQgdGh1bWJuYWlsIiBkYXRhLWhhc21vcmU9IiRoYXNNb3JlIiBkYXRhLXVzZXJpZD0iJHVzZXIuSWQiIHN0eWxlPSJjdXJzb3I6IHBvaW50ZXI7IiBkYXRhLXVybD0iJCFjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJHVzZXIuUHJvZmlsZVVybCkiPg0KCQkJPGRpdiBjbGFzcz0iYXZhdGFyIj4NCgkJCQkkY29yZV92Ml91aS5HZXRSZXNpemVkSW1hZ2VIdG1sKCR1c2VyLkF2YXRhclVybCwgMTQwLCAxNDAsICIle2FsdD0kdXNlci5EaXNwbGF5TmFtZSxib3JkZXI9JzAnLFJlc2l6ZU1ldGhvZCA9ICdab29tQW5kQ3JvcCd9IikNCgkJCQkJCTwvZGl2Pg0KCQkJCQkJPGgzIGNsYXNzPSJuYW1lIj4NCgkJCQkJCQkJJHVzZXIuRGlzcGxheU5hbWUNCgkJCQkJCTwvaDM+DQoJCQk8ZGl2IGNsYXNzPSJhY3Rpb25zIj4NCgkJCQk8ZGl2IGNsYXNzPSIgbmF2aWdhdGlvbi1saXN0IHVpLWxpbmtzIiBkYXRhLW1pbmxpbmtzPSIwIiBkYXRhLW1heGxpbmtzPSIwIiBkYXRhLWRpcmVjdGlvbj0iaG9yaXpvbnRhbCI+DQoJCQkJCTx1bD4NCgkJCQkJCTxsaSBjbGFzcz0ibmF2aWdhdGlvbi1pdGVtIj4NCgkJCQkJCQk8YSBocmVmPSIjIiBjbGFzcz0iaW50ZXJuYWwtbGluayBpZ25vcmUtc3VnZ2VzdGlvbiIgZGF0YS1tZXNzYWdlbmFtZT0iaWdub3JlVXNlclJlY29tbWVuZGF0aW9uIiBkYXRhLXVzZXJpZD0iJHVzZXJSZWNvbW1lbmRhdGlvbi5Vc2VyLklkIj4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnaWdub3JlX3VzZXJfcmVjb21tZW5kYXRpb24nKTwvYT4NCgkJCQkJCTwvbGk+DQoJCQkJCQkjZm9yZWFjaCgkYWN0aW9uIGluICRjb3JlX3YyX3VzZXIuTGlzdEFjdGlvbkxpbmtzKCR1c2VyLklkKSkNCgkJCQkJCQk8bGkgY2xhc3M9Im5hdmlnYXRpb24tbGlzdC1pdGVtIj4kYWN0aW9uLkh0bWw8L2xpPg0KCQkJCQkJI2VuZA0KCQkJCQkJPGxpIGNsYXNzPSJuYXZpZ2F0aW9uLWxpc3QtaXRlbSI+DQoJCQkJCQkJCQkJCTxhIGhyZWY9IiMiIGRhdGEtbW9yZT4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnQ29ubmVjdCcpPC9hPg0KCQkJCQkJCQkJPC9saT4NCgkJCQkJCTxsaSBjbGFzcz0ibmF2aWdhdGlvbi1saXN0LXRlbSI+DQoJCQkJCQkJCQkJCQkJCQkJPGEgaHJlZj0iIyIgZGF0YS1jYW5jZWw+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ2NhbmNlbCcpPC9hPg0KCQkJCQkJCQkJCQkJCQk8L2xpPg0KCQkJCQk8L3VsPg0KCQkJCTwvZGl2Pg0KCQkJPC9kaXY+DQoJCQk8ZGl2IGNsYXNzPSJlZGl0LW1vZGUiIHN0eWxlPSJkaXNwbGF5OiBub25lOyI+DQoJCQkJPGlucHV0IHR5cGU9ImNoZWNrYm94IiAvPg0KCQkJPC9kaXY+DQoJCTwvZGl2Pg0KCSNlbmQNCiNhZnRlcmFsbA0KCTwvZGl2Pg0KI25vZGF0YQ0KCTxkaXYgY2xhc3M9Im1lc3NhZ2Ugbm9yZWNvcmRzIj4NCgkJJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1JlY29tbWVuZGF0aW9uc19Ob25lJykNCgk8L2Rpdj4NCiNlbmQNCg==</file>
+			<file name="review.vm">IyMgbG9hZCBwZW5kaW5nIGZyaWVuZHNoaXBzDQojc2V0ICgkZnJpZW5kc2hpcHNUb1JldmlldyA9ICRjb3JlX3YyX2ZyaWVuZHNoaXAuTGlzdCgiJXsgRnJpZW5kc2hpcFN0YXRlID0gJ1BlbmRpbmcnLCBSZWNpcGllbnRJZCA9ICR0YXJnZXRVc2VyLklkLCBQYWdlSW5kZXggPSAkcGFnZUluZGV4LCBQYWdlU2l6ZSA9ICRwYWdlU2l6ZSwgU29ydEJ5ID0gJ0xhc3RNb2RpZmllZERhdGUnLCBTb3J0T3JkZXIgPSAnRGVzY2VuZGluZycgfSIpKQ0KI3NldCgkdG90YWwgPSAkZnJpZW5kc2hpcHMuVG90YWxDb3VudCkNCg0KI3NldCAoJGhhc01vcmUgPSBmYWxzZSkNCiNzZXQgKCRjdXJyZW50UGFnZWRRdWFudGl0eSA9ICgkZnJpZW5kc2hpcHNUb1Jldmlldy5QYWdlSW5kZXggKyAxKSAqICRmcmllbmRzaGlwc1RvUmV2aWV3LlBhZ2VTaXplKQ0KI2lmICgkZnJpZW5kc2hpcHNUb1Jldmlldy5Ub3RhbENvdW50ID4gJGN1cnJlbnRQYWdlZFF1YW50aXR5KQ0KICAgICNzZXQgKCRoYXNNb3JlID0gdHJ1ZSkNCiNlbmQNCg0KI3NldCgkYWNjZXB0VXNlcklkID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUludCgkY29yZV92Ml9wYWdlLkdldFF1ZXJ5U3RyaW5nVmFsdWUoJ0FjY2VwdCcpKSkNCiNpZiAoJGFjY2VwdFVzZXJJZCA+IDApDQoJI3NldCgkYWNjZXB0VXNlciA9ICRjb3JlX3YyX3VzZXIuR2V0KCIleyBJZCA9ICRhY2NlcHRVc2VySWQgfSIpKQ0KCSNpZiAoJGFjY2VwdFVzZXIpDQoJCTxzY3JpcHQgdHlwZT0idGV4dC9qYXZhc2NyaXB0Ij4NCgkJalF1ZXJ5LnRlbGxpZ2VudC5ldm9sdXRpb24ubm90aWZpY2F0aW9ucy5zaG93KCckY29yZV92Ml9sYW5ndWFnZS5Gb3JtYXRTdHJpbmcoJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoIkZyaWVuZFJlcXVlc3RfQWNjZXB0ZWRfTm90aWZpY2F0aW9uIiksICRhY2NlcHRVc2VyLkRpc3BsYXlOYW1lKScsIHt0eXBlOiAnc3VjY2VzcycsIGR1cmF0aW9uOiAxMDAwMH0pOw0KCQk8L3NjcmlwdD4NCgkjZW5kDQojZW5kDQojc2V0KCRyZWplY3RVc2VySWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgnUmVqZWN0JykpKQ0KI2lmICgkcmVqZWN0VXNlcklkID4gMCkNCgkjc2V0KCRyZWplY3RVc2VyID0gJGNvcmVfdjJfdXNlci5HZXQoIiV7IElkID0gJHJlamVjdFVzZXJJZCB9IikpDQoJI2lmICgkcmVqZWN0VXNlcikNCgkJPHNjcmlwdCB0eXBlPSJ0ZXh0L2phdmFzY3JpcHQiPg0KCQlqUXVlcnkudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coJyRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdFN0cmluZygkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiRnJpZW5kUmVxdWVzdF9SZWplY3RlZF9Ob3RpZmljYXRpb24iKSwgJHJlamVjdFVzZXIuRGlzcGxheU5hbWUpJywge3R5cGU6ICdzdWNjZXNzJywgZHVyYXRpb246IDEwMDAwfSk7DQoJCTwvc2NyaXB0Pg0KCSNlbmQNCiNlbmQNCg0KIyMgZmluZCByZWNlbnRseS1hZGRlZCBmcmllbmRzLCBhbmQgZGlzcGxheSBtZXNzYWdlcyBmb3IgZWFjaC4NCg0KI3NldCAoJGZyaWVuZHNoaXBzID0gJGNvcmVfdjJfZnJpZW5kc2hpcC5MaXN0KCIleyBGcmllbmRzaGlwU3RhdGUgPSAnQXBwcm92ZWQnLCBSZXF1ZXN0b3JJZCA9ICR1c2VyLklkLCBQYWdlU2l6ZSA9IDEwLCBTb3J0QnkgPSAnTGFzdE1vZGlmaWVkRGF0ZScsIFNvcnRPcmRlciA9ICdEZXNjZW5kaW5nJyB9IikpDQojc2V0ICgkcmVjZW50RnJpZW5kc2hpcHMgPSBbXSkNCiNzZXQgKCRkcSA9ICciJykNCiNpZiAoJGZyaWVuZHNoaXBzICYmICRmcmllbmRzaGlwcy5Db3VudCA+IDApDQoJI3NldCAoJGN1dG9mZkRhdGUgPSAkY29yZV92Ml91dGlsaXR5LkN1cnJlbnREYXRlLkFkZE1pbnV0ZXMoLTEpKQ0KCSNmb3JlYWNoICgkZnJpZW5kIGluICRmcmllbmRzaGlwcykNCgkJI2lmICgkZnJpZW5kLkxhc3RNb2RpZmllZERhdGUgPj0gJGN1dG9mZkRhdGUpDQoJCQkjc2V0ICgkYWRkSW5kZXggPSAkcmVjZW50RnJpZW5kc2hpcHMuQWRkKCRmcmllbmQpKQ0KCQkjZW5kDQoJI2VuZA0KI2VuZA0KDQojZm9yZWFjaCAoJGZyaWVuZHNoaXAgaW4gJHJlY2VudEZyaWVuZHNoaXBzKQ0KI2JlZm9yZWFsbA0KCTxkaXYgY2xhc3M9Im1lc3NhZ2Ugd2FybmluZyI+DQoJCTx1bCBjbGFzcz0iY29udGVudC1saXN0Ij4NCiNlYWNoDQoJI3NldCAoJGZyaWVuZCA9IGZhbHNlKQ0KCSNpZiAoJGZyaWVuZHNoaXAuUmVjaXBpZW50ICYmICRmcmllbmRzaGlwLlJlY2lwaWVudC5JZCA9PSAkdGFyZ2V0VXNlci5JZCkNCgkJI3NldCAoJGZyaWVuZCA9ICRmcmllbmRzaGlwLlJlcXVlc3RvcikNCgkjZWxzZQ0KCQkjc2V0ICgkZnJpZW5kID0gJGZyaWVuZHNoaXAuUmVjaXBpZW50KQ0KCSNlbmQNCgkjaWYgKCRmcmllbmQpDQoJCTxsaSBjbGFzcz0iY29udGVudC1pdGVtIj4NCgkJCSNzZXQgKCRmcmllbmRMaW5rID0gIjxhIGNsYXNzPSR7ZHF9aW50ZXJuYWwtbGluayB2aWV3LXVzZXItcHJvZmlsZSR7ZHF9IGhyZWY9JHtkcX0kY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCR7ZnJpZW5kLlByb2ZpbGVVcmx9KSR7ZHF9PjxzcGFuPiR7ZnJpZW5kLkRpc3BsYXlOYW1lfTwvc3Bhbj48L2E+IikNCgkJCSRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdFN0cmluZygkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnRnJpZW5kUmVxdWVzdF9BY2NlcHRlZF9Db25maXJtYXRpb24nKSwgJGZyaWVuZExpbmspDQoJCTwvbGk+DQoJI2VuZA0KI2FmdGVyYWxsDQoJCTwvdWw+DQoJPC9kaXY+DQojZW5kDQoNCiMjIHNob3cgYWxsIHBlbmRpbmcgcmV2aWV3DQoNCiNmb3JlYWNoICgkZnJpZW5kc2hpcCBpbiAkZnJpZW5kc2hpcHNUb1JldmlldykNCiNiZWZvcmVhbGwNCgk8ZGl2IGNsYXNzPSJjb250ZW50LWxpc3QgdGh1bWJuYWlsIHVpLW1hc29ucnkgbWFyZ2luLXRvcCIgaWQ9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCd0aHVtYm5haWxzJykpIiBkYXRhLWNvbHVtbmNsYXNzPSJ0aHVtYm5haWwtY29sdW1uIj4NCiNlYWNoDQoJI3NldCAoJHVzZXIgPSBmYWxzZSkNCgkjaWYgKCRmcmllbmRzaGlwLlJlY2lwaWVudCAmJiAkZnJpZW5kc2hpcC5SZWNpcGllbnQuSWQgPT0gJHRhcmdldFVzZXIuSWQpDQoJCSNzZXQgKCR1c2VyID0gJGZyaWVuZHNoaXAuUmVxdWVzdG9yKQ0KCSNlbHNlDQoJCSNzZXQgKCR1c2VyID0gJGZyaWVuZHNoaXAuUmVjaXBpZW50KQ0KCSNlbmQNCgkjaWYgKCR1c2VyKQ0KCQk8ZGl2IGNsYXNzPSJjb250ZW50LWl0ZW0gY29udGVudCB0aHVtYm5haWwiIGRhdGEtaGFzbW9yZT0iJGhhc01vcmUiIGRhdGEtdXNlcmlkPSIkdXNlci5JZCIgc3R5bGU9ImN1cnNvcjogcG9pbnRlcjsiIGRhdGEtdXJsPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCR1c2VyLlByb2ZpbGVVcmwpIj4NCgkJCTxkaXYgY2xhc3M9ImF2YXRhciI+DQoJCQkJJGNvcmVfdjJfdWkuR2V0UmVzaXplZEltYWdlSHRtbCgkdXNlci5BdmF0YXJVcmwsIDE0MCwgMTQwLCAiJXthbHQ9JHVzZXIuRGlzcGxheU5hbWUsYm9yZGVyPScwJyxSZXNpemVNZXRob2QgPSAnWm9vbUFuZENyb3AnfSIpDQoJCSAgICAgICAgPC9kaXY+DQoJCSAgICAgICAgPGgzIGNsYXNzPSJuYW1lIj4NCgkJICAgICAgICAgICAgJHVzZXIuRGlzcGxheU5hbWUNCgkJICAgICAgICA8L2gzPg0KCQkJPGRpdiBjbGFzcz0iYWN0aW9ucyI+DQoJCQkJPGRpdiBjbGFzcz0iIG5hdmlnYXRpb24tbGlzdCB1aS1saW5rcyIgZGF0YS1taW5saW5rcz0iMCIgZGF0YS1tYXhsaW5rcz0iMCIgZGF0YS1kaXJlY3Rpb249Imhvcml6b250YWwiPg0KCQkJCQk8dWw+DQoJCQkJCQkjZm9yZWFjaCgkYWN0aW9uIGluICRjb3JlX3YyX3VzZXIuTGlzdEFjdGlvbkxpbmtzKCR1c2VyLklkKSkNCgkJCQkJCQk8bGkgY2xhc3M9Im5hdmlnYXRpb24tbGlzdC1pdGVtIj4kYWN0aW9uLkh0bWw8L2xpPg0KCQkJCQkJI2VuZA0KCQkJCQkJPGxpIGNsYXNzPSJuYXZpZ2F0aW9uLWxpc3QtaXRlbSI+DQoJCQkJCSAgICAgICAgICAgIDxhIGhyZWY9IiMiIGRhdGEtbW9yZT4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnQXBwcm92ZURlbnknKTwvYT4NCgkJCQkJICAgICAgICA8L2xpPg0KCQkJCQkJPGxpIGNsYXNzPSJuYXZpZ2F0aW9uLWxpc3QtdGVtIj4NCiAgICAgICAgICAgICAgICAgICAgICAgIAkJCQk8YSBocmVmPSIjIiBkYXRhLWNhbmNlbD4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnY2FuY2VsJyk8L2E+DQogICAgICAgICAgICAgICAgICAgIAkJCQk8L2xpPg0KCQkJCQk8L3VsPg0KCQkJCTwvZGl2Pg0KCQkJPC9kaXY+DQoJCTwvZGl2Pg0KCSNlbmQNCiNhZnRlcmFsbA0KCTwvZGl2Pg0KI25vZGF0YQ0KCTxkaXYgY2xhc3M9Im1lc3NhZ2Ugbm9yZWNvcmRzIj4NCgkJJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ0ZyaWVuZFJlcXVlc3RfTm9uZVRvUmV2aWV3JykNCgk8L2Rpdj4NCiNlbmQNCg0K</file>
+			<file name="search.vm">77u/DQojc2V0ICgkcXVlcnlUeXBlID0gJGNvcmVfdjJfd2lkZ2V0LkdldFN0cmluZ1ZhbHVlKCdxdWVyeVR5cGUnLCAnY3VycmVudFVzZXInKSkNCiNzZXQgKCR0YXJnZXRVc2VyID0gZmFsc2UpDQojaWYgKCRxdWVyeVR5cGUgPT0gImFjY2Vzc2luZ1VzZXIiKQ0KCSNzZXQgKCR0YXJnZXRVc2VyID0gJGNvcmVfdjJfdXNlci5BY2Nlc3NpbmcpDQojZWxzZWlmICgkcXVlcnlUeXBlID09ICJjdXJyZW50VXNlciIpDQoJI3NldCAoJHRhcmdldFVzZXIgPSAkY29yZV92Ml91c2VyLkN1cnJlbnQpDQojZW5kDQoNCiNzZXQoJHBhZ2VJbmRleCA9IDApDQojc2V0KCRwYWdlSW5kZXggPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgnd19wYWdlSW5kZXgnKSkpDQoNCiNzZXQoJHF1ZXJ5ID0gJycpDQojc2V0KCRxdWVyeSA9ICRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgnd19xdWVyeScpKQ0KDQojc2V0ICgkZnJpZW5kc2hpcHMgPSAkY29yZV92Ml9mcmllbmRzaGlwLkxpc3QoIiV7IEZyaWVuZHNoaXBTdGF0ZSA9ICdBcHByb3ZlZCcsIFJlcXVlc3RvcklkID0gJHRhcmdldFVzZXIuSWQsIFBhZ2VJbmRleCA9ICRwYWdlSW5kZXgsIFBhZ2VTaXplID0gMTAsIFNvcnRCeSA9ICdEaXNwbGF5TmFtZScsIFNvcnRPcmRlciA9ICdBc2NlbmRpbmcnLCBTZWFyY2hUZXh0ID0gJHF1ZXJ5IH0iKSkNCg0KI3NldCAoJGhhc01vcmUgPSBmYWxzZSkNCiNzZXQgKCRjdXJyZW50UGFnZWRRdWFudGl0eSA9ICgkZnJpZW5kc2hpcHMuUGFnZUluZGV4ICsgMSkgKiAkZnJpZW5kc2hpcHMuUGFnZVNpemUpDQojaWYgKCRmcmllbmRzaGlwcy5Ub3RhbENvdW50ID4gJGN1cnJlbnRQYWdlZFF1YW50aXR5KQ0KICAgICNzZXQgKCRoYXNNb3JlID0gdHJ1ZSkNCiNlbmQNCg0KI2ZvcmVhY2ggKCRmcmllbmRzaGlwIGluICRmcmllbmRzaGlwcykNCiNlYWNoDQoJI3NldCAoJHVzZXIgPSBmYWxzZSkNCgkjaWYgKCRmcmllbmRzaGlwLlJlY2lwaWVudCAmJiAkZnJpZW5kc2hpcC5SZWNpcGllbnQuSWQgPT0gJHRhcmdldFVzZXIuSWQpDQoJCSNzZXQgKCR1c2VyID0gJGZyaWVuZHNoaXAuUmVxdWVzdG9yKQ0KCSNlbHNlDQoJCSNzZXQgKCR1c2VyID0gJGZyaWVuZHNoaXAuUmVjaXBpZW50KQ0KCSNlbmQNCgkjaWYgKCR1c2VyKQ0KCQkjc2V0KCRjb250ZW50ID0gZmFsc2UpDQoJCSNzZXQoJGNvbnRlbnQgPSAkY29yZV92Ml9jb250ZW50LkdldCgkdXNlci5Db250ZW50SWQsICRjb3JlX3YyX3VzZXIuQ29udGVudFR5cGVJZCkpDQoJCSNpZiAoJGNvbnRlbnQpDQoJCQk8bGkgY2xhc3M9ImNvbnRlbnQtaXRlbSIgZGF0YS1jb250ZW50dXJsPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRjb250ZW50LlVybCkiICNpZigkaGFzTW9yZSkgZGF0YS1oYXNtb3JlPSJ0cnVlIiAjZW5kPg0KCQkJCSRjb250ZW50LlZpZXdIdG1sKCdXZWInKQ0KCQkJPC9saT4NCgkJI2VuZA0KCSNlbmQNCiNub2RhdGENCgk8ZGl2IGNsYXNzPSJtZXNzYWdlIG5vcmVjb3JkcyI+DQoJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdub19zZWFyY2hfbWF0Y2hlc19mb3VuZCcpDQoJPC9kaXY+DQojZW5kDQoNCg==</file>
+			<file name="ui.js">KGZ1bmN0aW9uKCQsIGdsb2JhbCkgew0KDQoJLy8gcmV0dXJucyB0aGUgZnJpZW5kIGlkIHJlbGF0ZWQgdG8gYSBnaXZlbiBjaGlsZCBlbGVtZW50IG9mIHRoYXQgZnJpZW5kIGlkJ3Mgcm93IGl0ZW0NCgl2YXIgc2V0dXBFbmRsZXNzU2Nyb2xsaW5nID0gZnVuY3Rpb24oY29udGV4dCkgew0KCQl2YXIgaXNMb2FkaW5nTW9yZSA9IGZhbHNlLCBwYWdlSW5kZXggPSAwLCBoYXNNb3JlID0gY29udGV4dC5oYXNNb3JlID09ICdUcnVlJzsNCgkJJChkb2N1bWVudCkub24oJ3Njcm9sbGVuZCcsIGZ1bmN0aW9uKGUpew0KCQkJaWYoaXNMb2FkaW5nTW9yZSB8fCAhaGFzTW9yZSkNCgkJCQlyZXR1cm47DQoNCgkJCWlzTG9hZGluZ01vcmUgPSB0cnVlOw0KDQoJCQl2YXIgZGF0YSA9IHt9DQoJCQlkYXRhW2NvbnRleHQucGFnZUluZGV4S2V5XSA9IHBhZ2VJbmRleCArIDI7DQoNCgkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5nZXQoew0KCQkJCXVybDogY29udGV4dC5sb2FkVXJsLA0KCQkJCWRhdGE6IGRhdGENCgkJCX0pLnRoZW4oZnVuY3Rpb24ocmVzcG9uc2Upew0KCQkJCXZhciBpdGVtcyA9ICQocmVzcG9uc2UpLmZpbmQoJ2Rpdi5jb250ZW50LWl0ZW0udGh1bWJuYWlsJyk7DQoJCQkJaWYgKGNvbnRleHQuaW5FZGl0TW9kZSkgew0KCQkJCQlpdGVtcy5maW5kKCcuZWRpdC1tb2RlJykuc2hvdygpLmZpbmQoJ2lucHV0W3R5cGU9ImNoZWNrYm94Il0nKS5wcm9wKCdjaGVja2VkJywgZmFsc2UpOw0KCQkJCX0NCgkJCQloYXNNb3JlID0gaXRlbXMuZGF0YSgnaGFzbW9yZScpID09ICdUcnVlJzsNCgkJCQljb250ZXh0LnRodW1ibmFpbHNDb250YWluZXIuZXZvbHV0aW9uTWFzb25yeSgnYXBwZW5kJywgaXRlbXMpOw0KCQkJCXBhZ2VJbmRleCsrOw0KCQkJCWlzTG9hZGluZ01vcmUgPSBmYWxzZTsNCgkJCX0pOw0KCQl9KTsNCgl9Ow0KDQoJdmFyIGFwaSA9IHsNCgkJcmVnaXN0ZXI6IGZ1bmN0aW9uKGNvbnRleHQpIHsNCgkJCWNvbnRleHQuaW5FZGl0TW9kZSA9IGZhbHNlOw0KCQkJY29udGV4dC5lZGl0Rm9ybUFjdGlvblRha2VuID0gZmFsc2U7DQoJCQkNCgkJCXNldHVwRW5kbGVzc1Njcm9sbGluZyhjb250ZXh0KTsNCg0KCQkJY29udGV4dC50aHVtYm5haWxzQ29udGFpbmVyDQoJCQkJLm9uKCdjbGljaycsICcuY29udGVudC1pdGVtJywgZnVuY3Rpb24oZSl7DQoJCQkJCWlmIChjb250ZXh0LmluRWRpdE1vZGUpIHsNCgkJCQkJCXZhciBjYiA9ICQodGhpcykuZmluZCgnLmVkaXQtbW9kZSBpbnB1dFt0eXBlPSJjaGVja2JveCJdJyk7DQoJCQkJCQljYi5wcm9wKCdjaGVja2VkJywgIWNiLmlzKCc6Y2hlY2tlZCcpKS50cmlnZ2VyKCdjaGFuZ2UnKTsNCgkJCQkJfSBlbHNlIHsNCgkJCQkJCXZhciBlbG0gPSAkKHRoaXMpOw0KCQkJCQkJd2luZG93LmxvY2F0aW9uID0gZWxtLmRhdGEoJ3VybCcpOw0KCQkJCQl9DQoJCQkJfSk7DQoNCgkJCWNvbnRleHQudGh1bWJuYWlsc0NvbnRhaW5lcg0KCQkJCS5vbignY2xpY2snLCAnaW5wdXRbdHlwZT0iY2hlY2tib3giXScsIGZ1bmN0aW9uKGUpew0KCQkJCQlpZiAoY29udGV4dC5pbkVkaXRNb2RlKSB7DQoJCQkJCQl2YXIgY2IgPSAkKHRoaXMpOw0KCQkJCQkJY2IucHJvcCgnY2hlY2tlZCcsICFjYi5pcygnOmNoZWNrZWQnKSkudHJpZ2dlcignY2hhbmdlJyk7DQoJCQkJCX0gZWxzZSB7DQoJCQkJCQl2YXIgZWxtID0gJCh0aGlzKTsNCgkJCQkJCXdpbmRvdy5sb2NhdGlvbiA9IGVsbS5kYXRhKCd1cmwnKTsNCgkJCQkJfQ0KCQkJCX0pOw0KDQoJCQljb250ZXh0LndyYXBwZXIuZmluZCgnc2VsZWN0Jykub24oJ2NoYW5nZScsIGZ1bmN0aW9uKCkgew0KCQkJCXZhciBzID0gJCh0aGlzKTsNCgkJCQl2YXIgdXJsID0gcy5kYXRhKCd1cGRhdGUnKTsNCgkJCQlpZiAodXJsKSB7DQoJCQkJCXdpbmRvdy5sb2NhdGlvbiA9IHVybC5yZXBsYWNlKCdPUFRJT05WQUxVRScsIHMudmFsKCkpOw0KCQkJCX0NCgkJCX0pOw0KCQkJDQoJCQljb250ZXh0LmVkaXRNb2RlLm9uKCdjbGljaycsIGZ1bmN0aW9uKCkgew0KCQkJCWNvbnRleHQuaW5FZGl0TW9kZSA9ICFjb250ZXh0LmluRWRpdE1vZGU7DQoJCQkJY29udGV4dC5zZWxlY3Rpb25Db3VudCA9IDA7DQoJCQkJDQoJCQkJaWYgKGNvbnRleHQuaW5FZGl0TW9kZSkgew0KCQkJCQljb250ZXh0LmVkaXRGb3JtLnNsaWRlRG93bignZmFzdCcpOw0KCQkJCQljb250ZXh0LmVkaXRNb2RlLmh0bWwoY29udGV4dC5jYW5jZWxNZXNzYWdlKTsNCgkJCQkJY29udGV4dC5lZGl0TW9kZU1lc3NhZ2UuaHRtbChjb250ZXh0LnNlbGVjdGVkVXNlcnNNZXNzYWdlLnJlcGxhY2UoJ3swfScsICcwJykpOw0KCQkJCQljb250ZXh0LnRodW1ibmFpbHNDb250YWluZXIuZmluZCgnLmVkaXQtbW9kZScpLnNob3coKS5maW5kKCdpbnB1dFt0eXBlPSJjaGVja2JveCJdJykucHJvcCgnY2hlY2tlZCcsIGZhbHNlKQ0KCQkJCX0gZWxzZSB7DQoJCQkJCWNvbnRleHQuZWRpdEZvcm0uc2xpZGVVcCgnZmFzdCcpOw0KCQkJCQljb250ZXh0LmVkaXRNb2RlLmh0bWwoY29udGV4dC5lZGl0TWVzc2FnZSk7DQoJCQkJCWNvbnRleHQudGh1bWJuYWlsc0NvbnRhaW5lci5maW5kKCcuZWRpdC1tb2RlJykuaGlkZSgpOw0KCQkJCQkNCgkJCQkJaWYgKGNvbnRleHQuZWRpdEZvcm1BY3Rpb25UYWtlbikgew0KCQkJCQkJd2luZG93LmxvY2F0aW9uID0gd2luZG93LmxvY2F0aW9uOw0KCQkJCQl9DQoJCQkJfQ0KCQkJCQ0KCQkJCXJldHVybiBmYWxzZTsNCgkJCX0pOw0KCQkJDQoJCQljb250ZXh0LmVkaXRGb3JtLmZpbmQoJy5kb25lJykub24oJ2NsaWNrJywgZnVuY3Rpb24oKSB7DQoJCQkJY29udGV4dC5pbkVkaXRNb2RlID0gZmFsc2U7DQoJCQkJY29udGV4dC5lZGl0Rm9ybS5zbGlkZVVwKCdmYXN0Jyk7DQoJCQkJY29udGV4dC5lZGl0TW9kZS5odG1sKGNvbnRleHQuZWRpdE1lc3NhZ2UpOw0KCQkJCWNvbnRleHQudGh1bWJuYWlsc0NvbnRhaW5lci5maW5kKCcuZWRpdC1tb2RlJykuaGlkZSgpOw0KCQkJCQ0KCQkJCWlmIChjb250ZXh0LmVkaXRGb3JtQWN0aW9uVGFrZW4pIHsNCgkJCQkJd2luZG93LmxvY2F0aW9uID0gd2luZG93LmxvY2F0aW9uOw0KCQkJCX0NCgkJCX0pOw0KCQkJDQoJCQljb250ZXh0LnRodW1ibmFpbHNDb250YWluZXIub24oJ2NoYW5nZScsICcuZWRpdC1tb2RlIGlucHV0W3R5cGU9ImNoZWNrYm94Il0nLCBmdW5jdGlvbigpIHsNCgkJCQlpZiAoJCh0aGlzKS5pcygnOmNoZWNrZWQnKSkgew0KCQkJCQljb250ZXh0LnNlbGVjdGlvbkNvdW50Kys7DQoJCQkJfSBlbHNlIHsNCgkJCQkJY29udGV4dC5zZWxlY3Rpb25Db3VudC0tOw0KCQkJCX0NCgkJCQkNCgkJCQlpZiAoY29udGV4dC5zZWxlY3Rpb25Db3VudCA9PSAxKSB7DQoJCQkJCWNvbnRleHQuZWRpdE1vZGVNZXNzYWdlLmh0bWwoY29udGV4dC5zZWxlY3RlZFVzZXJNZXNzYWdlLnJlcGxhY2UoJ3swfScsICcxJykpOw0KCQkJCX0gZWxzZSB7DQoJCQkJCWNvbnRleHQuZWRpdE1vZGVNZXNzYWdlLmh0bWwoY29udGV4dC5zZWxlY3RlZFVzZXJzTWVzc2FnZS5yZXBsYWNlKCd7MH0nLCBjb250ZXh0LnNlbGVjdGlvbkNvdW50KSk7DQoJCQkJfQ0KCQkJCQ0KCQkJCWlmIChjb250ZXh0LnNlbGVjdGlvbkNvdW50ID4gMCkgew0KCQkJCQljb250ZXh0LmVkaXRGb3JtLmZpbmQoJy5idXR0b246bm90KC5kb25lKScpLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCQkJCX0gZWxzZSB7DQoJCQkJCWNvbnRleHQuZWRpdEZvcm0uZmluZCgnLmJ1dHRvbjpub3QoLmRvbmUpJykuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCQkJfQ0KCQkJCQ0KCQkJfSkub24oJ2NsaWNrJywgJy5lZGl0LW1vZGUgaW5wdXRbdHlwZT0iY2hlY2tib3giXScsIGZ1bmN0aW9uKCkgew0KCQkJCWV2ZW50LnN0b3BQcm9wYWdhdGlvbigpOw0KCQkJfSk7DQoJCQkNCgkJCWNvbnRleHQuZWRpdEZvcm0uZmluZCgnLnVuZm9sbG93LWFsbCcpLm9uKCdjbGljaycsIGZ1bmN0aW9uKCkgew0KCQkJCXZhciBiID0gJCh0aGlzKTsNCgkJCQlpZiAoY29udGV4dC5zZWxlY3Rpb25Db3VudCA9PSAwIHx8ICFiLmRhdGEoJ2NvbmZpcm1hdGlvbicpIHx8ICFnbG9iYWwuY29uZmlybShiLmRhdGEoJ2NvbmZpcm1hdGlvbicpKSkgeyByZXR1cm4gZmFsc2U7IH0NCgkJCQkNCgkJCQkkKCcucHJvY2Vzc2luZycsIGNvbnRleHQuZWRpdEZvcm0pLmNzcygidmlzaWJpbGl0eSIsICJ2aXNpYmxlIik7DQoJCQkJY29udGV4dC5lZGl0Rm9ybS5maW5kKCcuYnV0dG9uJykuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCQkJDQoJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLmJhdGNoKGZ1bmN0aW9uKCkgew0KCQkJCQljb250ZXh0LnRodW1ibmFpbHNDb250YWluZXIuZmluZCgnaW5wdXRbdHlwZT0iY2hlY2tib3giXTpjaGVja2VkJykuZWFjaChmdW5jdGlvbigpIHsNCgkJCQkJCXZhciB1c2VySWQgPSAkKHRoaXMpLnBhcmVudHMoJy5jb250ZW50LWl0ZW0udGh1bWJuYWlsJykuZGF0YSgndXNlcmlkJyk7DQoJCQkJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24uZGVsKHsNCgkJCQkJCQl1cmw6ICQudGVsbGlnZW50LmV2b2x1dGlvbi5zaXRlLmdldEJhc2VVcmwoKSArICdhcGkuYXNoeC92Mi91c2Vycy97Rm9sbG93ZXJJZH0vZm9sbG93aW5nL3tGb2xsb3dpbmdJZH0uanNvbicsDQoJCQkJCQkJZGF0YTogeyANCgkJCQkJCQkJRm9sbG93ZXJJZDogJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnVzZXIuYWNjZXNzaW5nLmlkLA0KCQkJCQkJCQlGb2xsb3dpbmdJZDogdXNlcklkDQoJCQkJCQkJCX0NCgkJCQkJCQl9KTsNCgkJCQkJfSk7DQoJCQkJfSkNCgkJCQkJLnRoZW4oZnVuY3Rpb24oKSB7DQoJCQkJCQlpZiAoYi5kYXRhKCdzdWNjZXNzJykpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyhiLmRhdGEoJ3N1Y2Nlc3MnKSwgeyB0eXBlOiAnaW5mb3JtYXRpb24nIH0pOyB9DQoJCQkJCQljb250ZXh0LmVkaXRGb3JtQWN0aW9uVGFrZW4gPSB0cnVlOw0KCQkJCQkJJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LmVkaXRGb3JtKS5jc3MoInZpc2liaWxpdHkiLCAiaGlkZGVuIik7DQoJCQkJCQljb250ZXh0LmVkaXRGb3JtLmZpbmQoJy5idXR0b24nKS5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsNCgkJCQkJfSwgZnVuY3Rpb24oKSB7DQoJCQkJCQkkKCcucHJvY2Vzc2luZycsIGNvbnRleHQuZWRpdEZvcm0pLmNzcygidmlzaWJpbGl0eSIsICJoaWRkZW4iKTsNCgkJCQkJCWNvbnRleHQuZWRpdEZvcm0uZmluZCgnLmJ1dHRvbicpLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCQkJCQl9KTsNCgkJCX0pOw0KCQkJDQoJCQljb250ZXh0LmVkaXRGb3JtLmZpbmQoJy51bmZyaWVuZC1hbGwnKS5vbignY2xpY2snLCBmdW5jdGlvbigpIHsNCgkJCQl2YXIgYiA9ICQodGhpcyk7DQoJCQkJaWYgKGNvbnRleHQuc2VsZWN0aW9uQ291bnQgPT0gMCB8fCAhYi5kYXRhKCdjb25maXJtYXRpb24nKSB8fCAhZ2xvYmFsLmNvbmZpcm0oYi5kYXRhKCdjb25maXJtYXRpb24nKSkpIHsgcmV0dXJuIGZhbHNlOyB9DQoJCQkJDQoJCQkJJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LmVkaXRGb3JtKS5jc3MoInZpc2liaWxpdHkiLCAidmlzaWJsZSIpOw0KCQkJCWNvbnRleHQuZWRpdEZvcm0uZmluZCgnLmJ1dHRvbicpLmFkZENsYXNzKCdkaXNhYmxlZCcpOw0KCQkJCQ0KCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5iYXRjaChmdW5jdGlvbigpIHsNCgkJCQkJY29udGV4dC50aHVtYm5haWxzQ29udGFpbmVyLmZpbmQoJ2lucHV0W3R5cGU9ImNoZWNrYm94Il06Y2hlY2tlZCcpLmVhY2goZnVuY3Rpb24oKSB7DQoJCQkJCQl2YXIgdXNlcklkID0gJCh0aGlzKS5wYXJlbnRzKCcuY29udGVudC1pdGVtLnRodW1ibmFpbCcpLmRhdGEoJ3VzZXJpZCcpOw0KCQkJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLmRlbCh7DQoJCQkJCQkJdXJsOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvdXNlcnMve1JlcXVlc3RvcklkfS9mcmllbmRzL3tSZXF1ZXN0ZWVJZH0uanNvbicsDQoJCQkJCQkJZGF0YTogeyANCgkJCQkJCQkJUmVxdWVzdG9ySWQ6ICQudGVsbGlnZW50LmV2b2x1dGlvbi51c2VyLmFjY2Vzc2luZy5pZCwNCgkJCQkJCQkJUmVxdWVzdGVlSWQ6IHVzZXJJZA0KCQkJCQkJCQl9DQoJCQkJCQkJfSk7DQoJCQkJCX0pOw0KCQkJCX0pDQoJCQkJCS50aGVuKGZ1bmN0aW9uKCkgew0KCQkJCQkJaWYgKGIuZGF0YSgnc3VjY2VzcycpKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coYi5kYXRhKCdzdWNjZXNzJyksIHsgdHlwZTogJ2luZm9ybWF0aW9uJyB9KTsgfQ0KCQkJCQkJY29udGV4dC5lZGl0Rm9ybUFjdGlvblRha2VuID0gdHJ1ZTsNCgkJCQkJCSQoJy5wcm9jZXNzaW5nJywgY29udGV4dC5lZGl0Rm9ybSkuY3NzKCJ2aXNpYmlsaXR5IiwgImhpZGRlbiIpOw0KCQkJCQkJY29udGV4dC5lZGl0Rm9ybS5maW5kKCcuYnV0dG9uJykucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCQkJCX0sIGZ1bmN0aW9uKCkgew0KCQkJCQkJJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LmVkaXRGb3JtKS5jc3MoInZpc2liaWxpdHkiLCAiaGlkZGVuIik7DQoJCQkJCQljb250ZXh0LmVkaXRGb3JtLmZpbmQoJy5idXR0b24nKS5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsNCgkJCQkJfSk7DQoJCQl9KTsNCgkJCQ0KCQkJY29udGV4dC5lZGl0Rm9ybS5maW5kKCcuZm9sbG93LWFsbCcpLm9uKCdjbGljaycsIGZ1bmN0aW9uKCkgew0KCQkJCXZhciBiID0gJCh0aGlzKTsNCgkJCQlpZiAoY29udGV4dC5zZWxlY3Rpb25Db3VudCA9PSAwIHx8ICFiLmRhdGEoJ2NvbmZpcm1hdGlvbicpIHx8ICFnbG9iYWwuY29uZmlybShiLmRhdGEoJ2NvbmZpcm1hdGlvbicpKSkgeyByZXR1cm4gZmFsc2U7IH0NCgkJCQkNCgkJCQkkKCcucHJvY2Vzc2luZycsIGNvbnRleHQuZWRpdEZvcm0pLmNzcygidmlzaWJpbGl0eSIsICJ2aXNpYmxlIik7DQoJCQkJY29udGV4dC5lZGl0Rm9ybS5maW5kKCcuYnV0dG9uJykuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCQkJDQoJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLmJhdGNoKGZ1bmN0aW9uKCkgew0KCQkJCQljb250ZXh0LnRodW1ibmFpbHNDb250YWluZXIuZmluZCgnaW5wdXRbdHlwZT0iY2hlY2tib3giXTpjaGVja2VkJykuZWFjaChmdW5jdGlvbigpIHsNCgkJCQkJCXZhciB1c2VySWQgPSAkKHRoaXMpLnBhcmVudHMoJy5jb250ZW50LWl0ZW0udGh1bWJuYWlsJykuZGF0YSgndXNlcmlkJyk7DQoJCQkJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ucG9zdCh7DQoJCQkJCQkJdXJsOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvdXNlcnMve0ZvbGxvd2VySWR9L2ZvbGxvd2luZy5qc29uJywNCgkJCQkJCQlkYXRhOiB7IA0KCQkJCQkJCQlGb2xsb3dlcklkOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24udXNlci5hY2Nlc3NpbmcuaWQsDQoJCQkJCQkJCUZvbGxvd2luZ0lkOiB1c2VySWQNCgkJCQkJCQkJfQ0KCQkJCQkJCX0pDQoJCQkJCX0pOw0KCQkJCX0pDQoJCQkJCS50aGVuKGZ1bmN0aW9uKCkgew0KCQkJCQkJaWYgKGIuZGF0YSgnc3VjY2VzcycpKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coYi5kYXRhKCdzdWNjZXNzJyksIHsgdHlwZTogJ2luZm9ybWF0aW9uJyB9KTsgfQ0KCQkJCQkJY29udGV4dC5lZGl0Rm9ybUFjdGlvblRha2VuID0gdHJ1ZTsNCgkJCQkJCSQoJy5wcm9jZXNzaW5nJywgY29udGV4dC5lZGl0Rm9ybSkuY3NzKCJ2aXNpYmlsaXR5IiwgImhpZGRlbiIpOw0KCQkJCQkJY29udGV4dC5lZGl0Rm9ybS5maW5kKCcuYnV0dG9uJykucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCQkJCX0sIGZ1bmN0aW9uKCkgew0KCQkJCQkJJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LmVkaXRGb3JtKS5jc3MoInZpc2liaWxpdHkiLCAiaGlkZGVuIik7DQoJCQkJCQljb250ZXh0LmVkaXRGb3JtLmZpbmQoJy5idXR0b24nKS5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsNCgkJCQkJfSk7DQoJCQl9KTsNCg0KCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm1lc3NhZ2luZy5zdWJzY3JpYmUoJ2lnbm9yZVVzZXJSZWNvbW1lbmRhdGlvbicsIGZ1bmN0aW9uKGRhdGEpIHsNCgkJCQl2YXIgZSA9ICQoZGF0YS50YXJnZXQpOw0KCQkJCXZhciB1c2VySWQgPSBlLmRhdGEoJ3VzZXJpZCcpOw0KDQoJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KCSAgICAgICAgICAgIAl1cmw6ICQudGVsbGlnZW50LmV2b2x1dGlvbi5zaXRlLmdldEJhc2VVcmwoKSArICdhcGkuYXNoeC92Mi91c2VyL3JlY29tbWVuZGF0aW9uL2lnbm9yZS97VXNlcklkfS5qc29uJywNCgkgICAgICAgICAgICAJZGF0YTogew0KCSAgICAgICAgICAgIAkJVXNlcklkOiB1c2VySWQNCgkgICAgICAgICAgICAJfSwNCgkgICAgICAgICAgICAJc3VjY2VzczogZnVuY3Rpb24ocmVzcG9uc2UpIHsNCgkgICAgICAgICAgICAgICAgICAgIGNvbnRleHQudGh1bWJuYWlsc0NvbnRhaW5lci5maW5kKCcuY29udGVudC1pdGVtW2RhdGEtdXNlcmlkPSInICsgdXNlcklkICsgJyJdJykuZmFkZU91dCgnZmFzdCcpOw0KCSAgICAgICAgICAgICAgICAgICAgJChkb2N1bWVudCkuY2xpY2soKTsNCgkgICAgICAgICAgICAgICAgfQ0KCSAgICAgICAgICAgIH0pOw0KCQkJfSk7DQoJCQkNCgkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5tZXNzYWdpbmcuc3Vic2NyaWJlKCdzZWFyY2gucmVnaXN0ZXJGaWx0ZXJzJywgZnVuY3Rpb24oZGF0YSkgew0KCQkJCWlmIChkYXRhLnNjb3BlLmtleSA9PSAnYW55d2hlcmUnKSB7DQoJCQkJCWRhdGEucmVnaXN0ZXIoew0KCQkJCQkJbmFtZTogY29udGV4dC5zZWFyY2hGaWx0ZXJUZXh0LA0KCQkJCQkJcXVlcnk6IGZ1bmN0aW9uKHF1ZXJ5LCBjb21wbGV0ZSkgew0KCQkJCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5nZXQoew0KCQkJCQkJCQl1cmw6IGNvbnRleHQuc2VhcmNoVXJsLA0KCQkJCQkJCQlkYXRhOiB7IA0KCQkJCQkJCQkJd19xdWVyeTogcXVlcnkucXVlcnksDQoJCQkJCQkJCQl3X3BhZ2VJbmRleDogcXVlcnkucGFnZUluZGV4DQoJCQkJCQkJCX0sCQ0KCQkJCQkJCQlzdWNjZXNzOiBmdW5jdGlvbihyZXNwb25zZSkgew0KCQkJCQkJCQkJY29tcGxldGUocmVzcG9uc2UpOw0KCQkJCQkJCQl9DQoJCQkJCQkJfSk7DQoJCQkJCQl9LA0KCQkJCQkJYWR2YW5jZWRTZWFyY2hVcmw6IGZ1bmN0aW9uKHF1ZXJ5KSB7IA0KCQkJCQkJCXJldHVybiBudWxsOyANCgkJCQkJCX0sDQoJCQkJCQlpc0RlZmF1bHQ6IGNvbnRleHQuc2VhcmNoRmlsdGVyRGVmYXVsdA0KCQkJCQl9KTsNCgkJCQl9CQ0KCQkJfSk7DQoJCX0NCgl9Ow0KDQoNCg0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50ID0ge307IH0NCglpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbiA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID0ge307IH0NCglpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9IHt9OyB9DQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMuZnJpZW5kc2hpcExpc3QgPSBhcGk7DQoNCn0oalF1ZXJ5LCB3aW5kb3cpKTsNCg==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

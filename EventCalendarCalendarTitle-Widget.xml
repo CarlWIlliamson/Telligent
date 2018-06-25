@@ -1,0 +1,98 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Calendar_Title_Name}" version="10.1.8.10498" description="${resource:Calendar_Title_Description}" instanceIdentifier="29aa41eefc8e406b9196f989452c5f22" theme="" isCacheable="false" varyCacheByUser="true" showHeaderByDefault="true" cssClass="group-title calendar-title">
+		<contentScript><![CDATA[#set ($currentCalendar = false)
+#set ($currentCalendar = $calendar_v1_calendars.Current)
+
+#set ($currentGroup = false)
+#set ($currentGroup = $core_v2_group.Current)
+
+#set ($currentEvent = false)
+#set ($currentEvent = $calendar_v1_events.Current)
+
+#set($page = $calendar_v1_urls.Current)
+#if ($page == 'Tags' || $page == 'GroupAggregateTags')
+	#set($title = $core_v2_language.GetResource('TagBrowser_Title'))
+#elseif ($page == 'ViewGroup')
+	#set($title = "$currentGroup.Name $core_v2_language.GetResource('calendar_Url_AllCalendars')")
+#elseif ($page == 'Application')
+  #set($title = "")
+#elseif ($page == 'EditCalendar')
+	#set($title = "$core_v2_language.GetResource('calendar_Url_EditCalendar')")
+#elseif ($page == 'AddCalendar')
+	#set($title = "$core_v2_language.GetResource('calendar_Url_AddCalendar')")
+#elseif ($page == 'AddEvent')
+	#set($title = $core_v2_language.GetResource('calendar_Url_AddEvent'))
+#elseif($page == 'EditEvent')
+	#set($title = $core_v2_language.FormatString($core_v2_language.GetResource('calendar_Url_EditEvent'), $currentEvent.EventTitle))
+#elseif($page == 'ViewEvent')
+	#set($title = $currentEvent.EventTitle)
+#elseif($page == 'Registrations')
+	#set($title = $core_v2_language.GetResource('calendar_Url_Registration'))
+#else
+	#set($title = $core_v2_language.GetResource('calendar_Url_AllCalendars'))
+#end
+
+$core_v2_page.SetTitle($title, true, true)
+      ]]></contentScript>
+		<headerScript><![CDATA[$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Calendar_Title_Title}'))]]></headerScript>
+		<configuration><![CDATA[      
+      <propertyGroup id="options" resourceName="Options">
+        <property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Calendar_Title_Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+      </propertyGroup>
+      ]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="BreadCrumb_Seperator"> &amp;raquo; </resource>
+  <resource name="Calendar_Title_Description">Sets and Displays Title for calendar pages</resource>
+  <resource name="Calendar_Title_Name">Event Calendar - Calendar Title</resource>
+  <resource name="Calendar_Title_Title">Title</resource>
+  <resource name="calendar_Url_AddCalendar">Add Calendar</resource>
+  <resource name="calendar_Url_AddEvent">Add Event</resource>
+  <resource name="calendar_Url_AllCalendars">Calendars</resource>
+  <resource name="calendar_Url_EditCalendar">Edit Calendar</resource>
+  <resource name="calendar_Url_EditEvent">Edit '{0}'</resource>
+  <resource name="calendar_Url_Registration">Registrations</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Home">Home</resource>
+  <resource name="Options">Options</resource>
+  <resource name="TagBreadCrumb_Root">All Tags</resource>
+  <resource name="TagBrowser_Title">Browse by Tags</resource>
+  <resource name="ViewMore">...</resource>
+</language>
+<language key="zh-cn">
+  <resource name="BreadCrumb_Seperator"> &amp;raquo; </resource>
+  <resource name="Calendar_Title_Description">设置和显示日历页面的标题</resource>
+  <resource name="Calendar_Title_Name">活动日历 - 日历标题</resource>
+  <resource name="Calendar_Title_Title">标题</resource>
+  <resource name="calendar_Url_AddCalendar">添加日历</resource>
+  <resource name="calendar_Url_AddEvent">添加活动</resource>
+  <resource name="calendar_Url_AllCalendars">日历</resource>
+  <resource name="calendar_Url_EditCalendar">编辑日历</resource>
+  <resource name="calendar_Url_EditEvent">编辑活动</resource>
+  <resource name="calendar_Url_Registration">注册</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Home">首页</resource>
+  <resource name="Options">选项</resource>
+  <resource name="TagBreadCrumb_Root">所有标记</resource>
+  <resource name="TagBrowser_Title">按标记浏览</resource>
+  <resource name="ViewMore">...</resource>
+</language>
+<language key="zh-tw">
+  <resource name="BreadCrumb_Seperator"> &amp;raquo; </resource>
+  <resource name="Calendar_Title_Description">設定及顯示行事曆頁面的標題</resource>
+  <resource name="Calendar_Title_Name">事件行事曆 - 行事曆標題</resource>
+  <resource name="Calendar_Title_Title">標題</resource>
+  <resource name="calendar_Url_AddCalendar">新增行事曆</resource>
+  <resource name="calendar_Url_AddEvent">新增事件</resource>
+  <resource name="calendar_Url_AllCalendars">行事曆</resource>
+  <resource name="calendar_Url_EditCalendar">編輯行事曆</resource>
+  <resource name="calendar_Url_EditEvent">編輯事件</resource>
+  <resource name="calendar_Url_Registration">註冊</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Home">首頁</resource>
+  <resource name="Options">選項</resource>
+  <resource name="TagBreadCrumb_Root">所有標記</resource>
+  <resource name="TagBrowser_Title">依標記瀏覽</resource>
+  <resource name="ViewMore">...</resource>
+</language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

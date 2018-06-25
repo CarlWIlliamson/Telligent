@@ -1,0 +1,100 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Groups_GroupTitle_Name}" version="10.1.8.10498" description="${resource:Groups_GroupTitle_Description}" instanceIdentifier="98b406bf9f224e61b50ee7293c5732fd" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="group-title">
+		<contentScript><![CDATA[
+#set($page = $core_v2_groupUrls.Current)
+#if ($page == 'Contact')
+	#set($title = $core_v2_language.GetResource('Contact'))
+#elseif ($page == 'AccessDenied')
+	#set($title = $core_v2_language.GetResource('Hubs_AccessDenied_Title'))
+#elseif ($page == 'RequestMembership')
+	#set($title = $core_v2_language.GetResource('Hubs_RequestMembership'))
+#elseif ($page == 'MemberList')
+	#if ($core_v2_page.GetQueryStringValue('UserID'))
+		#set($title = $core_v2_language.GetResource('Hubs_EditMember'))
+	#else
+		#set($title = $core_v2_language.GetResource('Role_Members'))
+	#end
+#elseif ($page == 'ContactRequests')
+	#set($title = $core_v2_language.GetResource('Hubs_ContactRequest'))
+#elseif ($page == 'MentionList')
+	#set($title = $core_v2_language.GetResource('Hubs_MentionList'))
+#elseif ($page == 'Tags')
+	#set($title = $core_langauge.GetResource('TagBrowser_Title'))
+#elseif ($page == 'Custom' && $core_v2_customPage.Current)
+	#set($title = $core_v2_widget.ApplyTokens($core_v2_customPage.Current.Title))
+#elseif ($page == 'leaders.grouplist')
+	#set($title = $core_v2_language.GetResource('Leaderboards'))
+#end
+#if ($page == 'Group')
+	$core_v2_page.SetTitle('', true, true)
+	#if ($core_v2_widget.GetBoolValue('visible', false))
+		<h1 class="title">$core_v2_group.Current.Name</h1>
+	#end
+#elseif ($title)
+	$core_v2_page.SetTitle($title, true, true)
+	#if ($core_v2_widget.GetBoolValue('visible', false))
+		<h1 class="title">$title</h1>
+	#end
+#else
+	$core_v2_widget.Hide()
+#end
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Groups_GroupTitle_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Groups_GroupTitle_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="visible" resourceName="Title_Visible" dataType="bool" defaultValue="False" />
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Contact">Contact</resource>
+  <resource name="Groups_GroupTitle_Description">Displays the title for community pages.</resource>
+  <resource name="Groups_GroupTitle_Name">Community - Title</resource>
+  <resource name="Hubs_AccessDenied_Title">Access Denied</resource>
+  <resource name="Hubs_ContactRequest">Contact Requests</resource>
+  <resource name="Hubs_EditMember">Edit Member</resource>
+  <resource name="Hubs_MentionList">Mentions</resource>
+  <resource name="Hubs_RequestMembership">Request Membership</resource>
+  <resource name="Leaderboards">Leaderboards</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Role_Members">Members</resource>
+  <resource name="Title_Visible">Show the title in the page</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Contact">联系人</resource>
+  <resource name="Groups_GroupTitle_Description">显示社区页面的标题。</resource>
+  <resource name="Groups_GroupTitle_Name">社区 - 标题</resource>
+  <resource name="Hubs_AccessDenied_Title">访问被拒绝</resource>
+  <resource name="Hubs_ContactRequest">联系人请求</resource>
+  <resource name="Hubs_EditMember">编辑成员</resource>
+  <resource name="Hubs_MentionList">引述</resource>
+  <resource name="Hubs_RequestMembership">请求成员资格</resource>
+  <resource name="Leaderboards">排行榜</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Role_Members">成员</resource>
+  <resource name="Title_Visible">在页面中显示标题</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Contact">連絡人</resource>
+  <resource name="Groups_GroupTitle_Description">顯示社群頁面的標題。</resource>
+  <resource name="Groups_GroupTitle_Name">社群 - 標題</resource>
+  <resource name="Hubs_AccessDenied_Title">存取遭拒</resource>
+  <resource name="Hubs_ContactRequest">連絡人要求</resource>
+  <resource name="Hubs_EditMember">編輯成員</resource>
+  <resource name="Hubs_MentionList">提及項目</resource>
+  <resource name="Hubs_RequestMembership">要求成員資格</resource>
+  <resource name="Leaderboards">排行榜</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Role_Members">成員</resource>
+  <resource name="Title_Visible">在頁面中顯示標題</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="c75db121ca2f49458517ef31436d98a0" />
+		</requiredContext>
+	</scriptedContentFragment>
+</scriptedContentFragments>

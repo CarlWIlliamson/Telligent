@@ -1,0 +1,165 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:CommentForm_Name}" version="10.1.8.10498" description="${resource:CommentForm_Description}" instanceIdentifier="f2a2ded1f5044948a6d1c8ccd0918ebb" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="comment-form">
+		<contentScript><![CDATA[
+
+## hide if no content
+#set ($content = $core_v2_content.Current)
+#if (!$content)
+	$core_v2_widget.Hide()
+#end
+
+## hide if comments not supported
+#if (!$core_v2_comments.SupportsComments($content.ContentTypeId))
+	$core_v2_widget.Hide()
+#end
+
+## check if user is anonymous
+#set($isAnonymous = true)
+#if ($core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+	#set($isAnonymous = false)
+#end
+
+## check if comments are not allowed
+#set($allowsComments = false)
+#if ($core_v2_comments.AllowsComments($content.ContentId, $content.ContentTypeId))
+	#set($allowsComments = true)
+#end
+
+## check if user can comment
+#if ($core_v2_comments.CanCreateComment($content.ContentId, $content.ContentTypeId))
+  #set($commentPostId = "$core_v2_widget.UniqueId('save')")
+#elseif ($isAnonymous && $allowsComments)
+	#set($commentPostId = "$core_v2_widget.UniqueId('login')")
+#else
+  $core_v2_widget.Hide()
+#end
+
+## support comment count threshholds when configured with a non-zero value
+#set ($displayCommentThreshold = $core_v2_widget.GetIntValue('displayCommentThreshold', 0))
+#set ($currentComments= $core_v2_comments.List("%{ ContentId = $content.ContentId, ContentTypeId = $content.ContentTypeId, PageSize = 1, PageIndex = 0 }"))
+#set ($currentCommentCount = 0)
+#set ($currentCommentCount = $currentComments.TotalCount)
+#if ($displayCommentThreshold != 0 && $currentCommentCount < $displayCommentThreshold)
+	$core_v2_widget.Hide()
+#end
+
+#set($tempBody = "")
+#set($tempKey = $core_v2_page.GetQueryStringValue("tempkey"))
+#if ($tempKey)
+  #set($tempBody = $core_v2_utility.GetTemporaryData($tempKey))
+#end
+
+<div id="$core_v2_widget.UniqueId('form')">
+	<fieldset>
+		<ul class="field-list">
+			<li class="field-item post-body">
+				<span class="field-item-input">
+					<textarea placeholder="$core_v2_language.GetResource('Comment_LeaveAComment')"
+						class="full"
+						rows="3"
+						id="$core_v2_widget.UniqueId('body')"
+						name="$core_v2_widget.UniqueId('body')"
+						style="padding:10px;">$tempBody</textarea>
+				</span>
+				<span class="field-item-validation" style="display: none;"></span>
+			</li>
+      <li class="field-item post-submit">
+        <span class="field-item-input">
+          <a href="#" class="button" id="$commentPostId" name="$commentPostId">$core_v2_language.GetResource('Comment_Post')</a>
+          <span class="processing" style="visibility: hidden;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+        </span>
+      </li>
+		</ul>
+	</fieldset>
+</div>
+
+#set($returnUrl = $core_v2_urls.Current)
+
+#registerEndOfPageHtml('telligent.evolution.widgets.commentForm')
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+#end
+#registerEndOfPageHtml()
+	<script type="text/javascript">
+	jQuery(document).ready(function(j){
+		j.telligent.evolution.widgets.commentForm.register({
+			wrapperId: '$core_v2_widget.WrapperElementId',
+			contentTypeId: '$content.ContentTypeId',
+			contentId: '$content.ContentId',
+			bodyRequiredText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('CommentForm_EnterCommentWarning'))',
+			save: j('#$core_v2_widget.UniqueId('save')'),
+			bodySelector: '#$core_v2_widget.UniqueId('body')',
+			successMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Comment_SuccessMessage'))',
+			moderateMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Comment_ModeratedMessaage'))',
+			errorMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Comment_PublishError'))',
+			publishingText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Comment_Publishing'))',
+			loginSelector: '#$core_v2_widget.UniqueId('login')',
+			redirect: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('redirect.vm'))',
+			returnUrlLogin: '$core_v2_encoding.JavascriptEncode($core_v2_urls.LogIn())',
+			autoPost : #if ($tempBody.length > 0) true #else false #end
+		});
+	});
+
+
+  </script>
+#end
+
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:CommentForm_Name}'))
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:CommentForm_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="displayCommentThreshold" resourceName="DisplayCommentThreshold" dataType="int" defaultValue="0">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="0" maxValue="100" />
+	</property>
+</propertyGroup>
+	]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CommentForm_Name">Comment Form</resource>
+  <resource name="CommentForm_Description">Displays a form used to add comments to content.</resource>
+  <resource name="Options">Options</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="DisplayCommentThreshold">Minimum number of comments required to display</resource>
+  <resource name="Comment_SuccessMessage">Your comment has been posted.</resource>
+  <resource name="Comment_ModeratedMessaage">Thank you, your comment requires moderation so it may take a while to appear.</resource>
+  <resource name="Comment_PublishError">There was an error saving your comment.</resource>
+  <resource name="Comment_Publishing">Posting</resource>
+  <resource name="Comment_Post">Comment</resource>
+  <resource name="CommentForm_EnterCommentWarning">Please enter a comment</resource>
+  <resource name="Comment_LeaveAComment">Leave a comment...</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CommentForm_Name">评论窗体</resource>
+  <resource name="CommentForm_Description">显示用于向内容添加评论的窗体。</resource>
+  <resource name="Options">选项</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="DisplayCommentThreshold">需要显示的最少评论数</resource>
+  <resource name="Comment_SuccessMessage">您的评论已发布。</resource>
+  <resource name="Comment_ModeratedMessaage">谢谢，您的评论需要审核，因此可能需要一点时间才会显示。</resource>
+  <resource name="Comment_PublishError">保存评论时出错。</resource>
+  <resource name="Comment_Publishing">发布</resource>
+  <resource name="Comment_Post">评论</resource>
+  <resource name="CommentForm_EnterCommentWarning">请输入评论</resource>
+  <resource name="Comment_LeaveAComment">保留评论...</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CommentForm_Name">留言表單</resource>
+  <resource name="CommentForm_Description">顯示用來針對內容新增留言的表單。</resource>
+  <resource name="Options">選項</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="DisplayCommentThreshold">顯示所需的留言數目下限</resource>
+  <resource name="Comment_SuccessMessage">您的留言已經張貼。</resource>
+  <resource name="Comment_ModeratedMessaage">感謝您，您的留言需要仲裁，因此可能需要一段時間才會顯示。</resource>
+  <resource name="Comment_PublishError">儲存您的留言時發生錯誤。</resource>
+  <resource name="Comment_Publishing">張貼</resource>
+  <resource name="Comment_Post">留言</resource>
+  <resource name="CommentForm_EnterCommentWarning">請輸入留言</resource>
+  <resource name="Comment_LeaveAComment">留下意見...</resource>
+</language></languageResources>
+		<files>
+			<file name="redirect.vm">77u/I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkNCg0KCSNzZXQoJGJvZHkgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnYm9keScpKQ0KCSNzZXQoJHBhcmFtID0gInRlbXBrZXk9IikNCg0KCSRjb3JlX3YyX3BhZ2UuU2V0Q29udGVudFR5cGUoJ2FwcGxpY2F0aW9uL2pzb24nKQ0KDQoJI3NldCgka2V5ID0gJGNvcmVfdjJfdXRpbGl0eS5TdG9yZVRlbXBvcmFyeURhdGEoJGJvZHkpKQ0KDQoJew0KCQkidGVtcEtleSIgOiAiJHtjb3JlX3YyX2VuY29kaW5nLlVybEVuY29kZSgkcGFyYW0pfSR7a2V5fSINCgl9DQoJDQojZW5k</file>
+			<file name="ui.js">KGZ1bmN0aW9uKCQsIGdsb2JhbCkgew0KDQoJaWYgKHR5cGVvZiAkLnRlbGxpZ2VudCA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQgPSB7fTsgfQ0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSB7fTsgfQ0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID0ge307IH0NCg0KCXZhciBzYXZlID0gZnVuY3Rpb24oY29udGV4dCkgew0KCQljb250ZXh0LnNhdmUNCgkJCS5hdHRyKCd2YWx1ZScsIGNvbnRleHQucHVibGlzaGluZ1RleHQpDQoJCQkuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7DQoNCgkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KCQkJdXJsOiBqUXVlcnkudGVsbGlnZW50LmV2b2x1dGlvbi5zaXRlLmdldEJhc2VVcmwoKSArICdhcGkuYXNoeC92Mi9jb21tZW50cy5qc29uJywNCgkJCWRhdGE6IHsNCgkJCQlCb2R5OiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uaHRtbC5lbmNvZGUoJChjb250ZXh0LmJvZHlTZWxlY3RvcikuZXZvbHV0aW9uQ29tcG9zZXIoJ3ZhbCcpKSwNCgkJCQlDb250ZW50SWQ6IGNvbnRleHQuY29udGVudElkLA0KCQkJCUNvbnRlbnRUeXBlSWQ6IGNvbnRleHQuY29udGVudFR5cGVJZA0KCQkJfX0pDQoJCQkudGhlbihmdW5jdGlvbihyZXNwb25zZSkgew0KCQkJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ubWVzc2FnaW5nLnB1Ymxpc2goJ2NvbW1lbnQuY3JlYXRlZCcpOw0KDQoJCQkJCWlmKHJlc3BvbnNlLkNvbW1lbnQuSXNBcHByb3ZlZCkgew0KCQkJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyhjb250ZXh0LnN1Y2Nlc3NNZXNzYWdlLCB7IGR1cmF0aW9uOiAzICogMTAwMCB9KTsNCgkJCQkJfSBlbHNlIHsNCgkJCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coY29udGV4dC5tb2RlcmF0ZU1lc3NhZ2UsIHsgZHVyYXRpb246IDUgKiAxMDAwIH0pOw0KCQkJCQl9DQoNCgkJCQkJJChjb250ZXh0LmJvZHlTZWxlY3RvcikNCgkJCQkJCS5ldm9sdXRpb25Db21wb3NlcigndmFsJywnJykNCgkJCQkJCS5jaGFuZ2UoKTsNCgkJCQkJY29udGV4dC5zYXZlLmV2b2x1dGlvblZhbGlkYXRpb24oJ3Jlc2V0Jyk7DQoJCQkJCWNvbnRleHQuc2F2ZS5odG1sKGNvbnRleHQucHVibGlzaFRleHQpLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCQkJCQkkKCcucHJvY2Vzc2luZycsIGNvbnRleHQuc2F2ZS5wYXJlbnQoKSkuY3NzKCJ2aXNpYmlsaXR5IiwgImhpZGRlbiIpOw0KCQkJCQkkKGNvbnRleHQuYm9keVNlbGVjdG9yKS5ibHVyKCk7DQoJCQkJfSwNCgkJCQlmdW5jdGlvbigpIHsNCgkJCQkJJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LnNhdmUucGFyZW50KCkpLmNzcygidmlzaWJpbGl0eSIsICJoaWRkZW4iKTsNCgkJCQkJY29udGV4dC5zYXZlLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCQkJCQkkKGNvbnRleHQuYm9keVNlbGVjdG9yKS5ibHVyKCk7DQoJCQkJfSk7DQoJfSwNCglyZWRpcmVjdCA9IGZ1bmN0aW9uKGNvbnRleHQpIHsNCgkgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KCSAgICAgICAgdXJsOiBjb250ZXh0LnJlZGlyZWN0LA0KCSAgICAgICAgZGF0YTogew0KCSAgICAgICAgICAgIGJvZHk6ICQudGVsbGlnZW50LmV2b2x1dGlvbi5odG1sLmVuY29kZSgkKGNvbnRleHQuYm9keVNlbGVjdG9yKS5ldm9sdXRpb25Db21wb3NlcigndmFsJykpDQoJICAgICAgICB9LA0KICAgICAgICAgICAgZGF0YVR5cGU6ICdqc29uJw0KCSAgICB9KS50aGVuKGZ1bmN0aW9uIChyZXN1bHQpIHsNCgkgICAgICAgIHZhciBvcCA9IChjb250ZXh0LnJldHVyblVybExvZ2luLmluZGV4T2YoJyUzRicpID4gMCkgPyAnJTI2JyA6ICclM0YnOw0KCSAgICAgICAgd2luZG93LmxvY2F0aW9uID0gW2NvbnRleHQucmV0dXJuVXJsTG9naW4sIHJlc3VsdC50ZW1wS2V5XS5qb2luKG9wKTsNCiAgICAgICAgfSk7DQoJfTsNCg0KCSQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzLmNvbW1lbnRGb3JtID0gew0KCSAgICByZWdpc3RlcjogZnVuY3Rpb24gKGNvbnRleHQpIHsNCgkJCWlmIChkb2N1bWVudC5VUkwuaW5kZXhPZignI2FkZGNvbW1lbnQnKSA+PSAwKSB7DQoJCQkJJChjb250ZXh0LmJvZHlTZWxlY3RvcikuZm9jdXMoKTsNCgkJCX0NCg0KCQkJdmFyIGJvZHkgPSAkKGNvbnRleHQuYm9keVNlbGVjdG9yKTsNCgkJCWJvZHkub25lKCdmb2N1cycsIGZ1bmN0aW9uKCl7DQoJCQkJYm9keS5ldm9sdXRpb25Db21wb3Nlcih7DQoJCQkJCXBsdWdpbnM6IFsnbWVudGlvbnMnLCdoYXNodGFncyddDQoJCQkJfSk7DQoJCQl9KTsNCg0KCQkJY29udGV4dC5zYXZlDQoJCQkJLmV2b2x1dGlvblZhbGlkYXRpb24oew0KCQkJCQlvblZhbGlkYXRlZDogZnVuY3Rpb24oaXNWYWxpZCwgYnV0dG9uQ2xpY2tlZCwgYykgew0KCQkJCQkJaWYgKGlzVmFsaWQpIHsNCgkJCQkJCQljb250ZXh0LnNhdmUucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCQkJCQl9IGVsc2Ugew0KCQkJCQkJCWNvbnRleHQuc2F2ZS5hZGRDbGFzcygnZGlzYWJsZWQnKTsNCgkJCQkJCX0NCgkJCQkJfSwNCgkJCQkJb25TdWNjZXNzZnVsQ2xpY2s6IGZ1bmN0aW9uKGUpIHsNCgkJCQkJCWlmICghY29udGV4dC5zYXZlLmhhc0NsYXNzKCdkaXNhYmxlZCcpKSB7DQoJCQkJCQkJZS5wcmV2ZW50RGVmYXVsdCgpOw0KCQkJCQkJCWNvbnRleHQuc2F2ZS5hZGRDbGFzcygnZGlzYWJsZWQnKTsNCgkJCQkJCQkkKCcucHJvY2Vzc2luZycsIGNvbnRleHQuc2F2ZS5wYXJlbnQoKSkuY3NzKCJ2aXNpYmlsaXR5IiwgInZpc2libGUiKTsNCgkJCQkJCQlzYXZlKGNvbnRleHQpOw0KCQkJCQkJfQ0KCQkJCQkJcmV0dXJuIGZhbHNlOw0KCQkJCQl9DQoJCQkJfSkNCgkJCQkuZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkRmllbGQnLGNvbnRleHQuYm9keVNlbGVjdG9yLCB7DQoJCQkJCXJlcXVpcmVkOiB0cnVlLA0KCQkJCQltYXhsZW5ndGg6IDEwMDAwMDAsDQoJCQkJCW1lc3NhZ2VzOiB7DQoJCQkJCQlyZXF1aXJlZDogY29udGV4dC5ib2R5UmVxdWlyZWRUZXh0DQoJCQkJCX0NCgkJCQl9LCAnIycgKyBjb250ZXh0LndyYXBwZXJJZCArICcgLmZpZWxkLWl0ZW0ucG9zdC1ib2R5IC5maWVsZC1pdGVtLXZhbGlkYXRpb24nLCBudWxsKTsNCg0KCQkJJChjb250ZXh0LmxvZ2luU2VsZWN0b3IpLm9uKCdjbGljaycsIGZ1bmN0aW9uIChlKSB7DQoJCQkgICAgZS5wcmV2ZW50RGVmYXVsdCgpOw0KCQkJICAgIHJlZGlyZWN0KGNvbnRleHQpOw0KCQkJICAgIHJldHVybiBmYWxzZTsNCgkJCX0pOw0KDQoJCQlpZiAoY29udGV4dC5hdXRvUG9zdCkgew0KCQkJICAgIGJvZHkuZXZvbHV0aW9uQ29tcG9zZXIoeyBwbHVnaW5zOiBbJ21lbnRpb25zJywgJ2hhc2h0YWdzJ10gfSk7DQoJCQkgICAgY29udGV4dC5zYXZlLmNsaWNrKCk7DQoJCQl9DQoJICAgIH0NCgl9Ow0KDQp9KShqUXVlcnksIHdpbmRvdyk7DQo=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

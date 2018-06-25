@@ -1,0 +1,87 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:LikesWidget_Title}" version="10.1.8.10498" description="${resource:LikesWidget_Description}" instanceIdentifier="b0c8ad14ffd94a9eb7efa727c469a165" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="liked-content">
+		<contentScript><![CDATA[
+#set($filterType = false)
+#set($filterType = $core_v2_widget.GetStringValue('filterType', ''))
+#if(!$filterType)
+    #set($user = false)
+	#set($user = $core_v2_user.Current)
+	#if($user)
+		#set($filterType = 'Current')
+		$core_v2_widget.SetStringValue('filterType', $filterType)
+	#else
+		#set($filterType = 'Accessing')
+		$core_v2_widget.SetStringValue('filterType', $filterType)
+	#end
+#end
+
+#set($user = false)
+#if ($filterType == 'Current')
+    #set($user = $core_v2_user.Current)
+#else
+    #set($user = $core_v2_user.Accessing)
+#end
+
+#if (!$user)
+    $core_v2_widget.Hide()
+#end
+
+$core_v2_ui.PagedContent('likes.vm')
+$core_v2_ui.Pager($likes.PageIndex, $likes.PageSize, $likes.TotalCount, "%{PagedContentFile='likes.vm'}")
+]]></contentScript>
+		<headerScript><![CDATA[
+	$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Title}'))
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Configuration_Options">
+    <property id="fragmentHeader" resourceName="Configuration_Title" dataType="string" defaultValue="${resource:Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="pageSize" resourceName="Configuration_PageSize" dataType="int" defaultValue="15">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="100" />
+	</property>
+	<property id="filterType" resourceName="Configuration_Filter" dataType="string" defaultValue="">
+		<propertyValue value="Accessing" resourceName="Configuration_Filter_AccessingUser" />
+		<propertyValue value="Current" resourceName="Configuration_Filter_CurrentUser" />
+	</property>
+</propertyGroup>
+]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Configuration_Filter">Show likes for</resource>
+  <resource name="Configuration_Filter_AccessingUser">Accessing user</resource>
+  <resource name="Configuration_Filter_CurrentUser">Contextual user</resource>
+  <resource name="Configuration_Options">Options</resource>
+  <resource name="Configuration_PageSize">Page Size</resource>
+  <resource name="Configuration_Title">Widget Title</resource>
+  <resource name="LikesWidget_Description">Shows content liked by a user.</resource>
+  <resource name="LikesWidget_Title">Liked Content</resource>
+  <resource name="No_Likes_Message">{0} has not yet liked anything.</resource>
+  <resource name="Title">Likes</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Configuration_Filter">显示以下用户点赞的内容</resource>
+  <resource name="Configuration_Filter_AccessingUser">访问用户</resource>
+  <resource name="Configuration_Filter_CurrentUser">上下文用户</resource>
+  <resource name="Configuration_Options">选项</resource>
+  <resource name="Configuration_PageSize">页面大小</resource>
+  <resource name="Configuration_Title">小组件标题</resource>
+  <resource name="LikesWidget_Description">显示用户点赞的内容。</resource>
+  <resource name="LikesWidget_Title">点赞的内容</resource>
+  <resource name="No_Likes_Message">{0} 未对任何内容点赞。</resource>
+  <resource name="Title">点赞的内容</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Configuration_Filter">顯示按讚數:</resource>
+  <resource name="Configuration_Filter_AccessingUser">存取中使用者</resource>
+  <resource name="Configuration_Filter_CurrentUser">內容相關使用者</resource>
+  <resource name="Configuration_Options">選項</resource>
+  <resource name="Configuration_PageSize">頁面大小</resource>
+  <resource name="Configuration_Title">Widget 標題</resource>
+  <resource name="LikesWidget_Description">顯示使用者按讚的內容。</resource>
+  <resource name="LikesWidget_Title">按讚的內容</resource>
+  <resource name="No_Likes_Message">{0} 尚未對任何內容按讚。</resource>
+  <resource name="Title">讚</resource>
+</language></languageResources>
+		<files>
+			<file name="likes.vm">I3NldCAoJHBhZ2VTaXplID0gJGNvcmVfdjJfd2lkZ2V0LkdldEludFZhbHVlKCdwYWdlU2l6ZScsIDE1KSkNCg0KI3NldCgkZmlsdGVyVHlwZSA9IGZhbHNlKQ0KI3NldCgkZmlsdGVyVHlwZSA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgnZmlsdGVyVHlwZScsICcnKSkNCiNzZXQoJHVzZXIgPSBmYWxzZSkNCiNpZiAoJGZpbHRlclR5cGUgPT0gJ0N1cnJlbnQnKQ0KICAgICNzZXQoJHVzZXIgPSAkY29yZV92Ml91c2VyLkN1cnJlbnQpDQojZWxzZQ0KICAgICNzZXQoJHVzZXIgPSAkY29yZV92Ml91c2VyLkFjY2Vzc2luZykNCiNlbmQNCg0KI3NldCgkdXNlcklkID0gJHVzZXIuSWQpDQojc2V0KCRwYWdlSW5kZXggPSAkY29yZV92Ml91aS5HZXRDdXJyZW50UGFnZUluZGV4KCkpDQoNCiNzZXQoJGxpa2VzID0gJGNvcmVfdjJfbGlrZS5MaXN0KCIle1VzZXJJZD0kdXNlcklkLFBhZ2VTaXplPSRwYWdlU2l6ZSxQYWdlSW5kZXg9JHBhZ2VJbmRleCxTb3J0Qnk9J0RhdGUnLFNvcnRPcmRlcj0nRGVzY2VuZGluZyd9IikpDQojZm9yZWFjaCgkbGlrZSBpbiAkbGlrZXMpDQojYmVmb3JlYWxsDQoJPHVsIGNsYXNzPSJjb250ZW50LWxpc3QgY29udGVudCBtYXJnaW4tYm90dG9tIj4NCiNlYWNoDQoJPGxpIGNsYXNzPSJjb250ZW50LWl0ZW0iICNpZiAoJGxpa2UuQ29udGVudC5VcmwpIGRhdGEtaHJlZj0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkbGlrZS5Db250ZW50LlVybCkiICNlbmQ+DQoJCSNzZXQgKCRyZXN1bHRIdG1sID0gZmFsc2UpDQoJCSNzZXQgKCRyZXN1bHRIdG1sID0gJGxpa2UuQ29udGVudC5WaWV3SHRtbCgpKQ0KCQkjaWYgKCRyZXN1bHRIdG1sKQ0KCQkJJHJlc3VsdEh0bWwNCgkJI2VuZA0KCQkjc2V0KCR1c2VyTGlrZXMgPSAkY29yZV92Ml9saWtlLkxpc3QoIiV7Q29udGVudElkPSRsaWtlLkNvbnRlbnRJZCxQYWdlU2l6ZT02LFBhZ2VJbmRleD0wLFNvcnRPcmRlcj0nRGVzY2VuZGluZyd9IikpDQoJCSNpZiAoJHVzZXJMaWtlcy5Ub3RhbENvdW50ID4gMSkNCgkJCTxkaXYgY2xhc3M9ImNvbnRlbnQtbGlrZS1kZXRhaWxzIj4NCgkJCQk8dWwgY2xhc3M9ImNvbnRlbnQtbGlzdCB0aHVtYm5haWxzIj4NCgkJCQkJDQoJCQkJCSNzZXQoJHVzZXJDb3VudCA9IDApDQoJCQkJCSNmb3JlYWNoICgkdXNlckxpa2UgaW4gJHVzZXJMaWtlcykNCgkJCQkJCSNpZiAoJHVzZXJMaWtlLlVzZXJJZCAhPSAkdXNlcklkICYmICR1c2VyQ291bnQgPCAxMCkNCgkJCQkJCQk8bGkgY2xhc3M9ImNvbnRlbnQtaXRlbSI+DQoJCQkJCQkJCSNpZiAoJHVzZXJMaWtlLlVzZXIuUHJvZmlsZVVybCkNCgkJCQkJCQkJCTxhIGhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJHVzZXJMaWtlLlVzZXIuUHJvZmlsZVVybCkiIGNsYXNzPSJpbnRlcm5hbC1saW5rIHZpZXctdXNlci1wcm9maWxlIj4kY29yZV92Ml91aS5HZXRSZXNpemVkSW1hZ2VIdG1sKCR1c2VyTGlrZS5Vc2VyLkF2YXRhclVybCwgNDIsIDQyLCAiJXsgUmVzaXplTWV0aG9kPSdab29tQW5kQ3JvcCcsIGJvcmRlcj0nMCcsIGFsdD0kdXNlckxpa2UuVXNlci5EaXNwbGF5TmFtZSB9Iik8L2E+DQoJCQkJCQkJCSNlbHNlDQoJCQkJCQkJCQkkY29yZV92Ml91aS5HZXRSZXNpemVkSW1hZ2VIdG1sKCR1c2VyTGlrZS5Vc2VyLkF2YXRhclVybCwgNDIsIDQyLCAiJXsgUmVzaXplTWV0aG9kPSdab29tQW5kQ3JvcCcsIGJvcmRlcj0nMCcsIGFsdD0kdXNlckxpa2UuVXNlci5EaXNwbGF5TmFtZSB9IikNCgkJCQkJCQkJI2VuZA0KCQkJCQkJCTwvbGk+DQoJCQkJCQkJI3NldCgkdXNlckNvdW50ID0gJHVzZXJDb3VudCArIDEpDQoJCQkJCQkjZW5kDQoJCQkJCSNlbmQNCgkJCQk8L3VsPg0KCQkJCSRjb3JlX3YyX3VpLkxpa2UoJGxpa2UuQ29udGVudElkLCAkbGlrZS5Db250ZW50LkNvbnRlbnRUeXBlSWQsICIleyBGb3JtYXQgPSAne21lc3NhZ2V9JyB9IikNCgkJCTwvZGl2Pg0KCQkjZW5kDQoJPC9saT4NCiNhZnRlcmFsbA0KICAgICAgICA8L3VsPg0KICAgICAgICA8ZGl2IGNsYXNzPSJjb250ZW50LWxpc3QtZm9vdGVyIj48L2Rpdj4NCiNub2RhdGENCgk8ZGl2IGNsYXNzPSJtZXNzYWdlIGluZm9ybWF0aW9uIj4kY29yZV92Ml9sYW5ndWFnZS5Gb3JtYXRTdHJpbmcoJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoIk5vX0xpa2VzX01lc3NhZ2UiKSwgJHVzZXIuRGlzcGxheU5hbWUpPC9kaXY+DQojZW5kDQo=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

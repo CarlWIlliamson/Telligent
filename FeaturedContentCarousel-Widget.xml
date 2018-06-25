@@ -1,0 +1,653 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_FeaturedContentSlider_Name}" version="10.1.8.10498" description="${resource:Core_FeaturedContentSlider_Description}" instanceIdentifier="387656725d5b48bdae2c451035b95d4d" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="featured-content-carousel">
+		<contentScript><![CDATA[$core_v2_widget.ExecuteFile('config.vm')
+$core_v2_widget.ExecuteFile('load-custom.vm')
+$core_v2_widget.ExecuteFile('load-features.vm')
+
+## Hide if there are no featured content or custom content
+#if ((!$contentFeatures || $contentFeatures.Count == 0) && (!$customFeatures || $customFeatures.Count() == 0))
+	$core_v2_widget.Hide()
+#end
+
+$core_v2_widget.ExecuteFile('style.vm')
+
+<div class="slider-container">
+	<div class="slider">
+		<ul class="content-list content">
+		#if ($customFeatureStrategy == 'exclude')
+			#if ($contentFeatures && $contentFeatures.Count > 0)
+				#set ($featureCount = $contentFeatures.Count)
+				$core_v2_widget.ExecuteFile('feature.vm')
+			#else
+				$core_v2_widget.hide()
+			#end
+		#elseif ($customFeatureStrategy == 'includeOnly')
+			#if ($customFeatures && $customFeatures.Count() > 0)
+				#set ($featureCount = $customFeatures.Count())
+				$core_v2_widget.ExecuteFile('custom.vm')
+			#else
+				$core_v2_widget.hide()
+			#end
+		#elseif ($customFeatureStrategy == 'includeBefore')
+			#if ($customFeatures && $customFeatures.Count() > 0)
+				#set ($featureCount = $featureCount + $customFeatures.Count())
+				$core_v2_widget.ExecuteFile('custom.vm')
+			#end
+			#if ($contentFeatures && $contentFeatures.Count > 0)
+				#set ($featureCount = $featureCount + $contentFeatures.Count)
+				$core_v2_widget.ExecuteFile('feature.vm')
+			#end
+		#elseif ($customFeatureStrategy == 'includeAfter')
+			#if ($contentFeatures && $contentFeatures.Count > 0)
+				#set ($featureCount = $featureCount + $contentFeatures.Count)
+				$core_v2_widget.ExecuteFile('feature.vm')
+			#end
+			#if ($customFeatures && $customFeatures.Count() > 0)
+				#set ($featureCount = $featureCount + $customFeatures.Count())
+				$core_v2_widget.ExecuteFile('custom.vm')
+			#end
+		#elseif ($customFeatureStrategy == 'noContent')
+			#if ((!$contentFeatures || $contentFeatures.Count == 0) && ($customFeatures && $customFeatures.Count() > 0))
+				#set ($featureCount = $customFeatures.Count())
+				$core_v2_widget.ExecuteFile('custom.vm')
+			#elseif ($contentFeatures && $contentFeatures.Count > 0)
+				#set ($featureCount = $contentFeatures.Count)
+				$core_v2_widget.ExecuteFile('feature.vm')
+			#else
+				$core_v2_widget.hide()
+			#end
+		#end
+		</ul>
+	</div>
+
+	#if ($featureCount > 1)
+		<div class="feature-navigation">
+			<a href="#" data-messagename="widget.featured-content-carousel.prev" class="navigation previous">Previous</a>
+			#set ($maxFeatutureIndex = $featureCount - 1)
+			#foreach($i in [0..$maxFeatutureIndex])
+			#beforeall
+				<ul class="feature-links">
+			#each
+					<li>
+						<a href="#" class="feature-link" data-messagename="widget.featured-content-carousel.feature" data-featureindex="$i">
+							$core_v2_language.FormatString($core_v2_language.GetResource("feature"), $i.ToString())
+						</a>
+					</li>
+			#afterall
+				</ul>
+			#end
+			<a href="#" data-messagename="widget.featured-content-carousel.next" class="navigation next">Next</a>
+		</div>
+	#end
+</div>
+
+<style>
+#set ($featureListWidthPercent = $featureCount * 100)
+.content-fragment.featured-content-carousel .slider-container .slider .content-list.content {
+	width: ${featureListWidthPercent}%;
+}
+</style>
+
+#registerEndOfPageHtml('telligent.evolution.widgets.featuredContentList')
+	<script src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl("ui.js"))"></script>
+#end
+#registerEndOfPageHtml()
+	<script>
+		jQuery(function(){
+			jQuery.telligent.evolution.widgets.featuredContentList.register({
+				wrapper: '#$core_v2_widget.WrapperElementId',
+				automatic: #if ($transition == 'transitionAutomatic') true #else false #end,
+				duration: $duration
+			});
+		});
+	</script>
+#end
+		]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Core_FeaturedContentSlider_Name}'))
+#set ($group = $core_v2_group.Current)
+#set ($featuredContentRssUrl = false)
+#set ($featuredContentRssUrl = $core_v2_groupUrls.FeaturedContentRss($group.Id))
+#if ($featuredContentRssUrl)
+	<a href="$core_v2_encoding.HtmlAttributeEncode($featuredContentRssUrl)" class="internal-link rss"><span></span>$group.Name</a>
+#end
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Core_FeaturedContentSlider_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="customFeatureStrategy" resourceName="customFeatureStrategy" descriptionResourceName="customFeatureStrategy_Description" dataType="string" defaultValue="includeBefore">
+		<propertyValue value="exclude" resourceName="customFeatureStrategyExclude" />
+		<propertyValue value="includeOnly" resourceName="customFeatureStrategyIncludeOnly" />
+		<propertyValue value="includeBefore" resourceName="customFeatureStrategyBefore" />
+		<propertyValue value="includeAfter" resourceName="customFeatureStrategyAfter" />
+		<propertyValue value="noContent" resourceName="customFeatureStrategyNoContent" />
+	</property>
+	<property id="pageSize" resourceName="pageSize" dataType="int" defaultValue="5">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="20" />
+	</property>
+	<property id="transition" resourceName="transition" dataType="string" defaultValue="transitionAutomatic" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="transitionAutomatic" resourceName="transitionAutomatic" propertiesToShow="duration" />
+		<propertyValue value="transitionManual" resourceName="transitionManual" propertiesToHide="duration" />
+	</property>
+	<property id="duration" resourceName="duration" descriptionResourceName="durationDescription" dataType="int" defaultValue="5000" />
+	<property id="truncateLength" resourceName="truncateLength" dataType="int" defaultValue="100" />
+</propertyGroup>
+<propertyGroup id="layout" resourceName="layout">	
+	<property id="height" resourceName="height" descriptionResourceName="height_description" dataType="int" defaultValue="315" />
+	<property id="layoutWidth" resourceName="width" descriptionResourceName="width_description" dataType="string" defaultValue="page" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="window" resourceName="layoutWidthWindow" propertiesToShow="foregroundWidth" propertiesToHide="scaleMode,width" />
+		<propertyValue value="page" resourceName="layoutWidthPage" propertiesToShow="scaleMode,width" propertiesToHide="foregroundWidth" />
+	</property>
+	<property id="scaleMode" resourceName="scaleMode" descriptionResourceName="scaleMode_desc" dataType="string" defaultValue="crop" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="crop" resourceName="scaleModeCrop" propertiesToShow="" propertiesToHide="width" />
+		<propertyValue value="scale" resourceName="scaleModeScale" propertiesToShow="width" propertiesToHide="" />
+	</property>
+	<property id="width" resourceName="proportional_width" descriptionResourceName="proportional_width_description" dataType="int" defaultValue="1060" />
+	<property id="foregroundWidth" resourceName="foregroundWidth" descriptionResourceName="foregroundWidth_description" dataType="string" defaultValue="page">
+		<propertyValue value="window" resourceName="layoutWidthWindow" />
+		<propertyValue value="page" resourceName="layoutWidthPage" />
+	</property>
+	<property id="alignment" resourceName="alignment" descriptionResourceName="alignment_description" dataType="string" defaultValue="center-center">
+		<propertyValue value="top-left" resourceName="alignment-top-left" />
+		<propertyValue value="top-center" resourceName="alignment-top-center" />
+		<propertyValue value="top-right" resourceName="alignment-top-right" />
+		<propertyValue value="center-left" resourceName="alignment-center-left" />
+		<propertyValue value="center-center" resourceName="alignment-center-center" />
+		<propertyValue value="center-right" resourceName="alignment-center-right" />
+		<propertyValue value="bottom-left" resourceName="alignment-bottom-left" />
+		<propertyValue value="bottom-center" resourceName="alignment-bottom-center" />
+		<propertyValue value="bottom-right" resourceName="alignment-bottom-right" />
+	</property>
+</propertyGroup>
+<propertyGroup id="design" resourceName="design">
+	<property id="blur" descriptionResourceName="PhotoBlur_desc" dataType="bool" defaultValue="False" resourceName="PhotoBlur" />
+	<property id="featureShadow" dataType="bool" defaultValue="True" resourceName="shadowText" descriptionResourceName="shadowText_description" />
+	<property id="designMode" resourceName="designMode" descriptionResourceName="designMode_desc" dataType="string" defaultValue="color" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="color" resourceName="color"  propertiesToShow="palette,colorMode,featureBackground,featureBackground2,featureForeground" propertiesToHide="image" />
+		<propertyValue value="photo" resourceName="photo" propertiesToShow="image" propertiesToHide="palette,colorMode,featureBackground,featureBackground2,featureForeground" />
+	</property>
+	<property id="palette" resourceName="palette" descriptionResourceName="palette_desc" dataType="string" defaultValue="background-color-from=#36D1DC&amp;background-color-to=#5B86E5&amp;color=#ffffff" controlType="Telligent.Evolution.Controls.ColorSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="background-color=#ffffff&amp;color=#263238" resourceName="white" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color-from=#2BC0E4&amp;background-color-to=#EAECC6&amp;color=#ffffff" resourceName="tropic" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color-from=#7474BF&amp;background-color-to=#348AC7&amp;color=#ffffff" resourceName="stellar" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color-from=#43cea2&amp;background-color-to=#185a9d&amp;color=#ffffff" resourceName="river" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color-from=#3494E6&amp;background-color-to=#EC6EAD&amp;color=#ffffff" resourceName="city" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color-from=#36D1DC&amp;background-color-to=#5B86E5&amp;color=#ffffff" resourceName="scooter" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color-from=#A1FFCE&amp;background-color-to=#FAFFD1&amp;color=#000000" resourceName="limeade" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color-from=#EDE574&amp;background-color-to=#E1F5C4&amp;color=#000000" resourceName="sunny" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color-from=#DAE2F8&amp;background-color-to=#D6A4A4&amp;color=#000000" resourceName="moonrise" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color-from=#ED4264&amp;background-color-to=#FFEDBC&amp;color=#ffffff" resourceName="peach" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color-from=#ee0979&amp;background-color-to=#ff6a00&amp;color=#ffffff" resourceName="sunset" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color=#FFC107&amp;color=#000000" resourceName="amber" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color=#2196F3&amp;color=#ffffff" resourceName="blue" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color=#455A64&amp;color=#ffffff" resourceName="bluegray" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color=#00BCD4&amp;color=#000000" resourceName="cyan" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color=#8BC34A&amp;color=#ffffff" resourceName="green" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color=#03a9f4&amp;color=#ffffff" resourceName="lightblue" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color=#ECEFF1&amp;color=#263238" resourceName="lightbluegray" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color=#CDDC39&amp;color=#000000" resourceName="lime" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color=#E91E63&amp;color=#ffffff" resourceName="pink" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color=#9C27B0&amp;color=#ffffff" resourceName="purple" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color=#F44336&amp;color=#ffffff" resourceName="red" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color=#009688&amp;color=#ffffff" resourceName="teal" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color=#FFEB3B&amp;color=#000000" resourceName="yellow" propertiesToShow="" propertiesToHide="colorMode,featureBackground,featureBackground2,featureForeground" />
+		<propertyValue value="background-color=#ffffff&amp;color=#263238&amp;custom=true" resourceName="custom" propertiesToShow="colorMode,featureBackground,featureBackground2,featureForeground" propertiesToHide="" />
+	</property>
+	<property id="image" dataType="url" resourceName="photo" descriptionResourceName="PhotoUrl_desc" controlType="Telligent.Evolution.Controls.ThemeFileUrlControl, Telligent.Evolution.Platform">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.FileExtensionRule, Telligent.Evolution.Platform" validExtensions="gif,jpg,jpeg,png" />
+	</property>
+	<property id="colorMode" resourceName="colorMode" dataType="string" defaultValue="yes" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="solid" resourceName="solid"  propertiesToShow="" propertiesToHide="featureBackground2" />
+		<propertyValue value="gradient" resourceName="gradient" propertiesToShow="featureBackground2" propertiesToHide="" />
+	</property>
+	<property id="featureBackground" dataType="color" defaultValue="#fff" resourceName="featureBackground" />
+	<property id="featureBackground2" dataType="color" defaultValue="#fff" resourceName="featureBackground2" />
+	<property id="featureForeground" dataType="color" defaultValue="#263238" resourceName="featureForeground" />
+</propertyGroup>
+<propertyGroup id="feature0" resourceName="feature0" descriptionResourceName="customFeatureStrategy_Description">
+	<property id="feature0title" resourceName="featureName" dataType="string" />
+	<property id="feature0description" resourceName="featureDescription" dataType="string" />
+	<property id="feature0url" resourceName="featureUrl" dataType="url" />
+	<property id="feature0designMode" resourceName="designMode" descriptionResourceName="designMode_desc" dataType="string" defaultValue="" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="inherit" resourceName="inherit"  propertiesToShow="" propertiesToHide="feature0image,feature0blur,feature0shadow,feature0palette,feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="color" resourceName="color"  propertiesToShow="feature0palette,feature0colorMode,feature0background,feature0background2,feature0foreground" propertiesToHide="feature0image,feature0blur,feature0shadow" />
+		<propertyValue value="photo" resourceName="photo" propertiesToShow="feature0image,feature0blur,feature0shadow" propertiesToHide="feature0palette,feature0colorMode,feature0background,feature0background2,feature0foreground" />
+	</property>
+	<property id="feature0palette" resourceName="palette" descriptionResourceName="palette_desc" dataType="string" defaultValue="background-color-from=#36D1DC&amp;background-color-to=#5B86E5&amp;color=#ffffff" controlType="Telligent.Evolution.Controls.ColorSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="background-color=#ffffff&amp;color=#263238" resourceName="white" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color-from=#2BC0E4&amp;background-color-to=#EAECC6&amp;color=#ffffff" resourceName="tropic" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color-from=#7474BF&amp;background-color-to=#348AC7&amp;color=#ffffff" resourceName="stellar" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color-from=#43cea2&amp;background-color-to=#185a9d&amp;color=#ffffff" resourceName="river" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color-from=#3494E6&amp;background-color-to=#EC6EAD&amp;color=#ffffff" resourceName="city" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color-from=#36D1DC&amp;background-color-to=#5B86E5&amp;color=#ffffff" resourceName="scooter" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color-from=#A1FFCE&amp;background-color-to=#FAFFD1&amp;color=#000000" resourceName="limeade" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color-from=#EDE574&amp;background-color-to=#E1F5C4&amp;color=#000000" resourceName="sunny" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color-from=#DAE2F8&amp;background-color-to=#D6A4A4&amp;color=#000000" resourceName="moonrise" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color-from=#ED4264&amp;background-color-to=#FFEDBC&amp;color=#ffffff" resourceName="peach" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color-from=#ee0979&amp;background-color-to=#ff6a00&amp;color=#ffffff" resourceName="sunset" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color=#FFC107&amp;color=#000000" resourceName="amber" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color=#2196F3&amp;color=#ffffff" resourceName="blue" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color=#455A64&amp;color=#ffffff" resourceName="bluegray" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color=#00BCD4&amp;color=#000000" resourceName="cyan" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color=#8BC34A&amp;color=#ffffff" resourceName="green" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color=#03a9f4&amp;color=#ffffff" resourceName="lightblue" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color=#ECEFF1&amp;color=#263238" resourceName="lightbluegray" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color=#CDDC39&amp;color=#000000" resourceName="lime" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color=#E91E63&amp;color=#ffffff" resourceName="pink" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color=#9C27B0&amp;color=#ffffff" resourceName="purple" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color=#F44336&amp;color=#ffffff" resourceName="red" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color=#009688&amp;color=#ffffff" resourceName="teal" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color=#FFEB3B&amp;color=#000000" resourceName="yellow" propertiesToShow="" propertiesToHide="feature0colorMode,feature0background,feature0background2,feature0foreground" />
+		<propertyValue value="background-color=#ffffff&amp;color=#263238&amp;custom=true" resourceName="custom" propertiesToShow="feature0colorMode,feature0background,feature0background2,feature0foreground" propertiesToHide="" />
+	</property>
+	<property id="feature0image" dataType="url" resourceName="featureImage" descriptionResourceName="featureImage_description" controlType="Telligent.Evolution.Controls.ThemeFileUrlControl, Telligent.Evolution.Platform">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.FileExtensionRule, Telligent.Evolution.Platform" validExtensions="gif,jpg,jpeg,png" />
+	</property>
+	<property id="feature0blur" descriptionResourceName="PhotoBlur_desc" dataType="bool" defaultValue="False" resourceName="PhotoBlur" />
+	<property id="feature0shadow" dataType="bool" defaultValue="True" resourceName="shadowText" />
+	<property id="feature0colorMode" resourceName="colorMode" dataType="string" defaultValue="solid" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="solid" resourceName="solid"  propertiesToShow="" propertiesToHide="feature0background2" />
+		<propertyValue value="gradient" resourceName="gradient" propertiesToShow="feature0background2" propertiesToHide="" />
+	</property>
+	<property id="feature0background" dataType="color" defaultValue="#fff" resourceName="featureBackground" />
+	<property id="feature0background2" dataType="color" defaultValue="#fff" resourceName="featureBackground2" />
+	<property id="feature0foreground" dataType="color" defaultValue="#263238" resourceName="featureForeground" />
+</propertyGroup>
+<propertyGroup id="feature1" resourceName="feature1" descriptionResourceName="customFeatureStrategy_Description">
+	<property id="feature1title" resourceName="featureName" dataType="string" />
+	<property id="feature1description" resourceName="featureDescription" dataType="string" />
+	<property id="feature1url" resourceName="featureUrl" dataType="url" />
+	<property id="feature1designMode" resourceName="designMode" descriptionResourceName="designMode_desc" dataType="string" defaultValue="" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="inherit" resourceName="inherit"  propertiesToShow="" propertiesToHide="feature1image,feature1blur,feature1shadow,feature1palette,feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="color" resourceName="color"  propertiesToShow="feature1palette,feature1colorMode,feature1background,feature1background2,feature1foreground" propertiesToHide="feature1image,feature1blur,feature1shadow" />
+		<propertyValue value="photo" resourceName="photo" propertiesToShow="feature1image,feature1blur,feature1shadow" propertiesToHide="feature1palette,feature1colorMode,feature1background,feature1background2,feature1foreground" />
+	</property>
+	<property id="feature1palette" resourceName="palette" descriptionResourceName="palette_desc" dataType="string" defaultValue="background-color-from=#36D1DC&amp;background-color-to=#5B86E5&amp;color=#ffffff" controlType="Telligent.Evolution.Controls.ColorSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="background-color=#ffffff&amp;color=#263238" resourceName="white" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color-from=#2BC0E4&amp;background-color-to=#EAECC6&amp;color=#ffffff" resourceName="tropic" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color-from=#7474BF&amp;background-color-to=#348AC7&amp;color=#ffffff" resourceName="stellar" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color-from=#43cea2&amp;background-color-to=#185a9d&amp;color=#ffffff" resourceName="river" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color-from=#3494E6&amp;background-color-to=#EC6EAD&amp;color=#ffffff" resourceName="city" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color-from=#36D1DC&amp;background-color-to=#5B86E5&amp;color=#ffffff" resourceName="scooter" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color-from=#A1FFCE&amp;background-color-to=#FAFFD1&amp;color=#000000" resourceName="limeade" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color-from=#EDE574&amp;background-color-to=#E1F5C4&amp;color=#000000" resourceName="sunny" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color-from=#DAE2F8&amp;background-color-to=#D6A4A4&amp;color=#000000" resourceName="moonrise" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color-from=#ED4264&amp;background-color-to=#FFEDBC&amp;color=#ffffff" resourceName="peach" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color-from=#ee0979&amp;background-color-to=#ff6a00&amp;color=#ffffff" resourceName="sunset" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color=#FFC107&amp;color=#000000" resourceName="amber" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color=#2196F3&amp;color=#ffffff" resourceName="blue" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color=#455A64&amp;color=#ffffff" resourceName="bluegray" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color=#00BCD4&amp;color=#000000" resourceName="cyan" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color=#8BC34A&amp;color=#ffffff" resourceName="green" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color=#03a9f4&amp;color=#ffffff" resourceName="lightblue" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color=#ECEFF1&amp;color=#263238" resourceName="lightbluegray" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color=#CDDC39&amp;color=#000000" resourceName="lime" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color=#E91E63&amp;color=#ffffff" resourceName="pink" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color=#9C27B0&amp;color=#ffffff" resourceName="purple" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color=#F44336&amp;color=#ffffff" resourceName="red" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color=#009688&amp;color=#ffffff" resourceName="teal" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color=#FFEB3B&amp;color=#000000" resourceName="yellow" propertiesToShow="" propertiesToHide="feature1colorMode,feature1background,feature1background2,feature1foreground" />
+		<propertyValue value="background-color=#ffffff&amp;color=#263238&amp;custom=true" resourceName="custom" propertiesToShow="feature1colorMode,feature1background,feature1background2,feature1foreground" propertiesToHide="" />
+	</property>
+	<property id="feature1image" dataType="url" resourceName="featureImage" descriptionResourceName="featureImage_description" controlType="Telligent.Evolution.Controls.ThemeFileUrlControl, Telligent.Evolution.Platform">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.FileExtensionRule, Telligent.Evolution.Platform" validExtensions="gif,jpg,jpeg,png" />
+	</property>
+	<property id="feature1blur" descriptionResourceName="PhotoBlur_desc" dataType="bool" defaultValue="False" resourceName="PhotoBlur" />
+	<property id="feature1shadow" dataType="bool" defaultValue="True" resourceName="shadowText" />
+	<property id="feature1colorMode" resourceName="colorMode" dataType="string" defaultValue="solid" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="solid" resourceName="solid"  propertiesToShow="" propertiesToHide="feature1background2" />
+		<propertyValue value="gradient" resourceName="gradient" propertiesToShow="feature1background2" propertiesToHide="" />
+	</property>
+	<property id="feature1background" dataType="color" defaultValue="#fff" resourceName="featureBackground" />
+	<property id="feature1background2" dataType="color" defaultValue="#fff" resourceName="featureBackground2" />
+	<property id="feature1foreground" dataType="color" defaultValue="#263238" resourceName="featureForeground" />
+</propertyGroup>
+<propertyGroup id="feature2" resourceName="feature2" descriptionResourceName="customFeatureStrategy_Description">
+	<property id="feature2title" resourceName="featureName" dataType="string" />
+	<property id="feature2description" resourceName="featureDescription" dataType="string" />
+	<property id="feature2url" resourceName="featureUrl" dataType="url" />
+	<property id="feature2designMode" resourceName="designMode" descriptionResourceName="designMode_desc" dataType="string" defaultValue="" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="inherit" resourceName="inherit"  propertiesToShow="" propertiesToHide="feature2image,feature2blur,feature2shadow,feature2palette,feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="color" resourceName="color"  propertiesToShow="feature2palette,feature2colorMode,feature2background,feature2background2,feature2foreground" propertiesToHide="feature2image,feature2blur,feature2shadow" />
+		<propertyValue value="photo" resourceName="photo" propertiesToShow="feature2image,feature2blur,feature2shadow" propertiesToHide="feature2palette,feature2colorMode,feature2background,feature2background2,feature2foreground" />
+	</property>
+	<property id="feature2palette" resourceName="palette" descriptionResourceName="palette_desc" dataType="string" defaultValue="background-color-from=#36D1DC&amp;background-color-to=#5B86E5&amp;color=#ffffff" controlType="Telligent.Evolution.Controls.ColorSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="background-color=#ffffff&amp;color=#263238" resourceName="white" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color-from=#2BC0E4&amp;background-color-to=#EAECC6&amp;color=#ffffff" resourceName="tropic" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color-from=#7474BF&amp;background-color-to=#348AC7&amp;color=#ffffff" resourceName="stellar" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color-from=#43cea2&amp;background-color-to=#185a9d&amp;color=#ffffff" resourceName="river" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color-from=#3494E6&amp;background-color-to=#EC6EAD&amp;color=#ffffff" resourceName="city" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color-from=#36D1DC&amp;background-color-to=#5B86E5&amp;color=#ffffff" resourceName="scooter" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color-from=#A1FFCE&amp;background-color-to=#FAFFD1&amp;color=#000000" resourceName="limeade" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color-from=#EDE574&amp;background-color-to=#E1F5C4&amp;color=#000000" resourceName="sunny" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color-from=#DAE2F8&amp;background-color-to=#D6A4A4&amp;color=#000000" resourceName="moonrise" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color-from=#ED4264&amp;background-color-to=#FFEDBC&amp;color=#ffffff" resourceName="peach" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color-from=#ee0979&amp;background-color-to=#ff6a00&amp;color=#ffffff" resourceName="sunset" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color=#FFC107&amp;color=#000000" resourceName="amber" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color=#2196F3&amp;color=#ffffff" resourceName="blue" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color=#455A64&amp;color=#ffffff" resourceName="bluegray" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color=#00BCD4&amp;color=#000000" resourceName="cyan" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color=#8BC34A&amp;color=#ffffff" resourceName="green" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color=#03a9f4&amp;color=#ffffff" resourceName="lightblue" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color=#ECEFF1&amp;color=#263238" resourceName="lightbluegray" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color=#CDDC39&amp;color=#000000" resourceName="lime" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color=#E91E63&amp;color=#ffffff" resourceName="pink" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color=#9C27B0&amp;color=#ffffff" resourceName="purple" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color=#F44336&amp;color=#ffffff" resourceName="red" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color=#009688&amp;color=#ffffff" resourceName="teal" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color=#FFEB3B&amp;color=#000000" resourceName="yellow" propertiesToShow="" propertiesToHide="feature2colorMode,feature2background,feature2background2,feature2foreground" />
+		<propertyValue value="background-color=#ffffff&amp;color=#263238&amp;custom=true" resourceName="custom" propertiesToShow="feature2colorMode,feature2background,feature2background2,feature2foreground" propertiesToHide="" />
+	</property>
+	<property id="feature2image" dataType="url" resourceName="featureImage" descriptionResourceName="featureImage_description" controlType="Telligent.Evolution.Controls.ThemeFileUrlControl, Telligent.Evolution.Platform">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.FileExtensionRule, Telligent.Evolution.Platform" validExtensions="gif,jpg,jpeg,png" />
+	</property>
+	<property id="feature2blur" descriptionResourceName="PhotoBlur_desc" dataType="bool" defaultValue="False" resourceName="PhotoBlur" />
+	<property id="feature2shadow" dataType="bool" defaultValue="True" resourceName="shadowText" />
+	<property id="feature2colorMode" resourceName="colorMode" dataType="string" defaultValue="solid" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="solid" resourceName="solid"  propertiesToShow="" propertiesToHide="feature2background2" />
+		<propertyValue value="gradient" resourceName="gradient" propertiesToShow="feature2background2" propertiesToHide="" />
+	</property>
+	<property id="feature2background" dataType="color" defaultValue="#fff" resourceName="featureBackground" />
+	<property id="feature2background2" dataType="color" defaultValue="#fff" resourceName="featureBackground2" />
+	<property id="feature2foreground" dataType="color" defaultValue="#263238" resourceName="featureForeground" />
+</propertyGroup>
+<propertyGroup id="feature3" resourceName="feature3" descriptionResourceName="customFeatureStrategy_Description">
+	<property id="feature3title" resourceName="featureName" dataType="string" />
+	<property id="feature3description" resourceName="featureDescription" dataType="string" />
+	<property id="feature3url" resourceName="featureUrl" dataType="url" />
+	<property id="feature3designMode" resourceName="designMode" descriptionResourceName="designMode_desc" dataType="string" defaultValue="" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="inherit" resourceName="inherit"  propertiesToShow="" propertiesToHide="feature3image,feature3blur,feature3shadow,feature3palette,feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="color" resourceName="color"  propertiesToShow="feature3palette,feature3colorMode,feature3background,feature3background2,feature3foreground" propertiesToHide="feature3image,feature3blur,feature3shadow" />
+		<propertyValue value="photo" resourceName="photo" propertiesToShow="feature3image,feature3blur,feature3shadow" propertiesToHide="feature3palette,feature3colorMode,feature3background,feature3background2,feature3foreground" />
+	</property>
+	<property id="feature3palette" resourceName="palette" descriptionResourceName="palette_desc" dataType="string" defaultValue="background-color-from=#36D1DC&amp;background-color-to=#5B86E5&amp;color=#ffffff" controlType="Telligent.Evolution.Controls.ColorSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="background-color=#ffffff&amp;color=#263238" resourceName="white" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color-from=#2BC0E4&amp;background-color-to=#EAECC6&amp;color=#ffffff" resourceName="tropic" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color-from=#7474BF&amp;background-color-to=#348AC7&amp;color=#ffffff" resourceName="stellar" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color-from=#43cea2&amp;background-color-to=#185a9d&amp;color=#ffffff" resourceName="river" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color-from=#3494E6&amp;background-color-to=#EC6EAD&amp;color=#ffffff" resourceName="city" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color-from=#36D1DC&amp;background-color-to=#5B86E5&amp;color=#ffffff" resourceName="scooter" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color-from=#A1FFCE&amp;background-color-to=#FAFFD1&amp;color=#000000" resourceName="limeade" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color-from=#EDE574&amp;background-color-to=#E1F5C4&amp;color=#000000" resourceName="sunny" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color-from=#DAE2F8&amp;background-color-to=#D6A4A4&amp;color=#000000" resourceName="moonrise" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color-from=#ED4264&amp;background-color-to=#FFEDBC&amp;color=#ffffff" resourceName="peach" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color-from=#ee0979&amp;background-color-to=#ff6a00&amp;color=#ffffff" resourceName="sunset" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color=#FFC107&amp;color=#000000" resourceName="amber" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color=#2196F3&amp;color=#ffffff" resourceName="blue" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color=#455A64&amp;color=#ffffff" resourceName="bluegray" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color=#00BCD4&amp;color=#000000" resourceName="cyan" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color=#8BC34A&amp;color=#ffffff" resourceName="green" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color=#03a9f4&amp;color=#ffffff" resourceName="lightblue" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color=#ECEFF1&amp;color=#263238" resourceName="lightbluegray" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color=#CDDC39&amp;color=#000000" resourceName="lime" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color=#E91E63&amp;color=#ffffff" resourceName="pink" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color=#9C27B0&amp;color=#ffffff" resourceName="purple" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color=#F44336&amp;color=#ffffff" resourceName="red" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color=#009688&amp;color=#ffffff" resourceName="teal" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color=#FFEB3B&amp;color=#000000" resourceName="yellow" propertiesToShow="" propertiesToHide="feature3colorMode,feature3background,feature3background2,feature3foreground" />
+		<propertyValue value="background-color=#ffffff&amp;color=#263238&amp;custom=true" resourceName="custom" propertiesToShow="feature3colorMode,feature3background,feature3background2,feature3foreground" propertiesToHide="" />
+	</property>
+	<property id="feature3image" dataType="url" resourceName="featureImage" descriptionResourceName="featureImage_description" controlType="Telligent.Evolution.Controls.ThemeFileUrlControl, Telligent.Evolution.Platform">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.FileExtensionRule, Telligent.Evolution.Platform" validExtensions="gif,jpg,jpeg,png" />
+	</property>
+	<property id="feature3blur" descriptionResourceName="PhotoBlur_desc" dataType="bool" defaultValue="False" resourceName="PhotoBlur" />
+	<property id="feature3shadow" dataType="bool" defaultValue="True" resourceName="shadowText" />
+	<property id="feature3colorMode" resourceName="colorMode" dataType="string" defaultValue="solid" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="solid" resourceName="solid"  propertiesToShow="" propertiesToHide="feature3background2" />
+		<propertyValue value="gradient" resourceName="gradient" propertiesToShow="feature3background2" propertiesToHide="" />
+	</property>
+	<property id="feature3background" dataType="color" defaultValue="#fff" resourceName="featureBackground" />
+	<property id="feature3background2" dataType="color" defaultValue="#fff" resourceName="featureBackground2" />
+	<property id="feature3foreground" dataType="color" defaultValue="#263238" resourceName="featureForeground" />
+</propertyGroup>
+<propertyGroup id="feature4" resourceName="feature4" descriptionResourceName="customFeatureStrategy_Description">
+	<property id="feature4title" resourceName="featureName" dataType="string" />
+	<property id="feature4description" resourceName="featureDescription" dataType="string" />
+	<property id="feature4url" resourceName="featureUrl" dataType="url" />
+	<property id="feature4designMode" resourceName="designMode" descriptionResourceName="designMode_desc" dataType="string" defaultValue="" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="inherit" resourceName="inherit"  propertiesToShow="" propertiesToHide="feature4image,feature4blur,feature4shadow,feature4palette,feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="color" resourceName="color"  propertiesToShow="feature4palette,feature4colorMode,feature4background,feature4background2,feature4foreground" propertiesToHide="feature4image,feature4blur,feature4shadow" />
+		<propertyValue value="photo" resourceName="photo" propertiesToShow="feature4image,feature4blur,feature4shadow" propertiesToHide="feature4palette,feature4colorMode,feature4background,feature4background2,feature4foreground" />
+	</property>
+	<property id="feature4palette" resourceName="palette" descriptionResourceName="palette_desc" dataType="string" defaultValue="background-color-from=#36D1DC&amp;background-color-to=#5B86E5&amp;color=#ffffff" controlType="Telligent.Evolution.Controls.ColorSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="background-color=#ffffff&amp;color=#263238" resourceName="white" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color-from=#2BC0E4&amp;background-color-to=#EAECC6&amp;color=#ffffff" resourceName="tropic" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color-from=#7474BF&amp;background-color-to=#348AC7&amp;color=#ffffff" resourceName="stellar" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color-from=#43cea2&amp;background-color-to=#185a9d&amp;color=#ffffff" resourceName="river" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color-from=#3494E6&amp;background-color-to=#EC6EAD&amp;color=#ffffff" resourceName="city" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color-from=#36D1DC&amp;background-color-to=#5B86E5&amp;color=#ffffff" resourceName="scooter" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color-from=#A1FFCE&amp;background-color-to=#FAFFD1&amp;color=#000000" resourceName="limeade" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color-from=#EDE574&amp;background-color-to=#E1F5C4&amp;color=#000000" resourceName="sunny" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color-from=#DAE2F8&amp;background-color-to=#D6A4A4&amp;color=#000000" resourceName="moonrise" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color-from=#ED4264&amp;background-color-to=#FFEDBC&amp;color=#ffffff" resourceName="peach" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color-from=#ee0979&amp;background-color-to=#ff6a00&amp;color=#ffffff" resourceName="sunset" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color=#FFC107&amp;color=#000000" resourceName="amber" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color=#2196F3&amp;color=#ffffff" resourceName="blue" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color=#455A64&amp;color=#ffffff" resourceName="bluegray" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color=#00BCD4&amp;color=#000000" resourceName="cyan" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color=#8BC34A&amp;color=#ffffff" resourceName="green" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color=#03a9f4&amp;color=#ffffff" resourceName="lightblue" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color=#ECEFF1&amp;color=#263238" resourceName="lightbluegray" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color=#CDDC39&amp;color=#000000" resourceName="lime" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color=#E91E63&amp;color=#ffffff" resourceName="pink" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color=#9C27B0&amp;color=#ffffff" resourceName="purple" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color=#F44336&amp;color=#ffffff" resourceName="red" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color=#009688&amp;color=#ffffff" resourceName="teal" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color=#FFEB3B&amp;color=#000000" resourceName="yellow" propertiesToShow="" propertiesToHide="feature4colorMode,feature4background,feature4background2,feature4foreground" />
+		<propertyValue value="background-color=#ffffff&amp;color=#263238&amp;custom=true" resourceName="custom" propertiesToShow="feature4colorMode,feature4background,feature4background2,feature4foreground" propertiesToHide="" />
+	</property>
+	<property id="feature4image" dataType="url" resourceName="featureImage" descriptionResourceName="featureImage_description" controlType="Telligent.Evolution.Controls.ThemeFileUrlControl, Telligent.Evolution.Platform">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.FileExtensionRule, Telligent.Evolution.Platform" validExtensions="gif,jpg,jpeg,png" />
+	</property>
+	<property id="feature4blur" descriptionResourceName="PhotoBlur_desc" dataType="bool" defaultValue="False" resourceName="PhotoBlur" />
+	<property id="feature4shadow" dataType="bool" defaultValue="True" resourceName="shadowText" />
+	<property id="feature4colorMode" resourceName="colorMode" dataType="string" defaultValue="solid" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="solid" resourceName="solid"  propertiesToShow="" propertiesToHide="feature4background2" />
+		<propertyValue value="gradient" resourceName="gradient" propertiesToShow="feature4background2" propertiesToHide="" />
+	</property>
+	<property id="feature4background" dataType="color" defaultValue="#fff" resourceName="featureBackground" />
+	<property id="feature4background2" dataType="color" defaultValue="#fff" resourceName="featureBackground2" />
+	<property id="feature4foreground" dataType="color" defaultValue="#263238" resourceName="featureForeground" />
+</propertyGroup>
+	]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="alignment">Foreground Alignment</resource>
+  <resource name="alignment_description">Foreground content alignment</resource>
+  <resource name="alignment-bottom-center">Bottom Center</resource>
+  <resource name="alignment-bottom-left">Bottom Left</resource>
+  <resource name="alignment-bottom-right">Bottom Right</resource>
+  <resource name="alignment-center-center">Center Center</resource>
+  <resource name="alignment-center-left">Center Left</resource>
+  <resource name="alignment-center-right">Center Right</resource>
+  <resource name="alignment-top-center">Top Center</resource>
+  <resource name="alignment-top-left">Top Left</resource>
+  <resource name="alignment-top-right">Top Right</resource>
+  <resource name="amber">Amber</resource>
+  <resource name="blue">Blue</resource>
+  <resource name="bluegray">Blue Gray</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="city">City</resource>
+  <resource name="color">Use Color</resource>
+  <resource name="colorMode">Color Type</resource>
+  <resource name="Core_FeaturedContentSlider_Description">Displays a slider of featured content or custom widget-defined items for the current community and child communities</resource>
+  <resource name="Core_FeaturedContentSlider_Name">Featured Content Carousel</resource>
+  <resource name="custom">Custom</resource>
+  <resource name="customFeatureStrategy">Custom Features</resource>
+  <resource name="customFeatureStrategy_Description">Custom features are defined by this widget instance and are separate from site content marked to be featured.</resource>
+  <resource name="customFeatureStrategyAfter">Include custom features after featured content</resource>
+  <resource name="customFeatureStrategyBefore">Include custom features before featured content</resource>
+  <resource name="customFeatureStrategyExclude">Exclude custom features</resource>
+  <resource name="customFeatureStrategyIncludeOnly">Only show custom features</resource>
+  <resource name="customFeatureStrategyNoContent">Include custom features only if there is no featured content</resource>
+  <resource name="cyan">Cyan</resource>
+  <resource name="design">Design</resource>
+  <resource name="designMode">Design Mode</resource>
+  <resource name="designMode_desc">Use either color or a photo as the default feature background.</resource>
+  <resource name="duration">Slide Duration</resource>
+  <resource name="durationDescription">Length (in ms) to display each slide when automatically transitioning</resource>
+  <resource name="feature">Feature {0}</resource>
+  <resource name="feature0">1</resource>
+  <resource name="feature1">2</resource>
+  <resource name="feature2">3</resource>
+  <resource name="feature3">4</resource>
+  <resource name="feature4">5</resource>
+  <resource name="featureBackground">Background Color</resource>
+  <resource name="featureBackground2">Secondary Gradient Background Color</resource>
+  <resource name="featureDescription">Description</resource>
+  <resource name="featureForeground">Foreground Color</resource>
+  <resource name="featureImage">Image</resource>
+  <resource name="featureImage_description">Image used as a background for the feature. Text should not be placed on this image as it will be cropped when rendered to mobile devices.</resource>
+  <resource name="featureName">Title</resource>
+  <resource name="featureUrl">URL</resource>
+  <resource name="foregroundWidth">Foreground Width</resource>
+  <resource name="foregroundWidth_description">In window width, foreground content can expand to the full width or retain the page width.</resource>
+  <resource name="gradient">Gradient</resource>
+  <resource name="green">Green</resource>
+  <resource name="height">Height</resource>
+  <resource name="height_description">The height of the feature rendering and the feature image (if defined).</resource>
+  <resource name="inherit">Use Default</resource>
+  <resource name="layout">Layout</resource>
+  <resource name="layoutWidthPage">Page</resource>
+  <resource name="layoutWidthWindow">Window</resource>
+  <resource name="lightblue">Light Blue</resource>
+  <resource name="lightbluegray">Light Blue Gray</resource>
+  <resource name="lime">Lime</resource>
+  <resource name="limeade">Limeade</resource>
+  <resource name="moonrise">Moonrise</resource>
+  <resource name="Options">Options</resource>
+  <resource name="pageSize">Featured Content Items to Display</resource>
+  <resource name="palette">Default Color Palette</resource>
+  <resource name="palette_desc">Choose a color palette or create a custom one.</resource>
+  <resource name="peach">Peach</resource>
+  <resource name="photo">Photo</resource>
+  <resource name="PhotoBlur">Blur Photo</resource>
+  <resource name="PhotoBlur_desc">Blur background photos to improve foreground legibility</resource>
+  <resource name="PhotoUrl_desc">Background photo when not defined by a feature.</resource>
+  <resource name="pink">Pink</resource>
+  <resource name="proportional_width">Proportional Width</resource>
+  <resource name="proportional_width_description">When scaling, the original width is required</resource>
+  <resource name="purple">Purple</resource>
+  <resource name="red">Red</resource>
+  <resource name="river">River</resource>
+  <resource name="scaleMode">Scale Mode</resource>
+  <resource name="scaleMode_desc">In page width when the widget is resized for smaller screens, it either retain the full original widget's aspect ratio, or crop it horizontally.</resource>
+  <resource name="scaleModeCrop">Crop</resource>
+  <resource name="scaleModeScale">Scale</resource>
+  <resource name="scooter">Scooter</resource>
+  <resource name="shadowText">Shadow Photos</resource>
+  <resource name="shadowText_description">Darken the background photo corresponding to the foreground position.</resource>
+  <resource name="solid">Solid</resource>
+  <resource name="stellar">Stellar</resource>
+  <resource name="sunny">Sunny</resource>
+  <resource name="sunset">Sunset</resource>
+  <resource name="teal">Teal</resource>
+  <resource name="transition">Transition Slides</resource>
+  <resource name="transitionAutomatic">Automatically and Manually</resource>
+  <resource name="transitionManual">Manually</resource>
+  <resource name="tropic">Tropic</resource>
+  <resource name="truncateLength">Truncation Length</resource>
+  <resource name="white">White</resource>
+  <resource name="width">Width</resource>
+  <resource name="width_description">Widget Width</resource>
+  <resource name="yellow">Yellow</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Core_FeaturedContentSlider_Description">为当前社区和子社区显示专题内容滑块或由小组件定义的自定义项目的滑块</resource>
+  <resource name="Core_FeaturedContentSlider_Name">专题内容滑块</resource>
+  <resource name="customFeatureStrategy">%E8%87%AA定义专题</resource>
+  <resource name="customFeatureStrategy_Description">自定义专题由该小组件实例定义，且独立于标记要成为专题内容的网站内容。</resource>
+  <resource name="customFeatureStrategyAfter">在专题内容后包含%E8%87%AA定义专题</resource>
+  <resource name="customFeatureStrategyBefore">在专题内容前包含自定义专题</resource>
+  <resource name="customFeatureStrategyExclude">排除自定义专题</resource>
+  <resource name="customFeatureStrategyIncludeOnly">仅显示自定义专题</resource>
+  <resource name="customFeatureStrategyNoContent">仅当没有专题内容时才包含自定义专题</resource>
+  <resource name="duration">滑块显示时长</resource>
+  <resource name="durationDescription">自动切换时每个滑块的显示时长(以毫秒为单位)</resource>
+  <resource name="feature">专题 {0}</resource>
+  <resource name="feature0">自定义专题 1</resource>
+  <resource name="feature1">自定义专题 2</resource>
+  <resource name="feature2">自定义专题 3</resource>
+  <resource name="feature3">自定义专题 4</resource>
+  <resource name="feature4">自定义专题 5</resource>
+  <resource name="featureBackground">背景颜色</resource>
+  <resource name="featureDescription">描述</resource>
+  <resource name="featureForeground">前景颜色</resource>
+  <resource name="featureImage">图像</resource>
+  <resource name="featureImage_description">用作专题背景的图像。在移动设备上呈现时将裁剪该图像，因此不应当将文本放置到该图像上。</resource>
+  <resource name="featureName">标题</resource>
+  <resource name="featureUrl">URL</resource>
+  <resource name="height">高度</resource>
+  <resource name="height_description">专题呈现和专题图像的高度(如果定义)。</resource>
+  <resource name="Options">选项</resource>
+  <resource name="pageSize">要显示的专题内容项目</resource>
+  <resource name="shadowText">为重叠文本添加阴影</resource>
+  <resource name="transition">切换滑块</resource>
+  <resource name="transitionAutomatic">自动和手动</resource>
+  <resource name="transitionManual">手动</resource>
+  <resource name="truncateLength">截断长度</resource>
+  <resource name="width">宽度</resource>
+  <resource name="width_description">专题图像的宽度。在将专题内容滑块放置到非标准区域中或者自定义网站宽度时进行调整。</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Core_FeaturedContentSlider_Description">顯示目前社群和子社群的精選內容或自訂 Widget 定義項目滑桿</resource>
+  <resource name="Core_FeaturedContentSlider_Name">精選內容滑桿</resource>
+  <resource name="customFeatureStrategy">自訂功能</resource>
+  <resource name="customFeatureStrategy_Description">自訂功能是由此 Widget 執行個體所定義，並與標示為精選的網站內容區隔開來。</resource>
+  <resource name="customFeatureStrategyAfter">包含精選內容之後的自訂功能</resource>
+  <resource name="customFeatureStrategyBefore">包含精選內容之前的自訂功能</resource>
+  <resource name="customFeatureStrategyExclude">排除自訂功能</resource>
+  <resource name="customFeatureStrategyIncludeOnly">僅顯示自訂功能</resource>
+  <resource name="customFeatureStrategyNoContent">只有在沒有精選內容時才包含自訂功能</resource>
+  <resource name="duration">投影片長度</resource>
+  <resource name="durationDescription">自動轉場時每張投影片所顯示的時間長度 (分鐘)</resource>
+  <resource name="feature">精選 {0}</resource>
+  <resource name="feature0">自訂功能 1</resource>
+  <resource name="feature1">自訂功能 2</resource>
+  <resource name="feature2">自訂功能 3</resource>
+  <resource name="feature3">自訂功能 4</resource>
+  <resource name="feature4">自訂功能 5</resource>
+  <resource name="featureBackground">背景色彩</resource>
+  <resource name="featureDescription">描述</resource>
+  <resource name="featureForeground">前景色彩</resource>
+  <resource name="featureImage">影像</resource>
+  <resource name="featureImage_description">做為功能背景使用的影像。文字不可置於此影像上，因為在行動裝置上呈現時會裁切文字。</resource>
+  <resource name="featureName">標題</resource>
+  <resource name="featureUrl">URL</resource>
+  <resource name="height">高度</resource>
+  <resource name="height_description">功能呈現和精選影像的高度 (如果有定義)。</resource>
+  <resource name="Options">選項</resource>
+  <resource name="pageSize">要顯示的精選內容項目</resource>
+  <resource name="shadowText">在重疊文字上加入陰影</resource>
+  <resource name="transition">轉場投影片</resource>
+  <resource name="transitionAutomatic">自動和手動</resource>
+  <resource name="transitionManual">手動</resource>
+  <resource name="truncateLength">截斷長度</resource>
+  <resource name="width">寬度</resource>
+  <resource name="width_description">精選影像的寬度。如果精選內容滑桿置於非標準區域或網站寬度為自訂時進行調整。</resource>
+</language></languageResources>
+		<additionalCssScript><![CDATA[
+$core_v2_widget.ExecuteFile('config.vm')
+#if ($fullWidth)
+	full-width
+#end
+#if (!$foregroundFullWidth)
+	foreground-page-width
+#end
+	]]></additionalCssScript>
+		<requiredContext>
+			<context id="54d4201aced3447ca1e4498398289f44" />
+		</requiredContext>
+		<files>
+			<file name="config.vm">IyMgUHJpbWFyeSBPcHRpb25zDQoNCiNzZXQgKCRjdXN0b21GZWF0dXJlU3RyYXRlZ3kgPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ2N1c3RvbUZlYXR1cmVTdHJhdGVneScsICdpbmNsdWRlQmVmb3JlJykpDQojc2V0ICgkcGFnZVNpemUgPSAkY29yZV92Ml93aWRnZXQuR2V0SW50VmFsdWUoJ3BhZ2VTaXplJywgNSkpDQojc2V0ICgkdHJhbnNpdGlvbiA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgndHJhbnNpdGlvbicsICd0cmFuc2l0aW9uQXV0b21hdGljJykpDQojc2V0ICgkZHVyYXRpb24gPSAkY29yZV92Ml93aWRnZXQuR2V0SW50VmFsdWUoJ2R1cmF0aW9uJywgNTAwMCkpDQojc2V0ICgkZmVhdHVyZUNvdW50ID0gMCkNCiNzZXQgKCR0cnVuY2F0ZUxlbmd0aCA9ICRjb3JlX3YyX3dpZGdldC5HZXRJbnRWYWx1ZSgndHJ1bmNhdGVMZW5ndGgnLCAxMDApKQ0KDQojIyBMYXlvdXQgQ29uZmlndXJhdGlvbg0KDQojc2V0ICgkaGVpZ2h0ID0gJGNvcmVfdjJfd2lkZ2V0LkdldEludFZhbHVlKCdoZWlnaHQnLCAzMTUpKQ0KDQojc2V0ICgkZnVsbFdpZHRoID0gZmFsc2UpDQojc2V0ICgkbGF5b3V0V2lkdGggPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ2xheW91dFdpZHRoJywgJ3dpbmRvdycpKQ0KI2lmICgkbGF5b3V0V2lkdGggPT0gJ3dpbmRvdycpDQoJI3NldCAoJGZ1bGxXaWR0aCA9IHRydWUpDQojZW5kDQoNCiNzZXQgKCRwcm9wb3J0aW9uYWxTY2FsaW5nID0gZmFsc2UpDQojc2V0ICgkcHJvcG9ydGlvbmFsV2lkdGggPSAkY29yZV92Ml93aWRnZXQuR2V0SW50VmFsdWUoJ3dpZHRoJywgMTA2MCkpDQojaWYgKCEkZnVsbFdpZHRoKQ0KCSNzZXQgKCRzY2FsZU1vZGUgPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ3NjYWxlTW9kZScsICdjcm9wJykpDQoJI2lmICgkc2NhbGVNb2RlID09ICdzY2FsZScpDQoJCSNzZXQgKCRwcm9wb3J0aW9uYWxTY2FsaW5nID0gdHJ1ZSkNCgkjZW5kDQojZW5kDQoNCiNzZXQgKCRmb3JlZ3JvdW5kRnVsbFdpZHRoID0gZmFsc2UpDQojaWYgKCRmdWxsV2lkdGgpDQoJI3NldCAoJGZvcmVncm91bmRXaWR0aCA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgnZm9yZWdyb3VuZFdpZHRoJywgJ3BhZ2UnKSkNCgkjaWYgKCRmb3JlZ3JvdW5kV2lkdGggPT0gJ3dpbmRvdycpDQoJCSNzZXQgKCRmb3JlZ3JvdW5kRnVsbFdpZHRoID0gdHJ1ZSkNCgkjZW5kDQojZW5kDQoNCiNzZXQgKCRhbGlnbm1lbnQgPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ2FsaWdubWVudCcsICdjZW50ZXItY2VudGVyJykpDQojaWYgKCRhbGlnbm1lbnQgPT0gJ3RvcC1sZWZ0JykNCgkjc2V0ICgkdmVydGljYWxBbGlnbm1lbnQgPSAndG9wJykNCgkjc2V0ICgkaG9yaXpvbnRhbEFsaWdubWVudCA9ICdsZWZ0JykNCiNlbHNlaWYgKCRhbGlnbm1lbnQgPT0gJ3RvcC1jZW50ZXInKQ0KCSNzZXQgKCR2ZXJ0aWNhbEFsaWdubWVudCA9ICd0b3AnKQ0KCSNzZXQgKCRob3Jpem9udGFsQWxpZ25tZW50ID0gJ2NlbnRlcicpDQojZWxzZWlmICgkYWxpZ25tZW50ID09ICd0b3AtcmlnaHQnKQ0KCSNzZXQgKCR2ZXJ0aWNhbEFsaWdubWVudCA9ICd0b3AnKQ0KCSNzZXQgKCRob3Jpem9udGFsQWxpZ25tZW50ID0gJ3JpZ2h0JykNCiNlbHNlaWYgKCRhbGlnbm1lbnQgPT0gJ2NlbnRlci1sZWZ0JykNCgkjc2V0ICgkdmVydGljYWxBbGlnbm1lbnQgPSAnY2VudGVyJykNCgkjc2V0ICgkaG9yaXpvbnRhbEFsaWdubWVudCA9ICdsZWZ0JykNCiNlbHNlaWYgKCRhbGlnbm1lbnQgPT0gJ2NlbnRlci1jZW50ZXInKQ0KCSNzZXQgKCR2ZXJ0aWNhbEFsaWdubWVudCA9ICdjZW50ZXInKQ0KCSNzZXQgKCRob3Jpem9udGFsQWxpZ25tZW50ID0gJ2NlbnRlcicpDQojZWxzZWlmICgkYWxpZ25tZW50ID09ICdjZW50ZXItcmlnaHQnKQ0KCSNzZXQgKCR2ZXJ0aWNhbEFsaWdubWVudCA9ICdjZW50ZXInKQ0KCSNzZXQgKCRob3Jpem9udGFsQWxpZ25tZW50ID0gJ3JpZ2h0JykNCiNlbHNlaWYgKCRhbGlnbm1lbnQgPT0gJ2JvdHRvbS1sZWZ0JykNCgkjc2V0ICgkdmVydGljYWxBbGlnbm1lbnQgPSAnYm90dG9tJykNCgkjc2V0ICgkaG9yaXpvbnRhbEFsaWdubWVudCA9ICdsZWZ0JykNCiNlbHNlaWYgKCRhbGlnbm1lbnQgPT0gJ2JvdHRvbS1jZW50ZXInKQ0KCSNzZXQgKCR2ZXJ0aWNhbEFsaWdubWVudCA9ICdib3R0b20nKQ0KCSNzZXQgKCRob3Jpem9udGFsQWxpZ25tZW50ID0gJ2NlbnRlcicpDQojZWxzZWlmICgkYWxpZ25tZW50ID09ICdib3R0b20tcmlnaHQnKQ0KCSNzZXQgKCR2ZXJ0aWNhbEFsaWdubWVudCA9ICdib3R0b20nKQ0KCSNzZXQgKCRob3Jpem9udGFsQWxpZ25tZW50ID0gJ3JpZ2h0JykNCiNlbmQNCg0KIyMgRGVzaWduIE9wdGlvbnMNCg0KI3NldCAoJGRlZmF1bHRGZWF0dXJlQmx1ciA9IHRydWUpDQojc2V0ICgkZGVmYXVsdEZlYXR1cmVCbHVyID0gJGNvcmVfdjJfd2lkZ2V0LkdldEJvb2xWYWx1ZSgiYmx1ciIsIGZhbHNlKSkNCiNzZXQgKCRkZWZhdWx0RmVhdHVyZVNoYWRvd1RleHQgPSB0cnVlKQ0KI3NldCAoJGRlZmF1bHRGZWF0dXJlU2hhZG93VGV4dCA9ICRjb3JlX3YyX3dpZGdldC5HZXRCb29sVmFsdWUoImZlYXR1cmVTaGFkb3ciLCB0cnVlKSkNCiNzZXQgKCRkZWZhdWx0RmVhdHVyZUltYWdlID0gZmFsc2UpDQojc2V0ICgkZGVmYXVsdEZlYXR1cmVJbWFnZSA9ICRjb3JlX3YyX3dpZGdldC5HZXRVcmxWYWx1ZSgiaW1hZ2UiLCAiIikpDQojc2V0ICgkZGVmYXVsdEZlYXR1cmVEZXNpZ25Nb2RlID0gZmFsc2UpDQojc2V0ICgkZGVmYXVsdEZlYXR1cmVEZXNpZ25Nb2RlID0gJGNvcmVfdjJfd2lkZ2V0LkdldFN0cmluZ1ZhbHVlKCJkZXNpZ25Nb2RlIiwgImNvbG9yIikpDQoNCiNzZXQgKCRkZWZhdWx0RmVhdHVyZVBhbGV0dGUgPSBmYWxzZSkNCiNzZXQgKCRkZWZhdWx0RmVhdHVyZVBhbGV0dGUgPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoInBhbGV0dGUiLCAiIikpDQojIyBQcmVzdW1lIGRlZmF1bHRzIGJhc2VkIG9uIHVwZ3JhZGVkIHZlcnNpb24gb2Ygd2lkZ2V0DQojaWYgKCRkZWZhdWx0RmVhdHVyZVBhbGV0dGUuTGVuZ3RoID09IDApDQoJI3NldCAoJGRlZmF1bHQgPSAiYmFja2dyb3VuZC1jb2xvcj0jZmZmZmZmJmFtcDtjb2xvcj0jMjYzMjM4JmFtcDtjdXN0b209dHJ1ZSIpDQoJJGNvcmVfdjJfd2lkZ2V0LlNldFN0cmluZ1ZhbHVlKCJwYWxldHRlIiwgJGRlZmF1bHQpDQoJI3NldCAoJGRlZmF1bHRGZWF0dXJlUGFsZXR0ZSA9ICRkZWZhdWx0KQ0KI2VuZA0KDQojc2V0ICgkZGVmYXVsdEZlYXR1cmVCYWNrZ3JvdW5kMiA9IGZhbHNlKQ0KI3NldCAoJGRlZmF1bHRGZWF0dXJlQ29sb3JNb2RlID0gZmFsc2UpDQoNCiMjIElmIG5vIHBob3RvIHByb3ZpZGVkIGluIHBob3RvIG1vZGUsIGZhbGwgYmFjayB0byBjb2xvcg0KI2lmICgkZGVmYXVsdEZlYXR1cmVEZXNpZ25Nb2RlID09ICdwaG90bycgJiYgKCEkZGVmYXVsdEZlYXR1cmVJbWFnZSB8fCAkZGVmYXVsdEZlYXR1cmVJbWFnZS5MZW5ndGggPT0gMCkpDQoJI3NldCAoJGRlZmF1bHRGZWF0dXJlRGVzaWduTW9kZSA9ICdjb2xvcicpDQojZW5kDQoNCiMjIFNldCBjb2xvcnMgYmFzZWQgb24gcGFsZXR0ZSBvciBjdXN0b20NCiNpZiAoJGRlZmF1bHRGZWF0dXJlRGVzaWduTW9kZSA9PSAncGhvdG8nKQ0KCSNzZXQgKCRkZWZhdWx0RmVhdHVyZUJhY2tncm91bmQgPSAnI0FBQScpDQoJI3NldCAoJGRlZmF1bHRGZWF0dXJlRm9yZWdyb3VuZCA9ICcjRkZGJykNCiNlbHNlaWYgKCRkZWZhdWx0RmVhdHVyZURlc2lnbk1vZGUgPT0gJ2NvbG9yJykNCgkjc2V0ICgkcGFyc2VkRGVmYXVsdEZlYXR1cmVQYWxldHRlID0gJGNvcmVfdjJfcGFnZS5QYXJzZVF1ZXJ5U3RyaW5nKCRkZWZhdWx0RmVhdHVyZVBhbGV0dGUpKQ0KCSNzZXQgKCRkZWZhdWx0RmVhdHVyZUN1c3RvbUNvbG9ycyA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VCb29sKCRwYXJzZWREZWZhdWx0RmVhdHVyZVBhbGV0dGUuVmFsdWUoJ2N1c3RvbScpKSkNCgkjaWYgKCRkZWZhdWx0RmVhdHVyZUN1c3RvbUNvbG9ycykNCgkJI3NldCAoJGRlZmF1bHRGZWF0dXJlQ29sb3JNb2RlID0gZmFsc2UpDQoJCSNzZXQgKCRkZWZhdWx0RmVhdHVyZUNvbG9yTW9kZSA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgiY29sb3JNb2RlIiwgInNvbGlkIikpDQoJCSNzZXQgKCRkZWZhdWx0RmVhdHVyZUJhY2tncm91bmQgPSBmYWxzZSkNCgkJI3NldCAoJGRlZmF1bHRGZWF0dXJlQmFja2dyb3VuZCA9ICRjb3JlX3YyX3dpZGdldC5HZXRDb2xvclZhbHVlKCJmZWF0dXJlQmFja2dyb3VuZCIsICIiKSkNCgkJI3NldCAoJGRlZmF1bHRGZWF0dXJlQmFja2dyb3VuZDIgPSBmYWxzZSkNCgkJI3NldCAoJGRlZmF1bHRGZWF0dXJlQmFja2dyb3VuZDIgPSAkY29yZV92Ml93aWRnZXQuR2V0Q29sb3JWYWx1ZSgiZmVhdHVyZUJhY2tncm91bmQyIiwgIiIpKQ0KCQkjc2V0ICgkZGVmYXVsdEZlYXR1cmVGb3JlZ3JvdW5kID0gZmFsc2UpDQoJCSNzZXQgKCRkZWZhdWx0RmVhdHVyZUZvcmVncm91bmQgPSAkY29yZV92Ml93aWRnZXQuR2V0Q29sb3JWYWx1ZSgiZmVhdHVyZUZvcmVncm91bmQiLCAiIikpDQoJI2Vsc2UNCgkJI3NldCAoJGRlZmF1bHRGZWF0dXJlQmFja2dyb3VuZEZyb20gPSAkcGFyc2VkRGVmYXVsdEZlYXR1cmVQYWxldHRlLlZhbHVlKCdiYWNrZ3JvdW5kLWNvbG9yLWZyb20nKSkNCgkJI3NldCAoJGRlZmF1bHRGZWF0dXJlQmFja2dyb3VuZFRvID0gJHBhcnNlZERlZmF1bHRGZWF0dXJlUGFsZXR0ZS5WYWx1ZSgnYmFja2dyb3VuZC1jb2xvci10bycpKQ0KCQkjaWYgKCRkZWZhdWx0RmVhdHVyZUJhY2tncm91bmRGcm9tLkxlbmd0aCA+IDAgJiYgJGRlZmF1bHRGZWF0dXJlQmFja2dyb3VuZFRvLkxlbmd0aCA+IDApDQoJCQkjc2V0ICgkZGVmYXVsdEZlYXR1cmVCYWNrZ3JvdW5kID0gJGRlZmF1bHRGZWF0dXJlQmFja2dyb3VuZEZyb20pDQoJCQkjc2V0ICgkZGVmYXVsdEZlYXR1cmVCYWNrZ3JvdW5kMiA9ICRkZWZhdWx0RmVhdHVyZUJhY2tncm91bmRUbykNCgkJCSNzZXQgKCRkZWZhdWx0RmVhdHVyZUNvbG9yTW9kZSA9ICdncmFkaWVudCcpDQoJCSNlbHNlDQoJCQkjc2V0ICgkZGVmYXVsdEZlYXR1cmVCYWNrZ3JvdW5kID0gJHBhcnNlZERlZmF1bHRGZWF0dXJlUGFsZXR0ZS5WYWx1ZSgnYmFja2dyb3VuZC1jb2xvcicpKQ0KCQkJI3NldCAoJGRlZmF1bHRGZWF0dXJlQ29sb3JNb2RlID0gJ3NvbGlkJykNCgkJI2VuZA0KCQkjc2V0ICgkZGVmYXVsdEZlYXR1cmVGb3JlZ3JvdW5kID0gJHBhcnNlZERlZmF1bHRGZWF0dXJlUGFsZXR0ZS5WYWx1ZSgnY29sb3InKSkNCgkjZW5kDQojZW5kDQo=</file>
+			<file name="custom.vm">77u/I2ZvcmVhY2ggKCRjdXN0b21GZWF0dXJlIGluICRjdXN0b21GZWF0dXJlcykNCgkjc2V0ICgkZmVhdHVyZSA9ICRjdXN0b21GZWF0dXJlKQ0KCSRjb3JlX3YyX3dpZGdldC5FeGVjdXRlRmlsZSgncmVuZGVyLnZtJykNCiNlbmQ=</file>
+			<file name="feature.vm">77u/I2ZvcmVhY2ggKCRmZWF0dXJlZENvbnRlbnQgaW4gJGNvbnRlbnRGZWF0dXJlcykNCgkjc2V0ICgkZmVhdHVyZSA9ICIle30iKQ0KCSRmZWF0dXJlLkFkZCgnVGl0bGUnLCAkZmVhdHVyZWRDb250ZW50LlRpdGxlKQ0KCSRmZWF0dXJlLkFkZCgnRGVzY3JpcHRpb24nLCAkZmVhdHVyZWRDb250ZW50LkRlc2NyaXB0aW9uKQ0KCSRmZWF0dXJlLkFkZCgnVXJsJywgJGZlYXR1cmVkQ29udGVudC5VcmwpDQoJI2lmICgkZmVhdHVyZWRDb250ZW50LkltYWdlLkxlbmd0aCA+IDApDQoJCSRmZWF0dXJlLkFkZCgnRGVzaWduTW9kZScsICdwaG90bycpDQoJCSRmZWF0dXJlLkFkZCgnSW1hZ2UnLCAkZmVhdHVyZWRDb250ZW50LkltYWdlKQ0KCQkkZmVhdHVyZS5BZGQoJ0JhY2tncm91bmQnLCAnI0FBQScpDQoJCSRmZWF0dXJlLkFkZCgnQmFja2dyb3VuZDInLCAnI0FBQScpDQoJCSRmZWF0dXJlLkFkZCgnRm9yZWdyb3VuZCcsICcjRkZGJykNCgkjZWxzZQ0KCQkkZmVhdHVyZS5BZGQoJ0Rlc2lnbk1vZGUnLCAkZGVmYXVsdEZlYXR1cmVEZXNpZ25Nb2RlKQ0KCQkkZmVhdHVyZS5BZGQoJ0ltYWdlJywgJGRlZmF1bHRGZWF0dXJlSW1hZ2UpDQoJCSRmZWF0dXJlLkFkZCgnQmFja2dyb3VuZCcsICRkZWZhdWx0RmVhdHVyZUJhY2tncm91bmQpDQoJCSRmZWF0dXJlLkFkZCgnQmFja2dyb3VuZDInLCAkZGVmYXVsdEZlYXR1cmVCYWNrZ3JvdW5kMikNCgkJJGZlYXR1cmUuQWRkKCdGb3JlZ3JvdW5kJywgJGRlZmF1bHRGZWF0dXJlRm9yZWdyb3VuZCkNCgkjZW5kDQoJJGZlYXR1cmUuQWRkKCdTaGFkb3cnLCAkZGVmYXVsdEZlYXR1cmVTaGFkb3dUZXh0KQ0KCSRmZWF0dXJlLkFkZCgnQmx1cicsICRkZWZhdWx0RmVhdHVyZUJsdXIpDQoJJGZlYXR1cmUuQWRkKCdDb2xvck1vZGUnLCAkZGVmYXVsdEZlYXR1cmVDb2xvck1vZGUpDQoJI2lmICgkZmVhdHVyZWRDb250ZW50LlVzZXIpDQoJCSRmZWF0dXJlLkFkZCgnVXNlckF2YXRhclVybCcsICRmZWF0dXJlZENvbnRlbnQuVXNlci5BdmF0YXJVcmwpDQoJCSRmZWF0dXJlLkFkZCgnVXNlclByb2ZpbGVVcmwnLCAkIWZlYXR1cmVkQ29udGVudC5Vc2VyLlByb2ZpbGVVcmwpDQoJCSRmZWF0dXJlLkFkZCgnVXNlckRpc3BsYXlOYW1lJywgJGZlYXR1cmVkQ29udGVudC5Vc2VyLkRpc3BsYXlOYW1lKQ0KCSNlbmQNCgkkZmVhdHVyZS5BZGQoJ1R5cGUnLCAnRmVhdHVyZScpDQoJJGNvcmVfdjJfd2lkZ2V0LkV4ZWN1dGVGaWxlKCdyZW5kZXIudm0nKQ0KI2VuZA0K</file>
+			<file name="load-custom.vm">IyMgY29sbGVjdCBsaXN0IG9mIGN1c3RvbSB3aWRnZXQtZGVmaW5lZCBmZWF0dXJlcw0KDQojc2V0ICgkY3VzdG9tRmVhdHVyZXMgPSBbXSkNCiNpZiAoJGN1c3RvbUZlYXR1cmVTdHJhdGVneSAhPSAnZXhjbHVkZScpDQoJIyMgaWYgYW55IHByb3BlcnR5IG9mIG9uZSBvZiB0aGUgNSBjdXN0b20gZmVhdHVyZSBzbG90cyBpcyBkZWZpbmVkLCBpdCdzIHNob3dhYmxlDQoJI2ZvcmVhY2goJGkgaW4gWzAuLjRdKQ0KCQkjc2V0ICgkY3VzdG9tRmVhdHVyZVRpdGxlID0gZmFsc2UpDQoJCSNzZXQgKCRjdXN0b21GZWF0dXJlVGl0bGUgPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoImZlYXR1cmUke2l9dGl0bGUiLCAiIikpDQoJCSNzZXQgKCRjdXN0b21GZWF0dXJlRGVzY3JpcHRpb24gPSBmYWxzZSkNCgkJI3NldCAoJGN1c3RvbUZlYXR1cmVEZXNjcmlwdGlvbiA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgiZmVhdHVyZSR7aX1kZXNjcmlwdGlvbiIsICIiKSkNCgkJI3NldCAoJGN1c3RvbUZlYXR1cmVVcmwgPSBmYWxzZSkNCgkJI3NldCAoJGN1c3RvbUZlYXR1cmVVcmwgPSAkY29yZV92Ml93aWRnZXQuR2V0VXJsVmFsdWUoImZlYXR1cmUke2l9dXJsIiwgIiIpKQ0KCQkjc2V0ICgkY3VzdG9tRmVhdHVyZUltYWdlID0gZmFsc2UpDQoJCSNzZXQgKCRjdXN0b21GZWF0dXJlSW1hZ2UgPSAkY29yZV92Ml93aWRnZXQuR2V0VXJsVmFsdWUoImZlYXR1cmUke2l9aW1hZ2UiLCAiIikpDQoJCSNzZXQgKCRjdXN0b21GZWF0dXJlQmx1ciA9IGZhbHNlKQ0KCQkjc2V0ICgkY3VzdG9tRmVhdHVyZUJsdXIgPSAkY29yZV92Ml93aWRnZXQuR2V0Qm9vbFZhbHVlKCJmZWF0dXJlJHtpfWJsdXIiLCBmYWxzZSkpDQoJCSNzZXQgKCRjdXN0b21GZWF0dXJlU2hhZG93VGV4dCA9IHRydWUpDQoJCSNzZXQgKCRjdXN0b21GZWF0dXJlU2hhZG93VGV4dCA9ICRjb3JlX3YyX3dpZGdldC5HZXRCb29sVmFsdWUoImZlYXR1cmUke2l9c2hhZG93IiwgdHJ1ZSkpDQoNCgkJI3NldCAoJGN1c3RvbUZlYXR1cmVEZXNpZ25Nb2RlID0gZmFsc2UpDQoJCSNzZXQgKCRjdXN0b21GZWF0dXJlRGVzaWduTW9kZSA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgiZmVhdHVyZSR7aX1kZXNpZ25Nb2RlIiwgIiIpKQ0KCQkjaWYgKCRjdXN0b21GZWF0dXJlRGVzaWduTW9kZS5MZW5ndGggPT0gMCkNCgkJCSMjIFByZXN1bWUgZGVmYXVsdHMgYmFzZWQgb24gdXBncmFkZWQgdmVyc2lvbiBvZiB3aWRnZXQNCgkJCSNpZiAoJGN1c3RvbUZlYXR1cmVJbWFnZS5sZW5ndGggPiAwIHx8ICRjdXN0b21GZWF0dXJlVGl0bGUubGVuZ3RoID4gMCB8fCAkY3VzdG9tRmVhdHVyZURlc2NyaXB0aW9uLmxlbmd0aCA+IDApDQoJCQkJI2lmICgkY3VzdG9tRmVhdHVyZUltYWdlLkxlbmd0aCA+IDApDQoJCQkJCSRjb3JlX3YyX3dpZGdldC5TZXRTdHJpbmdWYWx1ZSgiZmVhdHVyZSR7aX1kZXNpZ25Nb2RlIiwgInBob3RvIikNCgkJCQkJI3NldCAoJGN1c3RvbUZlYXR1cmVEZXNpZ25Nb2RlID0gJ3Bob3RvJykNCgkJCQkjZWxzZQ0KCQkJCQkkY29yZV92Ml93aWRnZXQuU2V0U3RyaW5nVmFsdWUoImZlYXR1cmUke2l9ZGVzaWduTW9kZSIsICJjb2xvciIpDQoJCQkJCSNzZXQgKCRjdXN0b21GZWF0dXJlRGVzaWduTW9kZSA9ICdjb2xvcicpDQoJCQkJI2VuZA0KCQkJIyMgTmV3IGRlZmF1bHRzDQoJCQkjZWxzZQ0KCQkJCSRjb3JlX3YyX3dpZGdldC5TZXRTdHJpbmdWYWx1ZSgiZmVhdHVyZSR7aX1kZXNpZ25Nb2RlIiwgImluaGVyaXQiKQ0KCQkJCSNzZXQgKCRjdXN0b21GZWF0dXJlRGVzaWduTW9kZSA9ICdpbmhlcml0JykNCgkJCSNlbmQNCgkJI2VuZA0KDQoJCSMjIElmIG5vIHBob3RvIHByb3ZpZGVkIGluIHBob3RvIG1vZGUsIGZhbGwgYmFjayB0byAnaW5oZXJpdCcNCgkJI2lmICgkY3VzdG9tRmVhdHVyZURlc2lnbk1vZGUgPT0gJ3Bob3RvJyAmJiAoISRjdXN0b21GZWF0dXJlSW1hZ2UgfHwgJGN1c3RvbUZlYXR1cmVJbWFnZS5MZW5ndGggPT0gMCkpDQoJCQkjc2V0ICgkY3VzdG9tRmVhdHVyZURlc2lnbk1vZGUgPSAnaW5oZXJpdCcpDQoJCSNlbmQNCg0KCQkjc2V0ICgkY3VzdG9tRmVhdHVyZVBhbGV0dGUgPSBmYWxzZSkNCgkJI3NldCAoJGN1c3RvbUZlYXR1cmVQYWxldHRlID0gJGNvcmVfdjJfd2lkZ2V0LkdldFN0cmluZ1ZhbHVlKCJmZWF0dXJlJHtpfXBhbGV0dGUiLCAiIikpDQoJCSNpZiAoJGN1c3RvbUZlYXR1cmVQYWxldHRlLkxlbmd0aCA9PSAwKQ0KCQkJIyMgUHJlc3VtZSBkZWZhdWx0cyBiYXNlZCBvbiB1cGdyYWRlZCB2ZXJzaW9uIG9mIHdpZGdldA0KCQkJI2lmICgkY3VzdG9tRmVhdHVyZUltYWdlLmxlbmd0aCA+IDAgfHwgJGN1c3RvbUZlYXR1cmVUaXRsZS5sZW5ndGggPiAwIHx8ICRjdXN0b21GZWF0dXJlRGVzY3JpcHRpb24ubGVuZ3RoID4gMCkNCgkJCQkjc2V0ICgkZGVmYXVsdCA9ICJiYWNrZ3JvdW5kLWNvbG9yPSNmZmZmZmYmYW1wO2NvbG9yPSMyNjMyMzgmYW1wO2N1c3RvbT10cnVlIikNCgkJCQkkY29yZV92Ml93aWRnZXQuU2V0U3RyaW5nVmFsdWUoImZlYXR1cmUke2l9cGFsZXR0ZSIsICRkZWZhdWx0KQ0KCQkJCSNzZXQgKCRjdXN0b21GZWF0dXJlUGFsZXR0ZSA9ICRkZWZhdWx0KQ0KCQkJIyMgTmV3IGRlZmF1bHRzDQoJCQkjZWxzZQ0KCQkJCSNzZXQgKCRkZWZhdWx0ID0gImJhY2tncm91bmQtY29sb3I9I2ZmZmZmZiZhbXA7Y29sb3I9IzI2MzIzOCIpDQoJCQkJJGNvcmVfdjJfd2lkZ2V0LlNldFN0cmluZ1ZhbHVlKCJmZWF0dXJlJHtpfXBhbGV0dGUiLCAkZGVmYXVsdCkNCgkJCQkjc2V0ICgkY3VzdG9tRmVhdHVyZVBhbGV0dGUgPSAkZGVmYXVsdCkNCgkJCSNlbmQNCgkJI2VuZA0KDQoJCSMjIFNldCBjb2xvcnMgYmFzZWQgb24gcGFsZXR0ZSBvciBjdXN0b20NCgkJI3NldCAoJGluaGVyaXRpbmdEZWZhdWx0SW1hZ2UgPSBmYWxzZSkNCgkJI2lmICgkY3VzdG9tRmVhdHVyZURlc2lnbk1vZGUgPT0gJ2luaGVyaXQnKQ0KCQkJI3NldCAoJGN1c3RvbUZlYXR1cmVEZXNpZ25Nb2RlID0gJGRlZmF1bHRGZWF0dXJlRGVzaWduTW9kZSkNCgkJCSNzZXQgKCRjdXN0b21GZWF0dXJlSW1hZ2UgPSAkZGVmYXVsdEZlYXR1cmVJbWFnZSkNCgkJCSNzZXQgKCRjdXN0b21GZWF0dXJlQmx1ciA9ICRkZWZhdWx0RmVhdHVyZUJsdXIpDQoJCQkjc2V0ICgkY3VzdG9tRmVhdHVyZVNoYWRvd1RleHQgPSAkZGVmYXVsdEZlYXR1cmVTaGFkb3dUZXh0KQ0KCQkJI3NldCAoJGN1c3RvbUZlYXR1cmVDb2xvck1vZGUgPSAkZGVmYXVsdEZlYXR1cmVDb2xvck1vZGUpDQoJCQkjc2V0ICgkY3VzdG9tRmVhdHVyZUJhY2tncm91bmQgPSAkZGVmYXVsdEZlYXR1cmVCYWNrZ3JvdW5kKQ0KCQkJI3NldCAoJGN1c3RvbUZlYXR1cmVCYWNrZ3JvdW5kMiA9ICRkZWZhdWx0RmVhdHVyZUJhY2tncm91bmQyKQ0KCQkJI3NldCAoJGN1c3RvbUZlYXR1cmVGb3JlZ3JvdW5kID0gJGRlZmF1bHRGZWF0dXJlRm9yZWdyb3VuZCkNCgkJCSNpZiAoJGN1c3RvbUZlYXR1cmVJbWFnZSAmJiAkY3VzdG9tRmVhdHVyZUltYWdlLkxlbmd0aCA+IDApDQoJCQkJI3NldCAoJGluaGVyaXRpbmdEZWZhdWx0SW1hZ2UgPSB0cnVlKQ0KCQkJI2VuZA0KCQkjZWxzZWlmICgkY3VzdG9tRmVhdHVyZURlc2lnbk1vZGUgPT0gJ3Bob3RvJykNCgkJCSNzZXQgKCRjdXN0b21GZWF0dXJlQmFja2dyb3VuZCA9ICcjQUFBJykNCgkJCSNzZXQgKCRjdXN0b21GZWF0dXJlRm9yZWdyb3VuZCA9ICcjRkZGJykNCgkJI2Vsc2VpZiAoJGN1c3RvbUZlYXR1cmVEZXNpZ25Nb2RlID09ICdjb2xvcicpDQoJCQkjc2V0ICgkY3VzdG9tRmVhdHVyZUNvbG9yTW9kZSA9IGZhbHNlKQ0KCQkJI3NldCAoJGN1c3RvbUZlYXR1cmVCYWNrZ3JvdW5kID0gZmFsc2UpDQoJCQkjc2V0ICgkY3VzdG9tRmVhdHVyZUJhY2tncm91bmQyID0gZmFsc2UpDQoJCQkjc2V0ICgkY3VzdG9tRmVhdHVyZUZvcmVncm91bmQgPSBmYWxzZSkNCgkJCSNzZXQgKCRwYXJzZWRDdXN0b21GZWF0dXJlUGFsZXR0ZSA9IGZhbHNlKQ0KCQkJI3NldCAoJHBhcnNlZEN1c3RvbUZlYXR1cmVQYWxldHRlID0gJGNvcmVfdjJfcGFnZS5QYXJzZVF1ZXJ5U3RyaW5nKCRjdXN0b21GZWF0dXJlUGFsZXR0ZSkpDQoJCQkjc2V0ICgkY3VzdG9tRmVhdHVyZUN1c3RvbUNvbG9ycyA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VCb29sKCRwYXJzZWRDdXN0b21GZWF0dXJlUGFsZXR0ZS5WYWx1ZSgnY3VzdG9tJykpKQ0KCQkJI2lmICgkY3VzdG9tRmVhdHVyZUN1c3RvbUNvbG9ycykNCgkJCQkjc2V0ICgkY3VzdG9tRmVhdHVyZUNvbG9yTW9kZSA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgiZmVhdHVyZSR7aX1jb2xvck1vZGUiLCAic29saWQiKSkNCgkJCQkjc2V0ICgkY3VzdG9tRmVhdHVyZUJhY2tncm91bmQgPSAkY29yZV92Ml93aWRnZXQuR2V0Q29sb3JWYWx1ZSgiZmVhdHVyZSR7aX1iYWNrZ3JvdW5kIiwgIiIpKQ0KCQkJCSNzZXQgKCRjdXN0b21GZWF0dXJlQmFja2dyb3VuZDIgPSAkY29yZV92Ml93aWRnZXQuR2V0Q29sb3JWYWx1ZSgiZmVhdHVyZSR7aX1iYWNrZ3JvdW5kMiIsICIiKSkNCgkJCQkjc2V0ICgkY3VzdG9tRmVhdHVyZUZvcmVncm91bmQgPSAkY29yZV92Ml93aWRnZXQuR2V0Q29sb3JWYWx1ZSgiZmVhdHVyZSR7aX1mb3JlZ3JvdW5kIiwgIiIpKQ0KCQkJI2Vsc2UNCgkJCQkjc2V0ICgkY3VzdG9tRmVhdHVyZUJhY2tncm91bmRGcm9tID0gZmFsc2UpDQoJCQkJI3NldCAoJGN1c3RvbUZlYXR1cmVCYWNrZ3JvdW5kRnJvbSA9ICRwYXJzZWRDdXN0b21GZWF0dXJlUGFsZXR0ZS5WYWx1ZSgnYmFja2dyb3VuZC1jb2xvci1mcm9tJykpDQoJCQkJI3NldCAoJGN1c3RvbUZlYXR1cmVCYWNrZ3JvdW5kVG8gPSBmYWxzZSkNCgkJCQkjc2V0ICgkY3VzdG9tRmVhdHVyZUJhY2tncm91bmRUbyA9ICRwYXJzZWRDdXN0b21GZWF0dXJlUGFsZXR0ZS5WYWx1ZSgnYmFja2dyb3VuZC1jb2xvci10bycpKQ0KCQkJCSNpZiAoJGN1c3RvbUZlYXR1cmVCYWNrZ3JvdW5kRnJvbS5MZW5ndGggPiAwICYmICRjdXN0b21GZWF0dXJlQmFja2dyb3VuZFRvLkxlbmd0aCA+IDApDQoJCQkJCSNzZXQgKCRjdXN0b21GZWF0dXJlQmFja2dyb3VuZCA9ICRjdXN0b21GZWF0dXJlQmFja2dyb3VuZEZyb20pDQoJCQkJCSNzZXQgKCRjdXN0b21GZWF0dXJlQmFja2dyb3VuZDIgPSAkY3VzdG9tRmVhdHVyZUJhY2tncm91bmRUbykNCgkJCQkJI3NldCAoJGN1c3RvbUZlYXR1cmVDb2xvck1vZGUgPSAnZ3JhZGllbnQnKQ0KCQkJCSNlbHNlDQoJCQkJCSNzZXQgKCRjdXN0b21GZWF0dXJlQmFja2dyb3VuZCA9ICRwYXJzZWRDdXN0b21GZWF0dXJlUGFsZXR0ZS5WYWx1ZSgnYmFja2dyb3VuZC1jb2xvcicpKQ0KCQkJCQkjc2V0ICgkY3VzdG9tRmVhdHVyZUNvbG9yTW9kZSA9ICdzb2xpZCcpDQoJCQkJI2VuZA0KCQkJCSNzZXQgKCRjdXN0b21GZWF0dXJlRm9yZWdyb3VuZCA9ICRwYXJzZWRDdXN0b21GZWF0dXJlUGFsZXR0ZS5WYWx1ZSgnY29sb3InKSkNCgkJCSNlbmQNCgkJI2VuZA0KDQoJCSNpZiAoKCRjdXN0b21GZWF0dXJlSW1hZ2UubGVuZ3RoID4gMCAmJiAhJGluaGVyaXRpbmdEZWZhdWx0SW1hZ2UpIHx8ICRjdXN0b21GZWF0dXJlVGl0bGUubGVuZ3RoID4gMCB8fCAkY3VzdG9tRmVhdHVyZURlc2NyaXB0aW9uLmxlbmd0aCA+IDApDQoJCQkjc2V0ICgkY3VzdG9tRmVhdHVyZSA9ICIle30iKQ0KCQkJJGN1c3RvbUZlYXR1cmUuQWRkKCdUaXRsZScsICRjdXN0b21GZWF0dXJlVGl0bGUpDQoJCQkkY3VzdG9tRmVhdHVyZS5BZGQoJ0Rlc2NyaXB0aW9uJywgJGN1c3RvbUZlYXR1cmVEZXNjcmlwdGlvbikNCgkJCSRjdXN0b21GZWF0dXJlLkFkZCgnVXJsJywgJGN1c3RvbUZlYXR1cmVVcmwpDQoJCQkkY3VzdG9tRmVhdHVyZS5BZGQoJ0Rlc2lnbk1vZGUnLCAkY3VzdG9tRmVhdHVyZURlc2lnbk1vZGUpDQoJCQkkY3VzdG9tRmVhdHVyZS5BZGQoJ0ltYWdlJywgJGN1c3RvbUZlYXR1cmVJbWFnZSkNCgkJCSRjdXN0b21GZWF0dXJlLkFkZCgnU2hhZG93JywgJGN1c3RvbUZlYXR1cmVTaGFkb3dUZXh0KQ0KCQkJJGN1c3RvbUZlYXR1cmUuQWRkKCdCbHVyJywgJGN1c3RvbUZlYXR1cmVCbHVyKQ0KCQkJJGN1c3RvbUZlYXR1cmUuQWRkKCdDb2xvck1vZGUnLCAkY3VzdG9tRmVhdHVyZUNvbG9yTW9kZSkNCgkJCSRjdXN0b21GZWF0dXJlLkFkZCgnQmFja2dyb3VuZCcsICRjdXN0b21GZWF0dXJlQmFja2dyb3VuZCkNCgkJCSRjdXN0b21GZWF0dXJlLkFkZCgnQmFja2dyb3VuZDInLCAkY3VzdG9tRmVhdHVyZUJhY2tncm91bmQyKQ0KCQkJJGN1c3RvbUZlYXR1cmUuQWRkKCdGb3JlZ3JvdW5kJywgJGN1c3RvbUZlYXR1cmVGb3JlZ3JvdW5kKQ0KCQkJJGN1c3RvbUZlYXR1cmUuQWRkKCdUeXBlJywgJ0N1c3RvbScpDQoJCQkjc2V0ICgkYWRkZWRBdCA9ICRjdXN0b21GZWF0dXJlcy5BZGQoJGN1c3RvbUZlYXR1cmUpKQ0KCQkjZW5kDQoJI2VuZA0KI2VuZA0K</file>
+			<file name="load-features.vm">IyMgY29sbGVjdCBjb250ZW50IGZlYXR1cmVzDQojc2V0ICgkZ3JvdXAgPSAkY29yZV92Ml9ncm91cC5DdXJyZW50KQ0KI2lmICgkY3VzdG9tRmVhdHVyZVN0cmF0ZWd5ICE9ICdpbmNsdWRlT25seScpDQoJI3NldCAoJGNvbnRlbnRGZWF0dXJlcyA9ICRjb3JlX3YzX2ZlYXR1cmUuTGlzdCgiJXtUYXJnZXRDb250YWluZXJJZCA9ICRncm91cC5Db250YWluZXJJZCwgUGFnZUluZGV4ID0gMCwgUGFnZVNpemUgPSAkcGFnZVNpemV9IikpDQojZW5kDQo=</file>
+			<file name="render.vm">IyMKIyMgUmVuZGVycyBhbiBpbmRpdmlkdWFsIGZlYXR1cmUsIHdoZXRoZXIgYW4gYWN0dWFsIGZlYXR1cmVkIGNvbnRlbnQgZW50aXR5IG9yIGN1c3RvbSBmZWF0dXJlJwojIyBGZWF0dXJlIG9iamVjdCBjYW4gY29udGFpbjoKIyMKIyMgKiBUeXBlCiMjICogVGl0bGUKIyMgKiBEZXNjcmlwdGlvbgojIyAqIFVybAojIyAqIERlc2lnbk1vZGUKIyMgKiBJbWFnZQojIyAqIFNoYWRvdwojIyAqIEJsdXIKIyMgKiBDb2xvck1vZGUKIyMgKiBCYWNrZ3JvdW5kCiMjICogQmFja2dyb3VuZDIKIyMgKiBGb3JlZ3JvdW5kCiMjICogVXNlckF2YXRhclVybAojIyAqIFVzZXJQcm9maWxlVXJsCiMjICogVXNlckRpc3BsYXlOYW1lCiMjCgo8bGkgY2xhc3M9ImNvbnRlbnQtaXRlbSAjaWYgKCRmZWF0dXJlLlNoYWRvdyAmJiAkZmVhdHVyZS5EZXNpZ25Nb2RlID09ICdwaG90bycpIHdpdGgtc2hhZG93ICR7dmVydGljYWxBbGlnbm1lbnR9ICNlbmQgI2lmICgkZmVhdHVyZS5CbHVyICYmICRmZWF0dXJlLkRlc2lnbk1vZGUgPT0gJ3Bob3RvJykgd2l0aC1ibHVyICNlbmQgI2lmICgkZmVhdHVyZS5VcmwgJiYgJGZlYXR1cmUuVXJsLmxlbmd0aCA+IDApIHdpdGgtdXJsICNlbmQiIHN0eWxlPSIKCSNpZiAoJGZlYXR1cmUuRGVzaWduTW9kZSA9PSAnY29sb3InICYmICRmZWF0dXJlLkNvbG9yTW9kZSA9PSAnZ3JhZGllbnQnKQoJCWJhY2tncm91bmQ6IGxpbmVhci1ncmFkaWVudCh0byByaWdodCwgJGZlYXR1cmUuQmFja2dyb3VuZCwgJGZlYXR1cmUuQmFja2dyb3VuZDIpCgkjZWxzZWlmICgkZmVhdHVyZS5EZXNpZ25Nb2RlID09ICdjb2xvcicgJiYgJGZlYXR1cmUuQ29sb3JNb2RlID09ICdzb2xpZCcpCgkJYmFja2dyb3VuZDogJGZlYXR1cmUuQmFja2dyb3VuZAoJI2VuZAoJIgoJI2lmICgkZmVhdHVyZS5VcmwpCgkJZGF0YS1mZWF0dXJldXJsPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRmZWF0dXJlLlVybCkiCgkjZW5kCglkYXRhLWZvcmVncm91bmQ9IiRmZWF0dXJlLkZvcmVncm91bmQiCgk+CgkjaWYgKCRmZWF0dXJlLkRlc2lnbk1vZGUgPT0gJ3Bob3RvJykKCQk8ZGl2IGNsYXNzPSJmZWF0dXJlLXBob3RvIiBzdHlsZT0iCgkJCSNzZXQgKCRyZXNpemVkQ292ZXJQaG90b1VybCA9IGZhbHNlKQoJCQkjc2V0ICgkcmVzaXplV2lkdGggPSAkcHJvcG9ydGlvbmFsV2lkdGgpCgkJCSNzZXQgKCRyZXNpemVIZWlnaHQgPSAkaGVpZ2h0KQoJCQkjaWYgKCRmZWF0dXJlLkJsdXIpCgkJCQkjc2V0ICgkcmVzaXplV2lkdGggPSAkcmVzaXplV2lkdGggLyA1KQoJCQkJI3NldCAoJHJlc2l6ZUhlaWdodCA9ICRyZXNpemVIZWlnaHQgLyA1KQoJCQkjZW5kCgkJCSNzZXQgKCRyZXNpemVkQ292ZXJQaG90b1VybCA9ICRjb3JlX3YyX3VpLkdldFJlc2l6ZWRJbWFnZVVybCgkZmVhdHVyZS5JbWFnZSwgJHJlc2l6ZVdpZHRoLCAkcmVzaXplSGVpZ2h0LCAiJXsgU2NhbGVGYWN0b3IgPSAyLCBSZXNpemVNZXRob2Q9J1pvb21BbmRDcm9wJyB9IikpCgkJCWJhY2tncm91bmQtaW1hZ2U6IHVybCgkcmVzaXplZENvdmVyUGhvdG9VcmwpOwoJCQkjaWYgKCRmZWF0dXJlLkJsdXIpCgkJCQlmaWx0ZXI6IGJsdXIoMTVweCk7CgkJCQltYXJnaW46IC0zMHB4OwoJCQkjZW5kCgkJIj4KCQk8L2Rpdj4KCSNlbmQKCTxkaXYgY2xhc3M9ImNvbnRlbnQiPgoKCQkjaWYgKCRmZWF0dXJlLlRpdGxlICYmICRmZWF0dXJlLlRpdGxlLmxlbmd0aCA+IDApCgkJCTxoMyBjbGFzcz0ibmFtZSIgc3R5bGU9ImNvbG9yOiAkZmVhdHVyZS5Gb3JlZ3JvdW5kIj4KCQkJCSNpZiAoJGZlYXR1cmUuVXJsICYmICRmZWF0dXJlLlVybC5sZW5ndGggPiAwKQoJCQkJCTxhIGhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGZlYXR1cmUuVXJsKSIgY2xhc3M9ImludGVybmFsLWxpbmsgdmlldy1wb3N0IiBzdHlsZT0iY29sb3I6ICRmZWF0dXJlLkZvcmVncm91bmQiPgoJCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5UcnVuY2F0ZSgkZmVhdHVyZS5UaXRsZSwgNTAsICfigKYnKQoJCQkJCTwvYT4KCQkJCSNlbHNlCgkJCQkJJGNvcmVfdjJfbGFuZ3VhZ2UuVHJ1bmNhdGUoJGZlYXR1cmUuVGl0bGUsIDUwLCAn4oCmJykKCQkJCSNlbmQKCQkJPC9oMz4KCQkjZW5kCgoJCSNpZiAoJGZlYXR1cmUuRGVzY3JpcHRpb24gJiYgJGZlYXR1cmUuRGVzY3JpcHRpb24ubGVuZ3RoID4gMCkKCQkJPGRpdiBjbGFzcz0iZXhjZXJwdCIgc3R5bGU9ImNvbG9yOiAkZmVhdHVyZS5Gb3JlZ3JvdW5kIj4KCQkJCSRjb3JlX3YyX2xhbmd1YWdlLlRydW5jYXRlKCRmZWF0dXJlLkRlc2NyaXB0aW9uLCAkdHJ1bmNhdGVMZW5ndGgsICfigKYnKQoJCQk8L2Rpdj4KCQkjZW5kCgoJCSNpZiAoJGZlYXR1cmUuVXNlckF2YXRhclVybCAmJiAkZmVhdHVyZS5Vc2VyQXZhdGFyVXJsLmxlbmd0aCA+IDAgJiYgJGZlYXR1cmUuVXNlckRpc3BsYXlOYW1lICYmICRmZWF0dXJlLlVzZXJEaXNwbGF5TmFtZS5sZW5ndGggPiAwKQoJCQk8ZGl2IGNsYXNzPSJhdXRob3IiPgoJCQkJPGRpdiBjbGFzcz0iYXZhdGFyIj4KCQkJCQkjaWYgKCRmZWF0dXJlLlVzZXJQcm9maWxlVXJsICYmICRmZWF0dXJlLlVzZXJQcm9maWxlVXJsLmxlbmd0aCA+IDApCgkJCQkJCTxhIGhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGZlYXR1cmUuVXNlclByb2ZpbGVVcmwpIj4KCQkJCQkJCSRjb3JlX3YyX3VpLkdldFJlc2l6ZWRJbWFnZUh0bWwoJGZlYXR1cmUuVXNlckF2YXRhclVybCwgMTYsIDE2LCAiJXtib3JkZXI9JzBweCcsIGFsdD0kZmVhdHVyZS5Vc2VyRGlzcGxheU5hbWUsIFJlc2l6ZU1ldGhvZCA9ICdab29tQW5kQ3JvcCcgfSIpCgkJCQkJCTwvYT4KCQkJCQkjZWxzZQoJCQkJCQkkY29yZV92Ml91aS5HZXRSZXNpemVkSW1hZ2VIdG1sKCRmZWF0dXJlLlVzZXJBdmF0YXJVcmwsIDE2LCAxNiwgIiV7Ym9yZGVyPScwcHgnLCBhbHQ9JGZlYXR1cmUuVXNlckRpc3BsYXlOYW1lLCBSZXNpemVNZXRob2QgPSAnWm9vbUFuZENyb3AnIH0iKQoJCQkJCSNlbmQKCQkJCTwvZGl2PgoJCQkJPHNwYW4gY2xhc3M9InVzZXItbmFtZSIgc3R5bGU9ImNvbG9yOiAkZmVhdHVyZS5Gb3JlZ3JvdW5kIj4KCQkJCQkjaWYgKCRmZWF0dXJlLlVzZXJQcm9maWxlVXJsICYmICRmZWF0dXJlLlVzZXJQcm9maWxlVXJsLmxlbmd0aCA+IDApCgkJCQkJCTxhIGhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGZlYXR1cmUuVXNlclByb2ZpbGVVcmwpIiByZWw9Im5vZm9sbG93IiBjbGFzcz0iaW50ZXJuYWwtbGluayB2aWV3LXVzZXItcHJvZmlsZSIgc3R5bGU9ImNvbG9yOiAkZmVhdHVyZS5Gb3JlZ3JvdW5kIj4KCQkJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLlRydW5jYXRlKCRmZWF0dXJlLlVzZXJEaXNwbGF5TmFtZSwgNTAsICfigKYnKQoJCQkJCQk8L2E+CgkJCQkJI2Vsc2UKCQkJCQkJJGNvcmVfdjJfbGFuZ3VhZ2UuVHJ1bmNhdGUoJGZlYXR1cmUuVXNlckRpc3BsYXlOYW1lLCA1MCwgJ+KApicpCgkJCQkJI2VuZAoJCQkJPC9zcGFuPgoJCQk8L2Rpdj4KCQkjZW5kCgoJPC9kaXY+CjwvbGk+Cg==</file>
+			<file name="style.vm">PHN0eWxlPg0KLmNvbnRlbnQtZnJhZ21lbnQuZmVhdHVyZWQtY29udGVudC1jYXJvdXNlbCAuc2xpZGVyLWNvbnRhaW5lciB7DQoJI2lmICgkcHJvcG9ydGlvbmFsU2NhbGluZykNCgkJI3NldCAoJHJhdGlvID0gMTAwICogJGhlaWdodCkNCgkJI3NldCAoJHJhdGlvID0gICRyYXRpbyAvICRwcm9wb3J0aW9uYWxXaWR0aCkNCgkJcGFkZGluZy10b3A6ICR7cmF0aW99JTsNCgkjZWxzZQ0KCQloZWlnaHQ6ICR7aGVpZ2h0fXB4Ow0KCSNlbmQNCn0NCg0KLmNvbnRlbnQtZnJhZ21lbnQuZmVhdHVyZWQtY29udGVudC1jYXJvdXNlbC5mdWxsLXdpZHRoIHsNCgloZWlnaHQ6ICR7aGVpZ2h0fXB4Ow0KfQ0KDQouY29udGVudC1mcmFnbWVudC5mZWF0dXJlZC1jb250ZW50LWNhcm91c2VsIC5zbGlkZXItY29udGFpbmVyIC5zbGlkZXIgLmNvbnRlbnQtbGlzdC5jb250ZW50ID4gLmNvbnRlbnQtaXRlbSA+IC5jb250ZW50IHsNCgkjaWYgKCR2ZXJ0aWNhbEFsaWdubWVudCA9PSAndG9wJykNCgkJanVzdGlmeS1jb250ZW50OiBmbGV4LXN0YXJ0Ow0KCSNlbHNlaWYgKCR2ZXJ0aWNhbEFsaWdubWVudCA9PSAnY2VudGVyJykNCgkJanVzdGlmeS1jb250ZW50OiBjZW50ZXI7DQoJI2Vsc2VpZiAoJHZlcnRpY2FsQWxpZ25tZW50ID09ICdib3R0b20nKQ0KCQlqdXN0aWZ5LWNvbnRlbnQ6IGZsZXgtZW5kOw0KCSNlbmQNCgkjaWYgKCRob3Jpem9udGFsQWxpZ25tZW50ID09ICdsZWZ0JykNCgkJYWxpZ24taXRlbXM6IGZsZXgtc3RhcnQ7DQoJCXRleHQtYWxpZ246IGxlZnQ7DQoJI2Vsc2VpZiAoJGhvcml6b250YWxBbGlnbm1lbnQgPT0gJ2NlbnRlcicpDQoJCWFsaWduLWl0ZW1zOiBjZW50ZXI7DQoJCXRleHQtYWxpZ246IGNlbnRlcjsNCgkjZWxzZWlmICgkaG9yaXpvbnRhbEFsaWdubWVudCA9PSAncmlnaHQnKQ0KCQlhbGlnbi1pdGVtczogZmxleC1lbmQ7DQoJCXRleHQtYWxpZ246IHJpZ2h0Ow0KCSNlbmQNCg0KCSNpZiAoJGZ1bGxXaWR0aCAmJiAhJGZvcmVncm91bmRGdWxsV2lkdGgpDQoJCXBhZGRpbmctbGVmdDogMDsNCgkJcGFkZGluZy1yaWdodDogMDsNCgkjZW5kDQp9DQo8L3N0eWxlPg0K</file>
+			<file name="ui.js">KGZ1bmN0aW9uKCQsIGdsb2JhbCwgdW5kZWYpIHsNCg0KCXZhciBtZXNzYWdpbmcgPSAkLnRlbGxpZ2VudC5ldm9sdXRpb24ubWVzc2FnaW5nOw0KDQoJZnVuY3Rpb24gbW92ZVRvKGNvbnRleHQsIGluZGV4LCBkdXJhdGlvbikgew0KCQlnbG9iYWwuY2xlYXJUaW1lb3V0KGNvbnRleHQubW92ZURlYm91bmNlKTsNCgkJY29udGV4dC5tb3ZlRGVib3VuY2UgPSBnbG9iYWwuc2V0VGltZW91dChmdW5jdGlvbigpew0KCQkJaWYoaW5kZXggPj0gY29udGV4dC5pdGVtcy5sZW5ndGgpDQoJCQkJaW5kZXggPSBjb250ZXh0Lml0ZW1zLmxlbmd0aCAtIDE7DQoJCQllbHNlIGlmKGluZGV4IDwgMCkNCgkJCQlpbmRleCA9IDA7DQoJCQljb250ZXh0LmN1cnJlbnRJbmRleCA9IGluZGV4Ow0KDQoJCQljb250ZXh0Lmxpc3QuZXZvbHV0aW9uVHJhbnNmb3JtKHsNCgkJCQlsZWZ0OiAoLTEgKiBjb250ZXh0LmN1cnJlbnRJbmRleCAqIChjb250ZXh0Lmxpc3Qud2lkdGgoKSAvIGNvbnRleHQuaXRlbXMubGVuZ3RoKSkNCgkJCX0sIHsNCgkJCQlkdXJhdGlvbjogKGR1cmF0aW9uID09PSB1bmRlZiA/IDYwMCA6IGR1cmF0aW9uKSwNCgkJCQllYXNpbmc6ICdjdWJpYy1iZXppZXIoMC40NTUsIDAuMDMsIDAuNTE1LCAwLjk1NSknDQoJCQl9KTsNCg0KCQkJLy8gaGlnaGxpZ2h0IGRvdA0KCQkJY29udGV4dC53cmFwcGVyLmZpbmQoJy5mZWF0dXJlLWxpbmsnKQ0KCQkJCS5yZW1vdmVDbGFzcygnYWN0aXZlJykNCgkJCQkuZmlsdGVyKCdbZGF0YS1mZWF0dXJlaW5kZXg9JysgaW5kZXggKyddJykNCgkJCQkuYWRkQ2xhc3MoJ2FjdGl2ZScpOw0KDQoJCQkvLyBhZGp1c3QgZm9yZWdyb3VuZCBjb2xvciBvZiBuYXZpZ2F0aW9uIHRvIG1hdGNoIGl0ZW0NCgkJCWNvbnRleHQubmF2aWdhdGlvbkl0ZW1zLmNzcyh7DQoJCQkJY29sb3I6ICQoY29udGV4dC5pdGVtc1tpbmRleF0pLmRhdGEoJ2ZvcmVncm91bmQnKQ0KCQkJfSk7DQoNCgkJCS8vIGFuaW1hdGUgY3VycmVudCBzbGlkZQ0KCQkJJChjb250ZXh0Lml0ZW1zLnJlbW92ZUNsYXNzKCdhY3RpdmUnKVtpbmRleF0pLmFkZENsYXNzKCdhY3RpdmUnKTsNCgkJfSwgMTApOw0KCX0NCg0KCWZ1bmN0aW9uIG1vdmVOZXh0KGNvbnRleHQsIGR1cmF0aW9uKSB7DQoJCWlmKChjb250ZXh0LmN1cnJlbnRJbmRleCB8fCAwKSA+PSBjb250ZXh0Lml0ZW1zLmxlbmd0aCAtIDEpDQoJCQltb3ZlVG8oY29udGV4dCwgMCwgZHVyYXRpb24pOw0KCQllbHNlDQoJCQltb3ZlVG8oY29udGV4dCwgKGNvbnRleHQuY3VycmVudEluZGV4IHx8IDApICsgMSwgZHVyYXRpb24pOw0KCX0NCg0KCWZ1bmN0aW9uIG1vdmVQcmV2aW91cyhjb250ZXh0LCBkdXJhdGlvbikgew0KCQlpZigoY29udGV4dC5jdXJyZW50SW5kZXggfHwgMCkgPD0gMCkNCgkJCW1vdmVUbyhjb250ZXh0LCBjb250ZXh0Lml0ZW1zLmxlbmd0aCAtIDEsIGR1cmF0aW9uKTsNCgkJZWxzZQ0KCQkJbW92ZVRvKGNvbnRleHQsIChjb250ZXh0LmN1cnJlbnRJbmRleCB8fCAwKSAtIDEsIGR1cmF0aW9uKTsNCgl9DQoNCglmdW5jdGlvbiBzdGFydEF1dG9OYXZpZ2F0aW9uKGNvbnRleHQpIHsNCgkJZ2xvYmFsLmNsZWFyVGltZW91dChjb250ZXh0LnBhZ2VIYW5kbGUpOw0KCQlpZiAoY29udGV4dC5hdXRvbWF0aWMgJiYgIWNvbnRleHQubW91c2VvdmVyKSB7DQoJCQljb250ZXh0LnBhZ2VIYW5kbGUgPSBnbG9iYWwuc2V0VGltZW91dChmdW5jdGlvbigpew0KCQkJCWlmKCFjb250ZXh0LnBhbm5pbmcpDQoJCQkJCW1vdmVOZXh0KGNvbnRleHQpOw0KCQkJCXN0YXJ0QXV0b05hdmlnYXRpb24oY29udGV4dCk7DQoJCQl9LCBjb250ZXh0LmR1cmF0aW9uKTsNCgkJfQ0KCX0NCg0KCWZ1bmN0aW9uIHN0b3BBdXRvTmF2aWdhdGlvbihjb250ZXh0KSB7DQoJCWdsb2JhbC5jbGVhclRpbWVvdXQoY29udGV4dC5wYWdlSGFuZGxlKTsNCgl9DQoNCglmdW5jdGlvbiBpbml0TWFudWFsTmF2aWdhdGlvbihjb250ZXh0KSB7DQoJCW1lc3NhZ2luZy5zdWJzY3JpYmUoJ3dpZGdldC5mZWF0dXJlZC1jb250ZW50LWNhcm91c2VsLnByZXYnLCBmdW5jdGlvbigpew0KCQkJbW92ZVByZXZpb3VzKGNvbnRleHQpOw0KCQl9KTsNCgkJbWVzc2FnaW5nLnN1YnNjcmliZSgnd2lkZ2V0LmZlYXR1cmVkLWNvbnRlbnQtY2Fyb3VzZWwubmV4dCcsIGZ1bmN0aW9uKCl7DQoJCQltb3ZlTmV4dChjb250ZXh0KTsNCgkJfSk7DQoJCW1lc3NhZ2luZy5zdWJzY3JpYmUoJ3dpZGdldC5mZWF0dXJlZC1jb250ZW50LWNhcm91c2VsLmZlYXR1cmUnLCBmdW5jdGlvbihkYXRhKXsNCgkJCW1vdmVUbyhjb250ZXh0LCAkKGRhdGEudGFyZ2V0KS5kYXRhKCdmZWF0dXJlaW5kZXgnKSk7DQoJCX0pOw0KDQoJCWNvbnRleHQud3JhcHBlci5vbignY2xpY2snLCBmdW5jdGlvbihlKXsNCgkJCWlmKCQoZS50YXJnZXQpLmlzKCdhJykpDQoJCQkJcmV0dXJuOw0KCQkJdmFyIGZlYXR1cmVVcmwgPSAkKGNvbnRleHQuaXRlbXNbY29udGV4dC5jdXJyZW50SW5kZXhdKS5kYXRhKCdmZWF0dXJldXJsJyk7DQoJCQlpZihmZWF0dXJlVXJsICYmICFjb250ZXh0LnBhbm5pbmcpIHsNCgkJCQlnbG9iYWwubG9jYXRpb24gPSBmZWF0dXJlVXJsOw0KCQkJfQ0KCQl9KTsNCgl9DQoNCglmdW5jdGlvbiBpbml0VG91Y2hOYXZpZ2F0aW9uKGNvbnRleHQpIHsNCgkJaWYoY29udGV4dC5pdGVtcy5sZW5ndGggPD0gMSkNCgkJCXJldHVybjsNCgkJdmFyIHN0YXJ0WDsNCgkJdmFyIGRpZmY7DQoJCXZhciBjdXJyZW50T2Zmc2V0Ow0KCQljb250ZXh0LmNvbnRhaW5lci5vZmYoJ3N3aXBlbGVmdCBzd2lwZXJpZ2h0IHBhbnN0YXJ0IHBhbiBwYW5lbmQnKQ0KCQkJLm9uKHsNCgkJCQlzd2lwZWxlZnQ6IGZ1bmN0aW9uKGUpIHsNCgkJCQkJbW92ZU5leHQoY29udGV4dCwgMjUwKTsNCgkJCQkJc3RhcnRBdXRvTmF2aWdhdGlvbihjb250ZXh0KTsNCgkJCQkJZS5wcmV2ZW50RGVmYXVsdCgpOw0KCQkJCQlyZXR1cm4gZmFsc2U7DQoJCQkJfSwNCgkJCQlzd2lwZXJpZ2h0OiBmdW5jdGlvbihlKSB7DQoJCQkJCW1vdmVQcmV2aW91cyhjb250ZXh0LCAyNTApOw0KCQkJCQlzdGFydEF1dG9OYXZpZ2F0aW9uKGNvbnRleHQpOw0KCQkJCQllLnByZXZlbnREZWZhdWx0KCk7DQoJCQkJCXJldHVybiBmYWxzZTsNCgkJCQl9LA0KCQkJCXBvaW50ZXJtb3ZlOiBmdW5jdGlvbihlKSB7DQoJCQkJCWlmKGNvbnRleHQucGFubmluZykgew0KCQkJCQkJZS5wcmV2ZW50RGVmYXVsdCgpOw0KCQkJCQkJcmV0dXJuIGZhbHNlOw0KCQkJCQl9DQoJCQkJfSwNCgkJCQlwYW5zdGFydDogZnVuY3Rpb24oZSkgew0KCQkJCQlpZighKGUuZGlyZWN0aW9uID09ICdsZWZ0JyB8fCBlLmRpcmVjdGlvbiA9PSAncmlnaHQnKSkNCgkJCQkJCXJldHVybjsNCgkJCQkJc3RhcnRYID0gZS5wYWdlWDsNCgkJCQkJY29udGV4dC5wYW5uaW5nID0gdHJ1ZTsNCg0KCQkJCQljdXJyZW50T2Zmc2V0ID0gKC0xICogY29udGV4dC5jdXJyZW50SW5kZXggKiAoY29udGV4dC5saXN0LndpZHRoKCkgLyBjb250ZXh0Lml0ZW1zLmxlbmd0aCkpOw0KDQoJCQkJCXN0b3BBdXRvTmF2aWdhdGlvbihjb250ZXh0KTsNCgkJCQl9LA0KCQkJCXBhbjogZnVuY3Rpb24oZSkgew0KCQkJCQlpZihlLmRpcmVjdGlvbiA9PSAnbGVmdCcgfHwgZS5kaXJlY3Rpb24gPT0gJ3JpZ2h0Jykgew0KCQkJCQkJZS5wcmV2ZW50RGVmYXVsdCgpOw0KCQkJCQkJZGlmZiA9IGUucGFnZVggLSBzdGFydFg7DQoJCQkJCQljb250ZXh0Lmxpc3QuZXZvbHV0aW9uVHJhbnNmb3JtKHsNCgkJCQkJCQlsZWZ0OiAoY3VycmVudE9mZnNldCArIGRpZmYpDQoJCQkJCQl9KQ0KCQkJCQkJcmV0dXJuIGZhbHNlOw0KCQkJCQl9DQoJCQkJfSwNCgkJCQlwYW5lbmQ6IGZ1bmN0aW9uKGUpIHsNCgkJCQkJZGlmZiA9IGUucGFnZVggLSBzdGFydFg7DQoJCQkJCXZhciBkdXJhdGlvbiA9IDE1MDsNCgkJCQkJaWYoTWF0aC5hYnMoZGlmZikgPj0gKChjb250ZXh0Lmxpc3Qud2lkdGgoKSAvIGNvbnRleHQuaXRlbXMubGVuZ3RoKSAvIDIpKSB7DQoJCQkJCQlpZihkaWZmID4gMCkgew0KCQkJCQkJCWlmKGNvbnRleHQuY3VycmVudEluZGV4ID4gMCkNCgkJCQkJCQkJbW92ZVByZXZpb3VzKGNvbnRleHQsIGR1cmF0aW9uKTsNCgkJCQkJCQllbHNlDQoJCQkJCQkJCW1vdmVUbyhjb250ZXh0LCBjb250ZXh0Lml0ZW1zLmxlbmd0aCAtIDEsIGR1cmF0aW9uKTsNCgkJCQkJCX0NCgkJCQkJCWVsc2UgaWYoZGlmZiA8PSAwKSB7DQoJCQkJCQkJaWYoY29udGV4dC5jdXJyZW50SW5kZXggPCBjb250ZXh0Lml0ZW1zLmxlbmd0aCAtIDEpDQoJCQkJCQkJCW1vdmVOZXh0KGNvbnRleHQsIGR1cmF0aW9uKTsNCgkJCQkJCQllbHNlDQoJCQkJCQkJCW1vdmVUbyhjb250ZXh0LCAwLCBkdXJhdGlvbik7DQoJCQkJCQl9DQoJCQkJCQllbHNlIHsNCgkJCQkJCQltb3ZlVG8oY29udGV4dCwgY29udGV4dC5jdXJyZW50SW5kZXggfHwgMCwgZHVyYXRpb24pOw0KCQkJCQkJfQ0KCQkJCQkJcmV0dXJuIGZhbHNlOw0KCQkJCQl9IGVsc2Ugew0KCQkJCQkJbW92ZVRvKGNvbnRleHQsIGNvbnRleHQuY3VycmVudEluZGV4IHx8IDAsIGR1cmF0aW9uKTsNCgkJCQkJfQ0KCQkJCQlzZXRUaW1lb3V0KGZ1bmN0aW9uKCl7DQoJCQkJCQljb250ZXh0LnBhbm5pbmcgPSBmYWxzZTsNCgkJCQkJfSwgNTApOw0KCQkJCQlzdGFydEF1dG9OYXZpZ2F0aW9uKGNvbnRleHQpOw0KCQkJCX0NCgkJCX0pOw0KCX0NCg0KCXZhciBhcGkgPSB7DQoJCXJlZ2lzdGVyOiBmdW5jdGlvbihvcHRpb25zKSB7DQoJCQl2YXIgY29udGV4dCA9ICQuZXh0ZW5kKGFwaS5kZWZhdWx0cywgb3B0aW9ucywgew0KCQkJCWl0ZW1Db3VudDogMA0KCQkJfSk7DQoNCgkJCWNvbnRleHQud3JhcHBlciA9ICQob3B0aW9ucy53cmFwcGVyKTsNCgkJCWNvbnRleHQud3JhcHBlckNvbnRlbnQgPSBjb250ZXh0LndyYXBwZXIuZmluZCgnLmNvbnRlbnQtZnJhZ21lbnQtY29udGVudCcpOw0KCQkJY29udGV4dC5jb250YWluZXIgPSBjb250ZXh0LndyYXBwZXIuZmluZCgnLnNsaWRlci1jb250YWluZXInKTsNCgkJCWNvbnRleHQubGlzdCA9IGNvbnRleHQud3JhcHBlci5maW5kKCcuY29udGVudC1saXN0LmNvbnRlbnQnKTsNCgkJCWNvbnRleHQuaXRlbXMgPSBjb250ZXh0LndyYXBwZXIuZmluZCgnbGkuY29udGVudC1pdGVtJyk7DQoJCQljb250ZXh0Lm5hdmlnYXRpb25JdGVtcyA9IGNvbnRleHQuY29udGFpbmVyLmZpbmQoJy5mZWF0dXJlLW5hdmlnYXRpb24gLm5hdmlnYXRpb24sIC5mZWF0dXJlLW5hdmlnYXRpb24gLmZlYXR1cmUtbGlua3MgLmZlYXR1cmUtbGluaycpOw0KDQoJCQkvLyBwYXVzZSBvbiBob3Zlcg0KCQkJY29udGV4dC53cmFwcGVyQ29udGVudC5vbih7DQoJCQkJbW91c2VlbnRlcjogZnVuY3Rpb24oKXsNCgkJCQkJY29udGV4dC5tb3VzZW92ZXIgPSB0cnVlOw0KCQkJCQlzdG9wQXV0b05hdmlnYXRpb24oY29udGV4dCk7DQoJCQkJfSwNCgkJCQltb3VzZWxlYXZlOiBmdW5jdGlvbigpew0KCQkJCQljb250ZXh0Lm1vdXNlb3ZlciA9IGZhbHNlOw0KCQkJCQlzdGFydEF1dG9OYXZpZ2F0aW9uKGNvbnRleHQpOw0KCQkJCX0NCgkJCX0pOw0KDQoJCQkkKGdsb2JhbCkub24oJ3Jlc2l6ZWQnLCBmdW5jdGlvbigpew0KCQkJCW1vdmVUbyhjb250ZXh0LCAoY29udGV4dC5jdXJyZW50SW5kZXggfHwgMCksIDApOw0KCQkJfSk7DQoNCgkJCWluaXRNYW51YWxOYXZpZ2F0aW9uKGNvbnRleHQpOw0KCQkJaW5pdFRvdWNoTmF2aWdhdGlvbihjb250ZXh0KTsNCgkJCXN0YXJ0QXV0b05hdmlnYXRpb24oY29udGV4dCk7DQoJCQltb3ZlVG8oY29udGV4dCwgMCk7DQoJCX0NCgl9Ow0KDQoJYXBpLmRlZmF1bHRzID0gew0KCQlhdXRvbWF0aWM6IHRydWUsDQoJCWR1cmF0aW9uOiA1MDAwDQoJfTsNCg0KCSQudGVsbGlnZW50ID0gJC50ZWxsaWdlbnQgfHwge307DQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uID0gJC50ZWxsaWdlbnQuZXZvbHV0aW9uIHx8IHt9Ow0KCSQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID0gJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgfHwge307DQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMuZmVhdHVyZWRDb250ZW50TGlzdCA9IGFwaTsNCg0KfSkoalF1ZXJ5LCB3aW5kb3cpOw0K</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

@@ -1,0 +1,51 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Blogs_BlogPostPoster_Name}" version="10.1.8.10498" description="${resource:Blogs_BlogPostPoster_Description}" instanceIdentifier="06e02ecfb65a4305ac12381207bf03c9" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="blog-post-poster">
+		<contentScript><![CDATA[#set($post = false)
+#set($post = $core_v2_blogPost.Current)
+#if(!$post || !$post.PostImageUrl || $post.PostImageUrl.length == 0)
+	$core_v2_widget.Hide()
+#end
+
+<div class="content full text">
+	#set ($posterImageOptions = "%{ }")
+	#set ($crop = $core_v2_widget.GetStringValue('crop', 'zoomAndCrop'))
+	#if ($crop == 'zoomAndCrop')
+		$posterImageOptions.Add('ResizeMethod', 'ZoomAndCrop')
+	#end
+	<div class="poster">
+		$core_v2_ui.GetResizedImageHtml($post.PostImageUrl, 900, 506, $posterImageOptions)
+	</div>
+</div>
+		]]></contentScript>
+		<headerScript><![CDATA[
+#set($blog = false)
+#set($blog = $core_v2_blog.Current)
+#if ($blog)
+	<a class="internal-link view-application weblog" href="$core_v2_encoding.HtmlAttributeEncode($blog.Url)"><span></span>$blog.Name</a>
+#else
+	$core_v2_language.GetResource('Blogs_BlogPostPoster_Name')
+#end
+		]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Blogs_BlogPostPoster_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="crop" resourceName="crop" dataType="string" defaultValue="zoomAndCrop">
+		<propertyValue value="zoomAndCrop" resourceName="zoomAndCrop" />
+		<propertyValue value="resize" resourceName="resize" />
+	</property>
+</propertyGroup>
+]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Blogs_BlogPostPoster_Description">Displays a blog post's image.</resource>
+  <resource name="Blogs_BlogPostPoster_Name">Blog - Post Image</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="crop">Image Cropping</resource>
+  <resource name="Options">Options</resource>
+  <resource name="resize">Scale to fit without cropping</resource>
+  <resource name="zoomAndCrop">Fill available space and crop</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="24fa6951ab1244f5be3df20cc46b361b" />
+		</requiredContext>
+	</scriptedContentFragment>
+</scriptedContentFragments>

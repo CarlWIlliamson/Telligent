@@ -1,0 +1,93 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Calendar_Map_Name}" version="10.1.8.10498" description="${resource:Calendar_Map_Description}" instanceIdentifier="ea523affa3d04646b2e0d06da0b5f588" theme="" isCacheable="false" varyCacheByUser="true" showHeaderByDefault="false" cssClass="calendar-map">
+		<contentScript><![CDATA[
+#set ($event = false)
+#set ($event = $calendar_v1_events.Current)
+    		
+#if ($event == false)
+    $core_v2_widget.hide()
+#end
+
+#if (!$geocoding_v1_core.IsEnabled)
+    $core_v2_widget.hide()
+#end
+
+#set ($latitude = $event.Latitude)
+#set ($longitude = $event.Longitude)
+
+#if ($latitude < -90 || $longitude < -180)
+    $core_v2_widget.hide()
+#end
+
+#set ($height = $core_v2_widget.GetIntValue("mapHeight",225))
+#set ($width = $core_v2_widget.GetIntValue("mapWidth",225))
+#set ($zoom = $core_v2_widget.GetIntValue("mapZoom",15))
+
+#set ($imgUrl = $geocoding_v1_core.GetMapUrl($latitude, $longitude, $zoom, $height, $width))
+#set ($mapUrl = $geocoding_v1_core.GetServiceRedirectUrl($event.AddressString))
+
+<div class="geocoded_map_content">
+    <div class="map loader">
+        <img src="$imgUrl">
+        <a href="$mapUrl" class="map_view_service_link">$core_v2_language.GetResource('CalendarMap_GoToMap')</a>
+    </div>
+</div>
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Calendar_Map_Title}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="linkArea" resourceName="Options"> 
+  <property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Calendar_Map_Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+  <property id="mapZoom" resourceName="CalendarMap_MapZoom" dataType="int" defaultValue="15">
+    <propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="9999" /> 
+  </property> 
+  <property id="mapHeight" resourceName="CalendarMap_MapHeight" dataType="int" defaultValue="225"> 
+    <propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="9999" /> 
+  </property> 
+  <property id="mapWidth" resourceName="CalendarMap_MapWidth" dataType="int" defaultValue="225"> 
+    <propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="9999" />
+  </property>
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Calendar_Map_Description">Displays map of location for a calendar event.</resource>
+  <resource name="Calendar_Map_Name">Event Calendar - Map</resource>
+  <resource name="Calendar_Map_Title">Map</resource>
+  <resource name="CalendarMap_GoToMap">Go To Map</resource>
+  <resource name="CalendarMap_MapHeight">Height</resource>
+  <resource name="CalendarMap_MapWidth">Width</resource>
+  <resource name="CalendarMap_MapZoom">Zoom</resource>
+  <resource name="CalendarMap_ViewMap">View Map</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Options">Options</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Calendar_Map_Description">显示日历活动的位置的地图。</resource>
+  <resource name="Calendar_Map_Name">活动日历 - 地图</resource>
+  <resource name="Calendar_Map_Title">地图</resource>
+  <resource name="CalendarMap_GoToMap">转至地图</resource>
+  <resource name="CalendarMap_MapHeight">高度</resource>
+  <resource name="CalendarMap_MapWidth">宽度</resource>
+  <resource name="CalendarMap_MapZoom">缩放</resource>
+  <resource name="CalendarMap_ViewMap">查看地图</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Options">选项</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Calendar_Map_Description">顯示行事曆事件發生地點的地圖。</resource>
+  <resource name="Calendar_Map_Name">事件行事曆 - 地圖</resource>
+  <resource name="Calendar_Map_Title">地圖</resource>
+  <resource name="CalendarMap_GoToMap">移至地圖</resource>
+  <resource name="CalendarMap_MapHeight">高度</resource>
+  <resource name="CalendarMap_MapWidth">寬度</resource>
+  <resource name="CalendarMap_MapZoom">縮放</resource>
+  <resource name="CalendarMap_ViewMap">檢視地圖</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Options">選項</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="ca14a7db70934b0abcce06169b6f2272" />
+		</requiredContext>
+	</scriptedContentFragment>
+</scriptedContentFragments>

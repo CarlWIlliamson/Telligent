@@ -1,0 +1,392 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_UserBanner_Name}" version="10.1.8.10498" description="${resource:Core_UserBanner_Description}" instanceIdentifier="f37d7b83ea2942cba359029ec84a7bc5" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="user-banner">
+		<contentScript><![CDATA[#set($user = false)
+#set($user = $core_v2_user.Current)
+#if (!$user || !$user.Url || $core_v2_page.Url.ToLowerInvariant().IndexOf($user.Url.ToLowerInvariant()) == -1)
+	$core_v2_widget.Hide()
+#end
+
+#set($isEditable = true)
+#if ($user.Id != $core_v2_user.Accessing.Id || !$core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+	#set($isEditable = false)
+#end
+#set ($isInEditMode = true)
+#if (!$isEditable || !$core_v2_editableGroup.IsEditable('User'))
+	#set ($isInEditMode = false)
+#end
+
+#set ($isHome = false)
+#if ($core_v2_urls.Current == 'User')
+	#set($isHome = true)
+#end
+
+#set ($applicationNavigationId = $core_v2_widget.UniqueId('applicationNavigationId'))
+
+#set ($hasCoverPhoto = false)
+#set ($coverPhotoUrl = $user.CoverPhotoUrl)
+#if ($coverPhotoUrl && $coverPhotoUrl.Length > 0)
+	#set ($hasCoverPhoto = true)
+#end
+
+#set ($coverPhotoContainerId = $core_v2_widget.UniqueId('coverPhotoContainerId'))
+#set ($removeCoverPhotoLinkId = $core_v2_widget.UniqueId('removeCoverPhotoLink'))
+
+#set ($coverPhotoWidth = 1000)
+#set ($coverPhotoHeight = 250)
+#if ($hasCoverPhoto)
+	#set ($resizedCoverPhotoUrl = $core_v2_ui.GetResizedImageUrl($coverPhotoUrl, $coverPhotoWidth, $coverPhotoHeight, "%{ ScaleFactor = 2, ResizeMethod='ZoomAndCrop' }"))
+	<style>
+	.with-cover-photo .cover-photo,
+	.header-fragments .layout .header-top-content .layout-region.content .layout-region-inner .content-fragment.user-banner .cover-photo {
+		background-image: url($resizedCoverPhotoUrl);
+		background-position: center;
+		background-size: cover;
+	}
+	.header-fragments .layout .header-top-content .layout-region.content,
+	.header-fragments .layout .header-top-content.with-adaptable-elements .layout-region.content {
+		border-bottom: 0px;
+	}
+
+	/* custom navigation widget */
+	.header-fragments .content-fragment.navigation-custom .navigation-list[data-direction='horizontal'] a,
+	.header-fragments .content-fragment.navigation-custom .navigation-list[data-direction='horizontal'] a:hover {
+		color: #fff;
+	}
+	.header-fragments .content-fragment.navigation-custom:after,
+	.header-fragments .content-fragment.navigation-custom .navigation-list[data-direction='horizontal'] a.selected:after {
+		color: #fff;
+	}
+	.header-fragments:hover .header-top-content .layout-region.content .content-fragment.navigation-custom .navigation-list[data-direction='horizontal'] a {
+		color: #fff;
+	}
+	.header-fragments .content-fragment.navigation-custom:after {
+		background-color: #fff;
+	}
+	.header-fragments .header-top-content .layout-region.content .content-fragment.navigation-custom .navigation-list[data-direction='horizontal'] a.links-expanded,
+	.header-fragments .header-top-content .layout-region.content .content-fragment.navigation-custom .navigation-list[data-direction='horizontal'] a.subnav-open,
+	.header-fragments:hover .header-top-content .layout-region.content .content-fragment.navigation-custom .navigation-list[data-direction='horizontal'] a.links-expanded,
+	.header-fragments:hover .header-top-content .layout-region.content .content-fragment.navigation-custom .navigation-list[data-direction='horizontal'] a.subnav-open {
+		background-color: #fff;
+		color: #444;
+	}
+	</style>
+#else
+	<style>
+	.single-column.header-fragments,
+	.header-fragments .layout .header-top-content .layout-region.content,
+	.header-fragments .layout .header-top-content.with-adaptable-elements .layout-region.content {
+		border-bottom: 1px solid #CFD8DC;
+	}
+	.header-fragments .content-fragment.navigation-custom:after {
+		background-color: #444;
+	}
+	</style>
+#end
+
+<div id="$core_v2_encoding.HtmlAttributeEncode($coverPhotoContainerId)" class="cover-photo"></div>
+
+<div class="banner context #if ($isHome) home #end">
+
+	#if ($isInEditMode)
+		<div class="cover-photo-links">
+			#set($hasCoverPhotoPermission = $core_v2_nodePermission.Get($core_v2_sitePermissions.ChangeUserCoverPhoto).IsAllowed)
+			#if ($hasCoverPhotoPermission)
+				<a href="#" class="upload" id="$core_v2_widget.UniqueId('cover-photo-upload')" data-messagename="widgets.upload-cover">$core_v2_language.GetResource('SetCover')</a>
+				<a href="#" class="delete" id="$core_v2_encoding.HtmlAttributeEncode($removeCoverPhotoLinkId)" style="#if (!$hasCoverPhoto) display: none #end" data-messagename="widgets.delete-cover">$core_v2_language.GetResource('RemoveCover')</a>
+			#end
+			#set ($uploadContextId = $core_v2_uploadedFile.CreateContextId())
+			#registerEndOfPageHtml('telligent.evolution.widgets.userBanner')
+				<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl("ui.js"))"></script>
+			#end
+			#registerEndOfPageHtml()
+				<script type="text/javascript">
+					jQuery(function(){
+						jQuery.telligent.evolution.widgets.userBanner.register({
+							wrapper: '#$core_v2_widget.WrapperElementId',
+							userId: $user.Id,
+							uploadContextId: '$core_v2_encoding.JavascriptEncode($uploadContextId)',
+							uploadUrl: '$core_v2_encoding.JavascriptEncode($core_v2_uploadedFile.GetUploadUrl($uploadContextId))',
+							resizedCoverPhotoUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('getResizedCoverPhotoUrl.vm'))',
+							coverPhotoContainer: '#$core_v2_encoding.JavascriptEncode($coverPhotoContainerId)',
+							removeConfirm: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('RemoveConfirm'))',
+							removeCoverPhotoLink: '#$core_v2_encoding.JavascriptEncode($removeCoverPhotoLinkId)',
+							coverPhotoUploadLink: '#$core_v2_widget.UniqueId('cover-photo-upload')',
+							uploadText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('SetCover'))',
+							progressText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('CoverUploadProgress'))'
+						})
+					});
+				</script>
+			#end
+		</div>
+	#end
+
+	<div class="avatar">
+		#if($isInEditMode)
+			<a href="#" id="$core_v2_widget.UniqueId('editavatar')" class="internal-link edit-avatar ui-tip" title="$core_v2_language.GetResource('EditProfile_ChangeAvatar')" data-userhover="ignore">
+				$core_v2_ui.GetResizedImageHtml($user.AvatarUrl, 68, 68, "%{ alt = $user.DisplayName, ResizeMethod='ZoomAndCrop' }")
+				<span class="caption">$core_v2_language.GetResource('EditProfile_Change')</span>
+			</a>
+
+			<script type="text/javascript">
+			//<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+			jQuery(function(){
+				jQuery('#$core_v2_widget.UniqueId('editavatar')').click(function() {
+					jQuery.glowModal('$core_v2_encoding.JavascriptEncode($core_v2_urls.EditAvatar())', {
+						width:560,
+						height:300,
+						onClose: function() {
+							// load the updated avatar
+							jQuery.telligent.evolution.get({
+								url: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('avatar.vm'))',
+								data: { w_userId: $user.Id },
+								success: function(response) {
+									var avatar = $('#$core_v2_widget.WrapperElementId .avatar img');
+									var newAvatar = $(response.avatar);
+									avatar.after(newAvatar).remove();
+								}
+							});
+						}
+					});
+
+					return false;
+				});
+			});
+			//<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+			</script>
+		#else
+			#if ($user.ProfileUrl)
+				<a href="$core_v2_encoding.HtmlAttributeEncode($user.ProfileUrl)" class="internal-link view-user-profile" data-userhover="ignore">
+					$core_v2_ui.GetResizedImageHtml($user.AvatarUrl, 68, 68, "%{ alt = $user.DisplayName, ResizeMethod='ZoomAndCrop' }")
+				</a>
+			#else
+				$core_v2_ui.GetResizedImageHtml($user.AvatarUrl, 68, 68, "%{ alt = $user.DisplayName, ResizeMethod='ZoomAndCrop' }")
+			#end
+		#end
+	</div>
+
+	<div class="hierarchy">
+
+		<div class="current-hierarchy">
+
+	#if ($isInEditMode && $core_v2_configuration.EnableDisplayNames)
+				<fieldset class="field-list hierarchy-component">
+			 <ul class="field-list">
+				<li class="field-item setting-name">
+					<label class="field-item-name hidden" for="$core_v2_widget.UniqueId('displayname')">${core_v2_language.GetResource("DisplayName")}</label>
+					<span class="field-item-input"><input type="text" size="30" maxlength="255" id="$core_v2_widget.UniqueId('displayname')" value="${user.DisplayName}" /></span>
+				</li>
+			</ul>
+		</fieldset>
+
+		#registerEndOfPageHtml()
+			<script type="text/javascript">
+			//<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+			jQuery(document).ready(function() {
+				var originalValue = jQuery.telligent.evolution.html.decode('$core_v2_encoding.JavascriptEncode($user.DisplayName)');
+				var displayName = jQuery('#$core_v2_widget.UniqueId('displayname')');
+
+				var save = function(success, failure)
+				{
+					var currentValue = displayName.val();
+					if (currentValue != originalValue) {
+						jQuery.telligent.evolution.put({
+							url: jQuery.telligent.evolution.site.getBaseUrl() + 'api.ashx/v2/users/{UserId}.json?IncludeFields=Id',
+							data: {
+								UserId: $user.Id,
+								DisplayName: currentValue,
+								EnableDisplayName: true
+							},
+							success: function(response) {
+								originalValue = currentValue;
+								success();
+							},
+							error: function(xhr, desc, ex) { jQuery.telligent.evolution.notifications.show(desc,{type:'error'}); failure(); }
+						});
+					} else {
+						success();
+					}
+				};
+
+				$core_v2_editableGroup.GetRegistrationScript('User', 'save')
+			});
+			//<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+			</script>
+		#end
+	#else
+		<h1 class="name hierarchy-component">
+			#if($user.Url)
+				<a href="$core_v2_encoding.HtmlAttributeEncode($user.Url)" class="internal-link view-user-profile" data-userhover="ignore">$user.DisplayName</a>
+			#else
+				$user.DisplayName
+			#end
+		</h1>
+	#end
+
+	#set ($navigationItems = $core_v2_customNavigation.Deserialize($core_v2_widget.GetCustomValue('navigation', ''), "%{UserId = $user.Id}"))
+	#if (!$isHome)
+		#foreach($navigationItem in $navigationItems)
+			#if ($navigationItem.IsSelected)
+						<span class="description hierarchy-component">
+					<a href="$core_v2_encoding.HtmlAttributeEncode($navigationItem.Url)">$!navigationItem.Label</a>
+				</span>
+			#end
+		#end
+	#end
+
+	## Navigation List
+
+	#foreach($navigationItem in $navigationItems)
+	#beforeall
+		<div #if ($core_v2_user.IsRegistered($core_v2_user.Accessing.Id)) $core_v2_tourTip.Render($core_v2_language.GetResource('TourTipApps'), "%{ CssClass = 'navigation-list applications' }") #else class="navigation-list applications" #end >
+					<div class="ui-links" id="$core_v2_encoding.HtmlAttributeEncode($applicationNavigationId)" data-minlinks="0" #if ($isHome) data-maxlinks="50" data-direction="horizontal" #else data-maxlinks="0" data-direction="vertical" #end>
+				<ul>
+	#each
+					<li class="navigation-list-application #if($navigationItem.IsSelected) selected#end">
+						<a href="$core_v2_encoding.HtmlAttributeEncode($navigationItem.Url)" class="$!app.CssClass #if($navigationItem.IsSelected) selected#end">$!navigationItem.Label</a>
+					</li>
+	#afterall
+					<li class="navigation-list-item">
+						<a href="#" class="more" data-more>$core_v2_language.GetResource('more')</a>
+					</li>
+					<li class="navigation-list-item">
+						<a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	#nodata
+		<div class="navigation-list applications">
+			<div class="ui-links" data-minlinks="0" data-maxlinks="50" data-direction="horizontal">
+						<ul id="$core_v2_encoding.HtmlAttributeEncode($applicationNavigationId)">
+				</ul>
+			</div>
+		</div>
+	#end
+
+		</div>
+	</div>
+
+	## Action Links
+
+	#set($links = $core_v2_user.ListActionLinks($user.Id))
+	#foreach($link in $links)
+	#beforeall
+		<div class="navigation-list new">
+			<div class="ui-links" data-maxlinks="0">
+				<ul class="navigation-list">
+	#each
+				   <li class="navigation-list-item">
+						$!link.Html
+					</li>
+	#afterall
+					<li class="navigation-list-tem">
+						<a href="#" class="more" data-more>$core_v2_language.GetResource('user_action')</a>
+					</li>
+					<li class="navigation-list-tem">
+						<a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	#end
+
+</div>
+
+#registerEndOfPageHtml()
+	<script>
+	jQuery(function(j){
+		var isHome = #if ($isHome) true #else false #end;
+		var applications = j('#${applicationNavigationId}');
+		function expand(links) {
+			links.uilinks('reconfigure', { maxLinks: 100 });
+		}
+		function collapse(links) {
+			links.uilinks('reconfigure', { maxLinks: 0 });
+		}
+		j.telligent.evolution.messaging.subscribe('theme.social.scrolled', function(){
+			collapse(applications);
+		});
+		j.telligent.evolution.messaging.subscribe('theme.social.unscrolled', function(){
+			if(isHome) {
+				expand(applications);
+			} else {
+				collapse(applications);
+			}
+		});
+	});
+	</script>
+#end
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Core_UserBanner_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Core_UserBanner_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="navigation" dataType="custom" controlType="Telligent.Evolution.Controls.CustomNavigationCustomControl, Telligent.Evolution.Platform" maximumDepth="1" resourceName="Navigation_Options" descriptionResourceName="Navigation_Options_Description" navigationType="user" scope="site" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="cancel">Cancel</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Core_UserBanner_Description">Displays a banner of common user information and links.</resource>
+  <resource name="Core_UserBanner_Name">User - Banner</resource>
+  <resource name="CoverUploadProgress">Uploading ({0}%)...</resource>
+  <resource name="DisplayName">Your displayed name</resource>
+  <resource name="EditProfile_Change">Change</resource>
+  <resource name="EditProfile_ChangeAvatar">Change Avatar</resource>
+  <resource name="more">More</resource>
+  <resource name="Navigation_Options">Navigation Items</resource>
+  <resource name="Navigation_Options_Description">Add, edit, delete, and reorder navigation items for users.</resource>
+  <resource name="Options">Options</resource>
+  <resource name="RemoveConfirm">Are you sure you want to remove your photo?</resource>
+  <resource name="RemoveCover">Remove</resource>
+  <resource name="SetCover">Set Cover Photo</resource>
+  <resource name="TourTipApps">View related people, content and groups</resource>
+  <resource name="user_action">Connect</resource>
+</language>
+<language key="zh-cn">
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Core_UserBanner_Description">显示通用用户信息和链接的横幅。</resource>
+  <resource name="Core_UserBanner_Name">用户 - 横幅</resource>
+  <resource name="DisplayName">您的显示名称</resource>
+  <resource name="EditProfile_Change">更改</resource>
+  <resource name="EditProfile_ChangeAvatar">更改虚拟形象</resource>
+  <resource name="more">更多</resource>
+  <resource name="Navigation_Options">导航项目</resource>
+  <resource name="Navigation_Options_Description">为用户添加、编辑、删除和重新排序导航项目。</resource>
+  <resource name="Options">选项</resource>
+  <resource name="TourTipApps">查看相关人员、内容和社区</resource>
+  <resource name="user_action">连接</resource>
+</language>
+<language key="zh-tw">
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Core_UserBanner_Description">顯示一般使用者資訊和連結的橫幅。</resource>
+  <resource name="Core_UserBanner_Name">使用者 - 橫幅</resource>
+  <resource name="DisplayName">您的顯示名稱</resource>
+  <resource name="EditProfile_Change">變更</resource>
+  <resource name="EditProfile_ChangeAvatar">變更顯示圖片</resource>
+  <resource name="more">更多</resource>
+  <resource name="Navigation_Options">導覽項目</resource>
+  <resource name="Navigation_Options_Description">新增、編輯、刪除和重新排序使用者的導覽項目。</resource>
+  <resource name="Options">選項</resource>
+  <resource name="TourTipApps">檢視相關人員、內容和社群</resource>
+  <resource name="user_action">連接</resource>
+</language></languageResources>
+		<additionalCssScript><![CDATA[
+	#if ($core_v2_user.Current.CoverPhotoUrl && $core_v2_user.Current.CoverPhotoUrl.Length > 0)
+		with-cover-photo
+	#end
+	]]></additionalCssScript>
+		<requiredContext>
+			<context id="0233cbb383784e11a1e5e541f3b0a795" />
+		</requiredContext>
+		<files>
+			<file name="avatar.vm">77u/JGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQojc2V0ICgkdXNlcklkID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUludCgkY29yZV92Ml9wYWdlLkdldFF1ZXJ5U3RyaW5nVmFsdWUoJ3dfdXNlcklkJykpKQ0KI3NldCAoJHVzZXIgPSAkY29yZV92Ml91c2VyLkdldCgiJXtJZD0kdXNlcklkfSIpKQ0KI3NldCAoJGF2YXRhclVybCA9IGZhbHNlKQ0KI3NldCAoJGF2YXRhclVybCA9ICR1c2VyLkF2YXRhclVybCkNCiNpZiAoJGF2YXRhclVybCkNCgl7ImF2YXRhciI6IiRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJGNvcmVfdjJfdWkuR2V0UmVzaXplZEltYWdlSHRtbCgkdXNlci5BdmF0YXJVcmwsIDY4LCA2OCwgIiV7IGFsdCA9ICR1c2VyLkRpc3BsYXlOYW1lLCBSZXNpemVNZXRob2Q9J1pvb21BbmRDcm9wJyB9IikpIn0NCiNlbHNlDQoJJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCJUaGUgdXNlcidzIGF2YXRhciBjb3VudCBub3QgYmUgcmV0cmlldmVkLiIpDQojZW5kDQoNCg==</file>
+			<file name="getResizedCoverPhotoUrl.vm">JGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQojc2V0KCRpbWFnZVVybCA9IGZhbHNlKQ0KI3NldCgkaW1hZ2VVcmwgPSAkY29yZV92Ml9wYWdlLkdldFF1ZXJ5U3RyaW5nVmFsdWUoJ3dfdXJsJykpDQojaWYoJGltYWdlVXJsKQ0KICAgIHsidXJsIjoiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkY29yZV92Ml91aS5HZXRSZXNpemVkSW1hZ2VVcmwoJGltYWdlVXJsLCAxMDAwLCAyNTAsICIleyBTY2FsZUZhY3RvciA9IDIsIFJlc2l6ZU1ldGhvZD0nWm9vbUFuZENyb3AnIH0iKSkifQ0KI2Vsc2UNCiAgICB7InVybCI6ICIifQ0KI2VuZA0K</file>
+			<file name="ui.js">KGZ1bmN0aW9uKCQpIHsNCg0KCXZhciBVcGxvYWRlciA9IChmdW5jdGlvbigpew0KCQl2YXIgZGVmYXVsdHMgPSB7DQoJCQl1cGxvYWRDb250ZXh0SWQ6ICcnLA0KCQkJdXBsb2FkVXJsOiAnJw0KCQl9Ow0KCQl2YXIgbmFtZVNwYWNlID0gJ191cGxvYWRlcic7DQoNCgkJdmFyIG1lc3NhZ2luZyA9ICQudGVsbGlnZW50LmV2b2x1dGlvbi5tZXNzYWdpbmc7DQoNCgkJZnVuY3Rpb24gaW5pdChjb250ZXh0KSB7DQoJCQlpZihjb250ZXh0LmluaXRlZCkNCgkJCQlyZXR1cm47DQoJCQljb250ZXh0LmluaXRlZCA9IHRydWU7DQoNCgkJCWNvbnRleHQudXBsb2FkQ29udGFpbmVyID0gJCgnPGRpdj48L2Rpdj4nKS5oaWRlKCkuYXBwZW5kVG8oY29udGV4dC5jb250YWluZXIpOw0KCQkJY29udGV4dC51cGxvYWRCdXR0b25TaGltID0gJCgnPHNwYW4+dXBsb2FkPC9zcGFuPicpLmFwcGVuZFRvKGNvbnRleHQudXBsb2FkQ29udGFpbmVyKQ0KCQkJCS5nbG93VXBsb2FkKHsNCgkJCQkJdXBsb2FkVXJsOiBjb250ZXh0LnVwbG9hZFVybA0KCQkJCX0pDQoJCX0NCg0KCQl2YXIgVXBsb2FkZXIgPSBmdW5jdGlvbihvcHRpb25zKXsNCgkJCXZhciBjb250ZXh0ID0gJC5leHRlbmQoew0KCQkJfSwgZGVmYXVsdHMsIG9wdGlvbnMgfHwge30pOw0KDQoJCQlpbml0KGNvbnRleHQpOw0KDQoJCQlyZXR1cm4gew0KCQkJCXVwbG9hZDogZnVuY3Rpb24oKSB7DQoJCQkJCWluaXQoY29udGV4dCk7DQoNCgkJCQkJcmV0dXJuICQuRGVmZXJyZWQoZnVuY3Rpb24oZCl7DQoJCQkJCQljb250ZXh0LnVwbG9hZEJ1dHRvblNoaW0ub2ZmKG5hbWVTcGFjZSkNCgkJCQkJCWNvbnRleHQudXBsb2FkQnV0dG9uU2hpbS5vbignZ2xvd1VwbG9hZEJlZ3VuLicgKyBuYW1lU3BhY2UsIGZ1bmN0aW9uKGUsIGRldGFpbHMpew0KCQkJCQkJICAgIGQubm90aWZ5KHsNCgkJCQkJCQkJY29udGV4dDogY29udGV4dC51cGxvYWRDb250ZXh0SWQsDQoJCQkJCQkJCXBlcmNlbnQ6IDANCgkJCQkJCQl9KTsNCgkJCQkJCX0pOw0KCQkJCQkJY29udGV4dC51cGxvYWRCdXR0b25TaGltLm9uKCdnbG93VXBsb2FkRXJyb3IuJyArIG5hbWVTcGFjZSwgZnVuY3Rpb24oZSl7DQoJCQkJCQkJZC5yZWplY3QoKTsNCgkJCQkJCX0pDQoJCQkJCQljb250ZXh0LnVwbG9hZEJ1dHRvblNoaW0ub24oJ2dsb3dVcGxvYWRGaWxlUHJvZ3Jlc3MuJyArIG5hbWVTcGFjZSwgZnVuY3Rpb24oZSwgZGV0YWlscyl7DQoJCQkJCQkJZC5ub3RpZnkoew0KCQkJCQkJCQluYW1lOiBkZXRhaWxzLm5hbWUsDQoJCQkJCQkJCWNvbnRleHQ6IGNvbnRleHQudXBsb2FkQ29udGV4dElkLA0KCQkJCQkJCQlwZXJjZW50OiBkZXRhaWxzLnBlcmNlbnQNCgkJCQkJCQl9KTsNCgkJCQkJCX0pDQoJCQkJCQljb250ZXh0LnVwbG9hZEJ1dHRvblNoaW0ub24oJ2dsb3dVcGxvYWRDb21wbGV0ZS4nICsgbmFtZVNwYWNlLCBmdW5jdGlvbihlLCBmaWxlKXsNCgkJCQkJCQlkLnJlc29sdmUoew0KCQkJCQkJCQluYW1lOiBmaWxlLm5hbWUsDQoJCQkJCQkJCWNvbnRleHQ6IGNvbnRleHQudXBsb2FkQ29udGV4dElkDQoJCQkJCQkJfSk7DQoJCQkJCQl9KQ0KDQoJCQkJCQljb250ZXh0LnVwbG9hZENvbnRhaW5lci5maW5kKCdpbnB1dFt0eXBlPSJmaWxlIl0nKS5nZXQoMCkuY2xpY2soKTsNCgkJCQkJfSkucHJvbWlzZSgpOw0KCQkJCX0NCgkJCX0NCgkJfTsNCg0KCQlyZXR1cm4gVXBsb2FkZXI7DQoJfSkoKTsNCg0KCWZ1bmN0aW9uIHNldENvdmVyUGhvdG8oY29udGV4dCwgdXJsKSB7DQoJCSQoY29udGV4dC5jb3ZlclBob3RvQ29udGFpbmVyKS5jc3Moew0KCQkJJ2Rpc3BsYXknOiAnYmxvY2snLA0KCQkJJ2JhY2tncm91bmQtaW1hZ2UnOiAndXJsKCcgKyB1cmwgKyAnKScsDQoJCQknYmFja2dyb3VuZC1wb3NpdGlvbic6ICdjZW50ZXInLA0KCQkJJ2JhY2tncm91bmQtc2l6ZSc6ICdjb3ZlcicNCgkJfSk7DQoJCSQoY29udGV4dC53cmFwcGVyKS5hZGRDbGFzcygnd2l0aC1jb3Zlci1waG90bycpOw0KCQkkKGNvbnRleHQucmVtb3ZlQ292ZXJQaG90b0xpbmspLnNob3coKTsNCgl9DQoNCglmdW5jdGlvbiByZW1vdmVDb3ZlclBob3RvKGNvbnRleHQpIHsNCgkJJChjb250ZXh0LmNvdmVyUGhvdG9Db250YWluZXIpLmNzcyh7DQoJCQknZGlzcGxheSc6ICdub25lJywNCgkJCSdiYWNrZ3JvdW5kLWltYWdlJzogJ25vbmUnDQoJCX0pOw0KCQkkKGNvbnRleHQud3JhcHBlcikucmVtb3ZlQ2xhc3MoJ3dpdGgtY292ZXItcGhvdG8nKTsNCgkJJChjb250ZXh0LnJlbW92ZUNvdmVyUGhvdG9MaW5rKS5oaWRlKCk7DQoJfQ0KDQoJZnVuY3Rpb24gcmVzaXplKGNvbnRleHQsIGltYWdlVXJsKSB7DQoJCXJldHVybiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uZ2V0KHsNCgkJCXVybDogY29udGV4dC5yZXNpemVkQ292ZXJQaG90b1VybCwNCgkJCWRhdGE6IHsNCgkJCQknd191cmwnOiBpbWFnZVVybA0KCQkJfSwNCgkJfSkudGhlbihmdW5jdGlvbihyKXsNCgkJCXJldHVybiByLnVybDsNCgkJfSk7DQoJfQ0KDQoJZnVuY3Rpb24gdXBsb2FkKGNvbnRleHQsIGNvbnRleHRJZCwgZmlsZU5hbWUpIHsNCgkJcmV0dXJuICQudGVsbGlnZW50LmV2b2x1dGlvbi5wdXQoew0KCQkJdXJsOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvdXNlcnMve1VzZXJJZH0vY292ZXJwaG90by5qc29uJywNCgkJCWRhdGE6IHsNCgkJCQlVc2VySWQ6IGNvbnRleHQudXNlcklkLA0KCQkJCUZpbGVVcGxvYWRDb250ZXh0OiBjb250ZXh0SWQsDQoJCQkJRmlsZU5hbWU6IGZpbGVOYW1lDQoJCQl9DQoJCX0pDQoJfQ0KDQoJZnVuY3Rpb24gcmVtb3ZlKGNvbnRleHQpIHsNCgkJcmV0dXJuICQudGVsbGlnZW50LmV2b2x1dGlvbi5kZWwoew0KCQkJdXJsOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvdXNlcnMve1VzZXJJZH0vY292ZXJwaG90by5qc29uJywNCgkJCWRhdGE6IHsNCgkJCQlVc2VySWQ6IGNvbnRleHQudXNlcklkDQoJCQl9DQoJCX0pDQoJfQ0KDQoJdmFyIGFwaSA9IHsNCgkJcmVnaXN0ZXI6IGZ1bmN0aW9uKGNvbnRleHQpIHsNCgkJCXZhciB1cGxvYWRlciA9IG5ldyBVcGxvYWRlcih7DQoJCQkJdXBsb2FkQ29udGV4dElkOiBjb250ZXh0LnVwbG9hZENvbnRleHRJZCwNCgkJCQl1cGxvYWRVcmw6IGNvbnRleHQudXBsb2FkVXJsLA0KCQkJCWNvbnRhaW5lcjogJChjb250ZXh0LndyYXBwZXIpDQoJCQl9KTsNCg0KCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm1lc3NhZ2luZy5zdWJzY3JpYmUoJ3dpZGdldHMuZGVsZXRlLWNvdmVyJywgZnVuY3Rpb24oKXsNCgkJCQlpZihjb25maXJtKGNvbnRleHQucmVtb3ZlQ29uZmlybSkpIHsNCgkJCQkJcmVtb3ZlKGNvbnRleHQpLmRvbmUoZnVuY3Rpb24oKXsNCgkJCQkJCXJlbW92ZUNvdmVyUGhvdG8oY29udGV4dCk7DQoJCQkJCX0pOw0KCQkJCX0NCgkJCX0pOw0KDQoJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ubWVzc2FnaW5nLnN1YnNjcmliZSgnd2lkZ2V0cy51cGxvYWQtY292ZXInLCBmdW5jdGlvbigpew0KCQkJCXVwbG9hZGVyLnVwbG9hZCgpDQoJCQkJICAgIC5wcm9ncmVzcyhmdW5jdGlvbihkYXRhKSB7DQoJCQkJICAgICAgICAkKGNvbnRleHQuY292ZXJQaG90b1VwbG9hZExpbmspLmh0bWwoY29udGV4dC5wcm9ncmVzc1RleHQucmVwbGFjZSgvXHswXH0vZywgZGF0YS5wZXJjZW50KSk7DQoJCQkJICAgIH0pDQoJCQkJICAgIC5kb25lKGZ1bmN0aW9uKGRhdGEpew0KCQkJCSAgICAgICAgJChjb250ZXh0LmNvdmVyUGhvdG9VcGxvYWRMaW5rKS5odG1sKGNvbnRleHQucHJvZ3Jlc3NUZXh0LnJlcGxhY2UoL1x7MFx9L2csIDEwMCkpOw0KCQkJCSAgICAgICAgd2luZG93LnNldFRpbWVvdXQoZnVuY3Rpb24oKSB7DQoJCQkJICAgICAgICAgICAgJChjb250ZXh0LmNvdmVyUGhvdG9VcGxvYWRMaW5rKS5odG1sKGNvbnRleHQudXBsb2FkVGV4dCk7DQoJCQkJICAgICAgICB9LCA1MDApOw0KICAgIAkJCQkJdXBsb2FkKGNvbnRleHQsIGRhdGEuY29udGV4dCwgZGF0YS5uYW1lKS5kb25lKGZ1bmN0aW9uKGNvdmVyUGhvdG8pew0KICAgIAkJCQkJCXJlc2l6ZShjb250ZXh0LCBjb3ZlclBob3RvLkNvdmVyUGhvdG8uVXJsKS5kb25lKGZ1bmN0aW9uKHJlc2l6ZWRVcmwpew0KICAgIAkJCQkJCQlzZXRDb3ZlclBob3RvKGNvbnRleHQsIHJlc2l6ZWRVcmwpOw0KICAgIAkJCQkJCX0pDQogICAgCQkJCQl9KQ0KCQkJCSAgICB9KQ0KCQkJCSAgICAuZmFpbChmdW5jdGlvbigpIHsNCgkJCQkgICAgICAgICQoY29udGV4dC5jb3ZlclBob3RvVXBsb2FkTGluaykuaHRtbChjb250ZXh0LnVwbG9hZFRleHQpOw0KCQkJCSAgICB9KTsNCgkJCX0pOw0KCQl9DQoJfTsNCg0KCSQudGVsbGlnZW50ID0gJC50ZWxsaWdlbnQgfHwge307DQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uID0gJC50ZWxsaWdlbnQuZXZvbHV0aW9uIHx8IHt9Ow0KCSQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID0gJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgfHwge307DQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMudXNlckJhbm5lciA9ICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzLnVzZXJCYW5uZXIgfHwgYXBpOw0KDQp9KShqUXVlcnkpOw0K</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

@@ -1,0 +1,144 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Groups_GroupContact_Name}" version="10.1.8.10498" description="${resource:Groups_GroupContact_Description}" instanceIdentifier="fe031c8fd1fe4d5bbddbfd9014140fc8" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="true" cssClass="group-contact">
+		<contentScript><![CDATA[
+#set ($group = $core_v2_group.Current)
+#if (!$group || !$group.EnableContact)
+	$core_v2_widget.Hide()
+#end
+
+#set ($subjectId = $core_v2_widget.UniqueId('subject'))
+#set ($nameId = $core_v2_widget.UniqueId('name'))
+#set ($emailId = $core_v2_widget.UniqueId('email'))
+#set ($messageId = $core_v2_widget.UniqueId('message'))
+#set ($submitId = $core_v2_widget.UniqueId('submit'))
+#set ($successId = $core_v2_widget.UniqueId('success'))
+#set ($user = false)
+#set ($user = $core_v2_user.Accessing)
+#if ($user && !$core_v2_user.IsRegistered($user.Id))
+	#set($user = false)
+#end
+
+<fieldset>
+	<h2>$core_v2_language.GetResource('Core_GroupContact_Title_ContactGroup')</h2>
+		<ul class="field-list">
+			<li class="field-item">
+				<label for="$core_v2_encoding.HtmlAttributeEncode($nameId)" class="field-item-name">$core_v2_language.GetResource('Name')</label>
+				<span class="field-item-input"><input name="$core_v2_encoding.HtmlAttributeEncode($nameId)" type="text" size="40" id="$core_v2_encoding.HtmlAttributeEncode($nameId)" #if ($user) value="$user.DisplayName" #end></span>
+				<span class="field-item-validation" style="display:none;"></span>
+			</li>
+			<li class="field-item">
+				<label for="$core_v2_encoding.HtmlAttributeEncode($emailId)" class="field-item-name">$core_v2_language.GetResource('Hubs_EmailAddress')</label>
+				<span class="field-item-description">$core_v2_language.GetResource('Hubs_Contact_Email_Desc')</span>
+				<span class="field-item-input"><input name="$core_v2_encoding.HtmlAttributeEncode($emailId)" type="text" size="40" id="$core_v2_encoding.HtmlAttributeEncode($emailId)" #if ($user) value="$core_v2_encoding.HtmlAttributeEncode($user.PrivateEmail)" #end></span>
+				<span class="field-item-validation" style="display:none;"></span>
+			</li>
+			<li class="field-item">
+				<label for="$core_v2_encoding.HtmlAttributeEncode($subjectId)" class="field-item-name">$core_v2_language.GetResource('Subject')</label>
+				<span class="field-item-input"><input name="$core_v2_encoding.HtmlAttributeEncode($subjectId)" type="text" size="40" id="$core_v2_encoding.HtmlAttributeEncode($subjectId)"></span>
+				<span class="field-item-validation" style="display:none;"></span>
+			</li>
+			<li class="field-item">
+				<label for="$core_v2_encoding.HtmlAttributeEncode($messageId)" class="field-item-name">$core_v2_language.GetResource('CreateEditPost_Body')</label>
+				<span class="field-item-input"><textarea name="$core_v2_encoding.HtmlAttributeEncode($messageId)" rows="10" cols="20" id="$core_v2_encoding.HtmlAttributeEncode($messageId)" style="width: 80%;"></textarea></span>
+				<span class="field-item-validation" style="display:none;"></span>
+			</li>
+			<li class="field-item">
+				<span class="field-item-input">
+					<a href="#" class="button" id="$core_v2_encoding.HtmlAttributeEncode($submitId)">$core_v2_language.GetResource('Send')</a>
+				</span>
+			</li>
+		</ul>
+</fieldset>
+
+#registerEndOfPageHtml('telligent.evolution.widgets.groupContact')
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl("ui.js"))"></script>
+#end
+#registerEndOfPageHtml()
+	#set($lastPageIndex = $core_v2_ui.GetLastPageIndex($conversationMessages.PageSize, $conversationMessages.TotalCount))
+	<script type="text/javascript">
+		jQuery(function(){
+			jQuery.telligent.evolution.widgets.groupContact.register({
+				wrapperId : '$core_v2_encoding.JavascriptEncode($core_v2_widget.WrapperElementId)',
+				subject: '#$core_v2_encoding.JavascriptEncode($subjectId)',
+				subjectRequired: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Subject_Required'))',
+				name: '#$core_v2_encoding.JavascriptEncode($nameId)',
+				nameRequired: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Name_Required'))',
+				email: '#$core_v2_encoding.JavascriptEncode($emailId)',
+				emailRequired: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Hubs_EmailAddress_Required'))',
+				message: '#$core_v2_encoding.JavascriptEncode($messageId)',
+				messageRequired: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('CreateEditPost_Body_Required'))',
+				submit: '#$core_v2_encoding.JavascriptEncode($submitId)',
+				groupId: $group.Id,
+				successMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Hubs_MessageSent'))'
+			});
+		});
+	</script>
+#end
+		]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Groups_GroupContact_Name}'))
+		]]></headerScript>
+		<configuration><![CDATA[
+ <propertyGroup id="options" resourceName="Options">
+	 <property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Groups_GroupContact_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+ </propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Core_GroupContact_Title_ContactGroup">Contact Community</resource>
+  <resource name="CreateEditPost_Body">Message</resource>
+  <resource name="CreateEditPost_Body_Required">Please provide a message</resource>
+  <resource name="Groups_GroupContact_Description">Displays a form for a user to contact a community.</resource>
+  <resource name="Groups_GroupContact_Name">Community - Contact</resource>
+  <resource name="Hubs_Contact_Email_Desc">This will be shared with community owners only, so they can reply.</resource>
+  <resource name="Hubs_EmailAddress">Your Email Address</resource>
+  <resource name="Hubs_EmailAddress_Required">Please provide your email address</resource>
+  <resource name="Hubs_MessageSent">Your message has been sent successfully.</resource>
+  <resource name="Name">Your Name</resource>
+  <resource name="Name_Required">Please provide your name</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Send">Send</resource>
+  <resource name="Subject">Subject</resource>
+  <resource name="Subject_Required">Please provide a subject for your message</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Core_GroupContact_Title_ContactGroup">联系社区</resource>
+  <resource name="CreateEditPost_Body">消息</resource>
+  <resource name="CreateEditPost_Body_Required">请提供一条消息</resource>
+  <resource name="Groups_GroupContact_Description">显示供用户联系社区的窗体。</resource>
+  <resource name="Groups_GroupContact_Name">社区 - 联系人</resource>
+  <resource name="Hubs_Contact_Email_Desc">此地址将仅与社区所有者共享，以供其回复。</resource>
+  <resource name="Hubs_EmailAddress">您的电子邮件地址</resource>
+  <resource name="Hubs_EmailAddress_Required">请提供您的电子邮件地址</resource>
+  <resource name="Hubs_MessageSent">您的邮件已成功发送。</resource>
+  <resource name="Name">您的名字</resource>
+  <resource name="Name_Required">请输入您的名字</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Send">发送</resource>
+  <resource name="Subject">主题</resource>
+  <resource name="Subject_Required">请提供邮件主题</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Core_GroupContact_Title_ContactGroup">連絡社群</resource>
+  <resource name="CreateEditPost_Body">訊息</resource>
+  <resource name="CreateEditPost_Body_Required">請提供訊息</resource>
+  <resource name="Groups_GroupContact_Description">顯示可讓使用者連絡社群的表單。</resource>
+  <resource name="Groups_GroupContact_Name">社群 - 連絡人</resource>
+  <resource name="Hubs_Contact_Email_Desc">這個地址只會與社群擁有者分享以便他們進行回覆。</resource>
+  <resource name="Hubs_EmailAddress">您的電子郵件地址</resource>
+  <resource name="Hubs_EmailAddress_Required">請提供您的電子郵件地址</resource>
+  <resource name="Hubs_MessageSent">已成功傳送您的訊息。</resource>
+  <resource name="Name">您的名稱</resource>
+  <resource name="Name_Required">請提供您的名稱</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Send">傳送</resource>
+  <resource name="Subject">主旨</resource>
+  <resource name="Subject_Required">請提供訊息的主旨</resource>
+</language></languageResources>
+		<files>
+			<file name="ui.js">KGZ1bmN0aW9uKCQpew0KDQoJdmFyIGNyZWF0ZUNvbnRhY3RSZXF1ZXN0ID0gZnVuY3Rpb24oY29udGV4dCkgew0KCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KCQkJCXVybDogJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnNpdGUuZ2V0QmFzZVVybCgpICsgJ2FwaS5hc2h4L3YyL2dyb3Vwcy97R3JvdXBJZH0vY29udGFjdHJlcXVlc3RzLmpzb24nLA0KCQkJCWRhdGE6IHsNCgkJCQkJR3JvdXBJZDogY29udGV4dC5ncm91cElkLA0KCQkJCQlTdWJqZWN0OiBjb250ZXh0LnN1YmplY3QudmFsKCksDQoJCQkJCUJvZHk6IGNvbnRleHQubWVzc2FnZS52YWwoKSwNCgkJCQkJTmFtZTogY29udGV4dC5uYW1lLnZhbCgpLA0KCQkJCQlFbWFpbEFkZHJlc3M6IGNvbnRleHQuZW1haWwudmFsKCkNCgkJCQl9LA0KCQkJCXN1Y2Nlc3M6IGZ1bmN0aW9uKHJlc3BvbnNlKSB7DQoJCQkJCS8vIHNob3cgc3VjY2VzcyBtZXNzYWdlDQoJCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coY29udGV4dC5zdWNjZXNzTWVzc2FnZSwgeyB0eXBlOiAnc3VjY2VzcycgfSk7DQoJCQkJCS8vIGVtcHR5IHRoZSBmb3JtDQoJCQkJCWNvbnRleHQuc3ViamVjdC52YWwoJycpOw0KCQkJCQljb250ZXh0Lm1lc3NhZ2UudmFsKCcnKTsNCgkJCQl9DQoJCQl9KTsNCgkJfSwNCgkJYXBpID0gew0KCQkJcmVnaXN0ZXI6IGZ1bmN0aW9uKGNvbnRleHQpIHsNCgkJCQljb250ZXh0LnN1YmplY3QgPSAkKGNvbnRleHQuc3ViamVjdCk7DQoJCQkJY29udGV4dC5uYW1lID0gJChjb250ZXh0Lm5hbWUpOw0KCQkJCWNvbnRleHQuZW1haWwgPSAkKGNvbnRleHQuZW1haWwpOw0KCQkJCWNvbnRleHQubWVzc2FnZSA9ICQoY29udGV4dC5tZXNzYWdlKTsNCgkJCQljb250ZXh0LnN1Y2Nlc3MgPSAkKGNvbnRleHQuc3VjY2Vzcyk7DQoJCQkJY29udGV4dC5zdWJtaXQgPSAkKGNvbnRleHQuc3VibWl0KQ0KCQkJCQkuZXZvbHV0aW9uVmFsaWRhdGlvbih7DQoJCQkJCQlvblZhbGlkYXRlZDogZnVuY3Rpb24oaXNWYWxpZCwgYnV0dG9uQ2xpY2tlZCwgYykgeyANCgkJCQkJCQlpZiAoaXNWYWxpZCkgew0KCQkJCQkJCQljb250ZXh0LnN1Ym1pdC5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsNCgkJCQkJCQl9IGVsc2Ugew0KCQkJCQkJCQljb250ZXh0LnN1Ym1pdC5hZGRDbGFzcygnZGlzYWJsZWQnKTsNCgkJCQkJCQl9DQoJCQkJCQl9LA0KCQkJCQkJb25TdWNjZXNzZnVsQ2xpY2s6IGZ1bmN0aW9uKGUpIHsNCgkJCQkJCQllLnByZXZlbnREZWZhdWx0KCk7DQoJCQkJCQkJY3JlYXRlQ29udGFjdFJlcXVlc3QoY29udGV4dCk7DQoJCQkJCQl9LA0KCQkJCQkJdmFsaWRhdGVPbkxvYWQ6IGZhbHNlDQoJCQkJCX0pDQoJCQkJCS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRGaWVsZCcsDQoJCQkJCQljb250ZXh0LnN1YmplY3QsIHsNCgkJCQkJCQlyZXF1aXJlZDogdHJ1ZSwNCgkJCQkJCQltZXNzYWdlczogew0KCQkJCQkJCQlyZXF1aXJlZDogY29udGV4dC5zdWJqZWN0UmVxdWlyZWQNCgkJCQkJCQl9DQoJCQkJCQl9LA0KCQkJCQkJY29udGV4dC5zdWJqZWN0LmNsb3Nlc3QoJy5maWVsZC1pdGVtJykuZmluZCgnLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpLCBudWxsKQ0KCQkJCQkuZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkRmllbGQnLA0KCQkJCQkJY29udGV4dC5uYW1lLCB7DQoJCQkJCQkJcmVxdWlyZWQ6IHRydWUsDQoJCQkJCQkJbWVzc2FnZXM6IHsNCgkJCQkJCQkJcmVxdWlyZWQ6IGNvbnRleHQubmFtZVJlcXVpcmVkDQoJCQkJCQkJfQ0KCQkJCQkJfSwNCgkJCQkJCWNvbnRleHQubmFtZS5jbG9zZXN0KCcuZmllbGQtaXRlbScpLmZpbmQoJy5maWVsZC1pdGVtLXZhbGlkYXRpb24nKSwgbnVsbCkNCgkJCQkJLmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEZpZWxkJywNCgkJCQkJCWNvbnRleHQuZW1haWwsIHsNCgkJCQkJCQlyZXF1aXJlZDogdHJ1ZSwNCgkJCQkJCQllbWFpbDogdHJ1ZSwNCgkJCQkJCQltZXNzYWdlczogew0KCQkJCQkJCQlyZXF1aXJlZDogY29udGV4dC5lbWFpbFJlcXVpcmVkLA0KCQkJCQkJCQllbWFpbDogY29udGV4dC5lbWFpbFJlcXVpcmVkDQoJCQkJCQkJfQ0KCQkJCQkJfSwNCgkJCQkJCWNvbnRleHQuZW1haWwuY2xvc2VzdCgnLmZpZWxkLWl0ZW0nKS5maW5kKCcuZmllbGQtaXRlbS12YWxpZGF0aW9uJyksIG51bGwpDQoJCQkJCS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRGaWVsZCcsDQoJCQkJCQljb250ZXh0Lm1lc3NhZ2UsIHsNCgkJCQkJCQlyZXF1aXJlZDogdHJ1ZSwNCgkJCQkJCQltZXNzYWdlczogew0KCQkJCQkJCQlyZXF1aXJlZDogY29udGV4dC5tZXNzYWdlUmVxdWlyZWQNCgkJCQkJCQl9DQoJCQkJCQl9LA0KCQkJCQkJY29udGV4dC5tZXNzYWdlLmNsb3Nlc3QoJy5maWVsZC1pdGVtJykuZmluZCgnLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpLCBudWxsKTsNCgkJCX0NCgl9Ow0KDQoJaWYgKHR5cGVvZiAkLnRlbGxpZ2VudCA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQgPSB7fTsgfQ0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSB7fTsgfQ0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID0ge307IH0NCgkkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cy5ncm91cENvbnRhY3QgPSBhcGk7DQoNCn0oalF1ZXJ5KSk7DQo=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

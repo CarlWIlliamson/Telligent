@@ -1,0 +1,75 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:UserMentionListWidget_Title}" version="10.1.8.10498" description="${resource:UserMentionListWidget_Description}" instanceIdentifier="2a918a99a5a646769539c348f5468f07" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="user-mention-list">
+		<contentScript><![CDATA[
+#set($user = false)
+#if ($filterType == 'Current')
+    #set($user = $core_v2_user.Current)
+#else
+    #set($user = $core_v2_user.Accessing)
+#end
+#if (!$user)
+    $core_v2_widget.Hide()
+#end
+
+$core_v2_ui.PagedContent('mentions.vm')
+$core_v2_ui.Pager($mentions.PageIndex, $mentions.PageSize, $mentions.TotalCount, "%{PagedContentFile='mentions.vm'}")
+]]></contentScript>
+		<headerScript><![CDATA[
+	$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Title}'))
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Configuration_Options">
+    <property id="fragmentHeader" resourceName="Configuration_Title" dataType="string" defaultValue="${resource:Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="pageSize" resourceName="Configuration_PageSize" dataType="int" defaultValue="15">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="100" />
+	</property>
+	<property id="filterType" resourceName="Configuration_Filter" dataType="string" defaultValue="">
+		<propertyValue value="Accessing" resourceName="Configuration_Filter_AccessingUser" />
+		<propertyValue value="Current" resourceName="Configuration_Filter_CurrentUser" />
+	</property>
+</propertyGroup>
+]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Configuration_Filter">Show mentions of</resource>
+  <resource name="Configuration_Filter_AccessingUser">Accessing user</resource>
+  <resource name="Configuration_Filter_CurrentUser">Contextual user</resource>
+  <resource name="Configuration_Options">Options</resource>
+  <resource name="Configuration_PageSize">Page Size</resource>
+  <resource name="Configuration_Title">Widget Title</resource>
+  <resource name="No_Mentions_Message">{0} has not yet been mentioned.</resource>
+  <resource name="No_Mentions_Message_Self">When you are mentioned in posts, they will show here.</resource>
+  <resource name="Title">User Mentions</resource>
+  <resource name="UserMentionListWidget_Description">Shows content that mentioned a user.</resource>
+  <resource name="UserMentionListWidget_Title">User Mention List</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Configuration_Filter">显示引述以下用户的内容</resource>
+  <resource name="Configuration_Filter_AccessingUser">访问用户</resource>
+  <resource name="Configuration_Filter_CurrentUser">上下文用户</resource>
+  <resource name="Configuration_Options">选项</resource>
+  <resource name="Configuration_PageSize">页面大小</resource>
+  <resource name="Configuration_Title">小组件标题</resource>
+  <resource name="No_Mentions_Message">{0} 尚未被引述。</resource>
+  <resource name="No_Mentions_Message_Self">如果在文章中提及您，将在此处显示这些文章。</resource>
+  <resource name="Title">用户引述</resource>
+  <resource name="UserMentionListWidget_Description">显示引述了用户的内容。</resource>
+  <resource name="UserMentionListWidget_Title">用户引述列表</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Configuration_Filter">顯示提及項目</resource>
+  <resource name="Configuration_Filter_AccessingUser">存取中使用者</resource>
+  <resource name="Configuration_Filter_CurrentUser">內容相關使用者</resource>
+  <resource name="Configuration_Options">選項</resource>
+  <resource name="Configuration_PageSize">頁面大小</resource>
+  <resource name="Configuration_Title">Widget 標題</resource>
+  <resource name="No_Mentions_Message">尚未提及 {0}。</resource>
+  <resource name="No_Mentions_Message_Self">當您在貼文中被提及時，這裡會顯示這些貼文。</resource>
+  <resource name="Title">使用者提及項目</resource>
+  <resource name="UserMentionListWidget_Description">顯示曾提及使用者的內容。</resource>
+  <resource name="UserMentionListWidget_Title">使用者提及項目清單</resource>
+</language></languageResources>
+		<files>
+			<file name="mentions.vm">I3NldCgkZmlsdGVyVHlwZSA9IGZhbHNlKQ0KI3NldCgkZmlsdGVyVHlwZSA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgnZmlsdGVyVHlwZScsICcnKSkNCiNpZighJGZpbHRlclR5cGUpDQogICAgI3NldCgkdXNlciA9IGZhbHNlKQ0KCSNzZXQoJHVzZXIgPSAkY29yZV92Ml91c2VyLkN1cnJlbnQpDQoJI2lmKCR1c2VyKQ0KCQkjc2V0KCRmaWx0ZXJUeXBlID0gJ0N1cnJlbnQnKQ0KCQkkY29yZV92Ml93aWRnZXQuU2V0U3RyaW5nVmFsdWUoJ2ZpbHRlclR5cGUnLCAkZmlsdGVyVHlwZSkNCgkjZWxzZQ0KCQkjc2V0KCRmaWx0ZXJUeXBlID0gJ0FjY2Vzc2luZycpDQoJCSRjb3JlX3YyX3dpZGdldC5TZXRTdHJpbmdWYWx1ZSgnZmlsdGVyVHlwZScsICRmaWx0ZXJUeXBlKQ0KCSNlbmQNCiNlbmQNCg0KI3NldCgkdXNlciA9IGZhbHNlKQ0KI2lmICgkZmlsdGVyVHlwZSA9PSAnQ3VycmVudCcpDQogICAgI3NldCgkdXNlciA9ICRjb3JlX3YyX3VzZXIuQ3VycmVudCkNCiNlbHNlDQogICAgI3NldCgkdXNlciA9ICRjb3JlX3YyX3VzZXIuQWNjZXNzaW5nKQ0KI2VuZA0KDQojc2V0KCRwYWdlSW5kZXggPSAkY29yZV92Ml91aS5HZXRDdXJyZW50UGFnZUluZGV4KCkpDQojc2V0KCR1c2VySWQgPSAkdXNlci5Db250ZW50SWQpDQoNCiNzZXQgKCRwYWdlU2l6ZSA9ICRjb3JlX3YyX3dpZGdldC5HZXRJbnRWYWx1ZSgncGFnZVNpemUnLCAxNSkpDQoNCiNzZXQoJG1lbnRpb25zID0gJGNvcmVfdjJfbWVudGlvbi5MaXN0KCIle01lbnRpb25lZENvbnRlbnRJZHM9JHVzZXJJZCxNZW50aW9uZWRDb250ZW50VHlwZUlkPSRjb3JlX3YyX3VzZXIuQ29udGVudFR5cGVJZCxQYWdlU2l6ZT0kcGFnZVNpemUsUGFnZUluZGV4PSRwYWdlSW5kZXgsU29ydEJ5PSdEYXRlJyxTb3J0T3JkZXI9J0Rlc2NlbmRpbmcnfSIpKQ0KI2ZvcmVhY2goJG1lbnRpb24gaW4gJG1lbnRpb25zKQ0KI2JlZm9yZWFsbA0KCTx1bCBjbGFzcz0iY29udGVudC1saXN0IGNvbnRlbnQiPg0KI2VhY2gNCgk8bGkgY2xhc3M9ImNvbnRlbnQtaXRlbSIgZGF0YS1ocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRtZW50aW9uLk1lbnRpb25pbmdDb250ZW50LlVybCkiPg0KCQkjc2V0ICgkcmVzdWx0SHRtbCA9IGZhbHNlKQ0KCQkjc2V0ICgkcmVzdWx0SHRtbCA9ICRtZW50aW9uLk1lbnRpb25pbmdDb250ZW50LlZpZXdIdG1sKCkpDQoJCSNpZiAoJHJlc3VsdEh0bWwpDQoJCQkkcmVzdWx0SHRtbA0KCQkjZW5kDQoJPC9saT4NCiNhZnRlcmFsbA0KCTwvdWw+DQojbm9kYXRhDQoJPGRpdiBjbGFzcz0ibWVzc2FnZSBpbmZvcm1hdGlvbiI+DQoJI2lmICgkY29yZV92Ml91c2VyLkN1cnJlbnQgJiYgJGNvcmVfdjJfdXNlci5BY2Nlc3NpbmcgJiYgJGNvcmVfdjJfdXNlci5DdXJyZW50LklkID09ICRjb3JlX3YyX3VzZXIuQWNjZXNzaW5nLklkKQ0KCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiTm9fTWVudGlvbnNfTWVzc2FnZV9TZWxmIikNCgkjZWxzZQ0KCQkkY29yZV92Ml9sYW5ndWFnZS5Gb3JtYXRTdHJpbmcoJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoIk5vX01lbnRpb25zX01lc3NhZ2UiKSwgJHVzZXIuRGlzcGxheU5hbWUpDQoJI2VuZA0KCTwvZGl2Pg0KI2VuZA0K</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

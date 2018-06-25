@@ -1,0 +1,27 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:PeopleSearchRedirect_Title}" version="10.1.8.10498" description="${resource:PeopleSearchRedirect_Description}" instanceIdentifier="f6380a0fcc3c4ff3b9afa32fd01fe064" theme="" isCacheable="false" varyCacheByUser="false" showHeaderByDefault="false" cssClass="">
+		<contentScript><![CDATA[
+
+#set($query = '')
+#set($query = "q=$!core_v2_page.GetQueryStringValue('q')")
+
+#set($url = $core_v2_urls.Search("%{ QueryString = $query }"))
+#if (!$core_v2_widget.IsInWidgetPreviewMode)
+	$core_v2_page.Redirect($url)
+#end
+    
+<p>$url</p>]]></contentScript>
+		<languageResources><language key="en-us">
+  <resource name="PeopleSearchRedirect_Description">For themes that do not support people search, this redirects to the main search form</resource>
+  <resource name="PeopleSearchRedirect_Title">People Search Redirect</resource>
+</language>
+<language key="zh-cn">
+  <resource name="PeopleSearchRedirect_Description">对于不支持用户搜索的主题，这会重定向到主要搜索窗体</resource>
+  <resource name="PeopleSearchRedirect_Title">用户搜索重定向</resource>
+</language>
+<language key="zh-tw">
+  <resource name="PeopleSearchRedirect_Description">針對不支援人員搜尋的主題，則重新導向至主搜尋表單</resource>
+  <resource name="PeopleSearchRedirect_Title">人員搜尋重新導向</resource>
+</language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

@@ -1,0 +1,325 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Groups_GroupList_Name}" version="10.1.8.10498" description="${resource:Groups_GroupList_Description}" instanceIdentifier="b89c5ca74a5d4904a06695ace5917fac" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="group-list">
+		<contentScript><![CDATA[#set ($enablePaging = $core_v2_widget.GetBoolValue('enablePaging', true))
+$core_v2_widget.ExecuteFile('inSidebar.vm')
+
+#set($queryType = $core_v2_widget.GetStringValue('queryType',''))
+#if($queryType=='currentUser')
+	#set($user = false)
+	#set($user = $core_v2_user.Current)
+	#if(!$user)
+		$core_v2_widget.Hide()
+	#end
+
+	#set ($filter = false)
+	#if (!$inSidebar && $enablePaging && ($user.EnableFavoriteSharing || $user.Id == $core_v2_user.Accessing.Id))
+		#set ($filter = $core_v2_page.GetQueryStringValue('group-filter'))
+		<div class="view">
+		    <div>
+		        <select class="ui-select" data-update="$core_v2_encoding.HtmlAttributeEncode($core_v2_page.AdjustQueryString($core_v2_page.Url, "group-filter=OPTIONVALUE"))">
+		            <option value="all"#if(!$filter || $filter == 'all') selected #end">$core_v2_language.GetResource('filter_allgroups')</option>
+					<option value="bookmarks"#if($filter == 'bookmarks') selected #end>$core_v2_language.GetResource('filter_bookmarkedgroups')</option>
+		        </select>
+		    </div>
+		</div>
+
+		#registerEndOfPageHtml()
+			<script type="text/javascript">
+				jQuery(function(j) {
+					j('#$core_v2_widget.WrapperElementId select').on('change', function() {
+						var s = j(this);
+						var url = s.data('update');
+						if (url) {
+							window.location = url.replace('OPTIONVALUE', s.val());
+						}
+					});
+
+					#if ($core_v2_urls.Current == 'UserGroups')
+						j.telligent.evolution.messaging.subscribe('search.registerFilters', function(data) {
+							if (data.scope.key == 'anywhere') {
+								data.register({
+									name: '$core_v2_encoding.JavascriptEncode($core_v2_language.FormatString($core_v2_language.GetResource('search_filter'), $user.DisplayName))',
+									query: function(query, complete) {
+										j.telligent.evolution.get({
+											url: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('search.vm'))',
+											data: {
+												w_query: query.query,
+												w_pageIndex: query.pageIndex
+											},
+											success: function(response) {
+												complete(response);
+											}
+										});
+									},
+									advancedSearchUrl: function(query) {
+										return null;
+									},
+									isDefault: #if ($core_v2_urls.Current == 'UserGroups') true #else false #end
+								});
+							}
+						});
+					#end
+				});
+			</script>
+		#end
+	#end
+#elseif ($queryType=='accessingUser' && !$inSidebar && $enablePaging)
+	#set ($filter = false)
+	#set ($filter = $core_v2_page.GetQueryStringValue('group-filter'))
+	<div class="view">
+	    <div>
+	        <select class="ui-select" data-update="$core_v2_encoding.HtmlAttributeEncode($core_v2_page.AdjustQueryString($core_v2_page.Url, "group-filter=OPTIONVALUE"))">
+	            <option value="all"#if(!$filter || $filter == 'all') selected #end">$core_v2_language.GetResource('filter_allgroups')</option>
+				<option value="bookmarks"#if($filter == 'bookmarks') selected #end>$core_v2_language.GetResource('filter_bookmarkedgroups')</option>
+	        </select>
+	    </div>
+	</div>
+
+	#registerEndOfPageHtml()
+		<script type="text/javascript">
+			jQuery(function(j) {
+				j('#$core_v2_widget.WrapperElementId select').on('change', function() {
+					var s = j(this);
+					var url = s.data('update');
+					if (url) {
+						window.location = url.replace('OPTIONVALUE', s.val());
+					}
+				});
+			});
+		</script>
+	#end
+#end
+
+$core_v2_ui.PagedContent('pagedContent.vm')
+
+#if ($inSidebar || !$enablePaging)
+    #if ($queryType == 'accesingUser')
+        #set($remaining = $groups.TotalCount - $groups.PageSize)
+        #set($url = false)
+        #set($url = $core_v2_urls.UserGroups($core_v2_user.Acessing.Id))
+        #if ($url)
+            #if ($remaining == 1)
+                <a href="$core_v2_encoding.HtmlAttributeEncode($url)">$core_v2_language.FormatString($core_v2_language.GetResource('And_One_More'), $core_v2_language.FormatNumber($remaining))</a>
+            #elseif ($remaining > 1)
+                <a href="$core_v2_encoding.HtmlAttributeEncode($url)">$core_v2_language.FormatString($core_v2_language.GetResource('And_Multiple_More'), $core_v2_language.FormatNumber($remaining))</a>
+            #end
+        #end
+    #elseif($queryType == 'currentUser')
+        #set($remaining = $groups.TotalCount - $groups.PageSize)
+        #set($url = false)
+        #set($url = $core_v2_urls.UserGroups($core_v2_user.Current.Id))
+        #if ($url)
+            #if ($remaining == 1)
+                <a href="$core_v2_encoding.HtmlAttributeEncode($url)">$core_v2_language.FormatString($core_v2_language.GetResource('And_One_More'), $core_v2_language.FormatNumber($remaining))</a>
+            #elseif ($remaining > 1)
+                <a href="$core_v2_encoding.HtmlAttributeEncode($url)">$core_v2_language.FormatString($core_v2_language.GetResource('And_Multiple_More'), $core_v2_language.FormatNumber($remaining))</a>
+            #end
+        #end
+    #end
+    #registerEndOfPageHtml ()
+        <script type="text/javascript">
+		jQuery(function(j){
+			j('#$core_v2_encoding.JavascriptEncode($core_v2_widget.UniqueId('thumbnails'))').on('click', '.content-item', function(e){
+				window.location = j(this).data('url');
+			});
+		});
+		</script>
+    #end
+#else
+    #if ($viewType == 'thumbnails')
+    	#registerEndOfPageHtml()
+    		<script type="text/javascript">
+    		jQuery(function(j){
+    			var isLoadingMore = false, pageIndex = 0, hasMore =#if($hasMore) true#else false#end;
+    			j(document).on('scrollend', function(e){
+    				if(isLoadingMore || !hasMore)
+    					return;
+    
+    				isLoadingMore = true;
+    
+    				var data = {}
+    				data['$core_v2_encoding.JavascriptEncode($core_v2_ui.PageIndexQueryStringKey)'] = pageIndex + 2;
+    
+    				j.telligent.evolution.get({
+    					url: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('pagedContent.vm'))',
+    					data: data
+    				}).then(function(response){
+    					var items = $(response).find('div.content-item.thumbnail');
+    					hasMore = items.data('hasmore') == 'True';
+    					j('#$core_v2_encoding.JavascriptEncode($core_v2_widget.UniqueId('thumbnails'))').evolutionMasonry('append', items);
+    					pageIndex++;
+    					isLoadingMore = false;
+    				});
+    			});
+    
+    			j('#$core_v2_encoding.JavascriptEncode($core_v2_widget.UniqueId('thumbnails'))').on('click', '.content-item', function(e){
+    				window.location = j(this).data('url');
+    			});
+    
+    		});
+    		</script>
+    	#end
+    #else
+    	$core_v2_ui.Pager($groups.PageIndex, $groups.PageSize, $groups.TotalCount, "%{ PagedContentFile = 'pagedContent.vm' }")
+    #end
+#end]]></contentScript>
+		<headerScript><![CDATA[
+#set($header = $core_v2_widget.GetStringValue('fragmentHeader', ''))
+#if($header == '')
+	#if($core_v2_urls.Current == 'Home')
+		#set ($header = '${resource:Groups_GroupList_Name_ForAccessingUser}')
+	#elseif($core_v2_user.Current)
+		#set ($header = $core_v2_language.FormatString($core_v2_language.GetResource('Groups_GroupList_Name_ForContextualUser'), $core_v2_user.Current.DisplayName))
+	#else
+		#set ($header = '${resource:Groups_GroupList_Name}')
+	#end
+#end
+$core_v2_widget.ApplyTokens($header)
+            ]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+    <property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+    <property id="queryType" resourceName="CF_GroupList_QueryType" dataType="string" defaultValue="" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+        <propertyValue value="subGroups" resourceName="CF_GroupList_QueryType_SubGroups" propertiesToShow="groupSelectionCustom,sortByCustom,sortOrderCustom" propertiesToHide="sortBy,sortOrder" />
+        <propertyValue value="currentUser" resourceName="CF_GroupList_QueryType_CurrentUser" propertiesToShow="sortBy,sortOrder" propertiesToHide="groupSelectionCustom,sortByCustom,sortOrderCustom" />
+        <propertyValue value="accessingUser" resourceName="CF_GroupList_QueryType_AccessingUser" propertiesToShow="sortBy,sortOrder" propertiesToHide="groupSelectionCustom,sortByCustom,sortOrderCustom" />
+    </property>
+    <property id="viewType" resourceName="Groups_GroupList_ViewType" dataType="string" defaultValue="standard">
+        <propertyValue value="list" resourceName="Groups_GroupList_ListView" />
+        <propertyValue value="thumbnails" resourceName="Groups_GroupList_ThumbnailView" />
+    </property>
+    <property id="sortByCustom" resourceName="CF_SortBy" dataType="string" defaultValue="alphabetical">
+        <propertyValue value="alphabetical" resourceName="CF_GroupList_QueryType_SortBy_Alphabetical" />
+        <propertyValue value="lastupdate" resourceName="CF_GroupList_QueryType_SortBy_LastUpdate" />
+        <propertyValue value="containeridsorder" resourceName="CF_GroupList_QueryType_SortBy_ContainerIdsOrder" />
+    </property>
+    <property id="groupSelectionCustom" resourceName="GroupInclusion" controlType="Telligent.Evolution.Controls.GroupSortableListControl, Telligent.Evolution.Platform" dataType="custom" key="group" sortPropertyId="sortByCustom" sortPropertyOn="containeridsorder" sortPropertyHide="sortOrderCustom"/>
+    <property id="sortOrderCustom" resourceName="CF_SortOrder" dataType="string" defaultValue="ascending">
+        <propertyValue value="ascending" resourceName="SortOrderDropDownList_Asc" />
+        <propertyValue value="descending" resourceName="SortOrderDropDownList_Desc" />
+    </property>
+    <property id="sortBy" resourceName="CF_SortBy" dataType="string" defaultValue="alphabetical">
+        <propertyValue value="alphabetical" resourceName="CF_GroupList_QueryType_SortBy_Alphabetical" />
+        <propertyValue value="lastupdate" resourceName="CF_GroupList_QueryType_SortBy_LastUpdate" />
+    </property>
+    <property id="sortOrder" resourceName="CF_SortOrder" dataType="string" defaultValue="ascending">
+        <propertyValue value="ascending" resourceName="SortOrderDropDownList_Asc" />
+        <propertyValue value="descending" resourceName="SortOrderDropDownList_Desc" />
+    </property>
+    <property id="pageSize" resourceName="Pagesize" dataType="int" defaultValue="10">
+        <propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="100" />
+    </property>
+    <property id="enablePaging" resourceName="EnablePaging" dataType="bool" defaultValue="True" />
+</propertyGroup>
+        ]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="And_Multiple_More">And {0} more...</resource>
+  <resource name="And_One_More">And 1 more...</resource>
+  <resource name="CF_GroupList_QueryType">Show</resource>
+  <resource name="CF_GroupList_QueryType_AccessingUser">Accessing user's communities</resource>
+  <resource name="CF_GroupList_QueryType_CurrentUser">Current contextual user's communities</resource>
+  <resource name="CF_GroupList_QueryType_SortBy_Alphabetical">Alphabetical</resource>
+  <resource name="CF_GroupList_QueryType_SortBy_ContainerIdsOrder">Custom order</resource>
+  <resource name="CF_GroupList_QueryType_SortBy_LastUpdate">Last Updated Date</resource>
+  <resource name="CF_GroupList_QueryType_SubGroups">Current contextual community's sub-communities</resource>
+  <resource name="CF_SortBy">Sort By</resource>
+  <resource name="CF_SortOrder">Sort Order</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="EnablePaging">Enable paging</resource>
+  <resource name="filter_allgroups">All Communities</resource>
+  <resource name="filter_bookmarkedgroups">Bookmarked Communities</resource>
+  <resource name="GroupInclusion">Include Communities</resource>
+  <resource name="Groups_GroupList_Description">Displays a list of communities.</resource>
+  <resource name="Groups_GroupList_ListView">List</resource>
+  <resource name="Groups_GroupList_Name">Community - List</resource>
+  <resource name="Groups_GroupList_Name_ForAccessingUser">My Communities</resource>
+  <resource name="Groups_GroupList_Name_ForContextualUser">{0}'s Community Membership</resource>
+  <resource name="Groups_GroupList_NoGroups">No communities</resource>
+  <resource name="Groups_GroupList_ThumbnailView">Thumbnails</resource>
+  <resource name="Groups_GroupList_ViewType">View Type</resource>
+  <resource name="Latest_Format">Last Activity: {0}&lt;br /&gt;</resource>
+  <resource name="Members_PluralFormat">{0} members</resource>
+  <resource name="Members_SingleFormat">{0} member</resource>
+  <resource name="no_search_matches_found">No matching communities were found.</resource>
+  <resource name="on">on</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Pagesize">Number of items to display</resource>
+  <resource name="search_filter">{0}'s Communities</resource>
+  <resource name="SortOrderDropDownList_Asc">Ascending</resource>
+  <resource name="SortOrderDropDownList_Desc">Descending</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_GroupList_QueryType">显示</resource>
+  <resource name="CF_GroupList_QueryType_AccessingUser">访问用户的社区</resource>
+  <resource name="CF_GroupList_QueryType_CurrentUser">当前上下文用户的社区</resource>
+  <resource name="CF_GroupList_QueryType_SortBy_Alphabetical">字母顺序</resource>
+  <resource name="CF_GroupList_QueryType_SortBy_ContainerIdsOrder">自定义顺序</resource>
+  <resource name="CF_GroupList_QueryType_SortBy_LastUpdate">上次更新日期</resource>
+  <resource name="CF_GroupList_QueryType_SubGroups">当前上下文社区的子社区</resource>
+  <resource name="CF_SortBy">排序方式</resource>
+  <resource name="CF_SortOrder">排序顺序</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="filter_allgroups">所有社区</resource>
+  <resource name="filter_bookmarkedgroups">带有书签的社区</resource>
+  <resource name="GroupInclusion">包括社区</resource>
+  <resource name="Groups_GroupList_Description">显示社区的列表。</resource>
+  <resource name="Groups_GroupList_ListView">列表</resource>
+  <resource name="Groups_GroupList_Name">社区 - 列表</resource>
+  <resource name="Groups_GroupList_Name_ForAccessingUser">我的社区</resource>
+  <resource name="Groups_GroupList_Name_ForContextualUser">{0} 的社区成员资格</resource>
+  <resource name="Groups_GroupList_NoGroups">无社区</resource>
+  <resource name="Groups_GroupList_ThumbnailView">缩略图</resource>
+  <resource name="Groups_GroupList_ViewType">视图类型</resource>
+  <resource name="Latest_Format">上次活动: {0}&lt;br /&gt;</resource>
+  <resource name="Members_PluralFormat">{0} 个成员</resource>
+  <resource name="Members_SingleFormat">{0} 个成员</resource>
+  <resource name="no_search_matches_found">未找到匹配社区。</resource>
+  <resource name="on">位于</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Pagesize">要显示的项目数</resource>
+  <resource name="search_filter">{0} 的社区</resource>
+  <resource name="SortOrderDropDownList_Asc">升序</resource>
+  <resource name="SortOrderDropDownList_Desc">降序</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_GroupList_QueryType">顯示</resource>
+  <resource name="CF_GroupList_QueryType_AccessingUser">存取中使用者的社群</resource>
+  <resource name="CF_GroupList_QueryType_CurrentUser">目前內容相關使用者的社群</resource>
+  <resource name="CF_GroupList_QueryType_SortBy_Alphabetical">按字母排序</resource>
+  <resource name="CF_GroupList_QueryType_SortBy_ContainerIdsOrder">自訂順序</resource>
+  <resource name="CF_GroupList_QueryType_SortBy_LastUpdate">上次更新日期</resource>
+  <resource name="CF_GroupList_QueryType_SubGroups">目前內容相關社群的子社群 </resource>
+  <resource name="CF_SortBy">排序依據</resource>
+  <resource name="CF_SortOrder">排序次序</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="filter_allgroups">所有社群</resource>
+  <resource name="filter_bookmarkedgroups">已加入書籤的社群</resource>
+  <resource name="GroupInclusion">包含社群</resource>
+  <resource name="Groups_GroupList_Description">顯示社群的清單。</resource>
+  <resource name="Groups_GroupList_ListView">清單</resource>
+  <resource name="Groups_GroupList_Name">社群 - 清單</resource>
+  <resource name="Groups_GroupList_Name_ForAccessingUser">我的社群</resource>
+  <resource name="Groups_GroupList_Name_ForContextualUser">{0} 的社群成員資格</resource>
+  <resource name="Groups_GroupList_NoGroups">沒有社群</resource>
+  <resource name="Groups_GroupList_ThumbnailView">縮圖</resource>
+  <resource name="Groups_GroupList_ViewType">檢視類型</resource>
+  <resource name="Latest_Format">上次活動: {0}&lt;br /&gt;</resource>
+  <resource name="Members_PluralFormat">{0} 個成員</resource>
+  <resource name="Members_SingleFormat">{0} 個成員</resource>
+  <resource name="no_search_matches_found">找不到相符的社群。</resource>
+  <resource name="on">在</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Pagesize">要顯示的項目數</resource>
+  <resource name="search_filter">{0} 的社群</resource>
+  <resource name="SortOrderDropDownList_Asc">遞增</resource>
+  <resource name="SortOrderDropDownList_Desc">遞減</resource>
+</language></languageResources>
+		<files>
+			<file name="inSidebar.vm">I3NldCAoJGluU2lkZWJhciA9IGZhbHNlKQ0KI3NldCAoJHJlZ2lvbiA9ICRjb3JlX3YyX3dpZGdldC5SZWdpb25OYW1lLlRvTG93ZXIoKSkNCiNzZXQgKCRsYXlvdXQgPSAkY29yZV92Ml9wYWdlLkxheW91dC5Ub0xvd2VyKCkpDQoNCiNpZiAoJHJlZ2lvbiA9PSAnc3BsaXQtc2lkZWJhci1sZWZ0JyB8fCAkcmVnaW9uID09ICdzcGxpdC1zaWRlYmFyLXJpZ2h0JyB8fCAkcmVnaW9uID09ICdsZWZ0LXNpZGViYXInKSANCiAgICAjc2V0ICgkaW5TaWRlYmFyID0gdHJ1ZSkNCiNlbHNlaWYgKCRyZWdpb24gPT0gJ3JpZ2h0LXNpZGViYXInICYmICEkbGF5b3V0LkNvbnRhaW5zKCdzcGxpdC1jb250ZW50JykgJiYgISRsYXlvdXQuQ29udGFpbnMoJ3NwbGl0LXNpZGViYXInKSkNCiAgICAjc2V0ICgkaW5TaWRlYmFyID0gdHJ1ZSkNCiNlbmQ=</file>
+			<file name="list.vm">I2ZvcmVhY2goJGdyb3VwIGluICRncm91cHMpDQojYmVmb3JlYWxsDQoJPHVsIGNsYXNzPSJjb250ZW50LWxpc3QgY29udGVudCBzaW1wbGUgbWFyZ2luLWJvdHRvbSB0YWJ1bGFyIj4NCiNlYWNoDQoJI3NldCgkY29udGFpbmVySWRzID0gIiRncm91cC5Db250YWluZXJJZCIpDQoJI3NldCgkYWN0aXZpdHlTdG9yaWVzID0gZmFsc2UpDQoJI3NldCgkYWN0aXZpdHlTdG9yaWVzID0gJGNvcmVfdjJfYWN0aXZpdHlTdG9yeS5MaXN0KCIle0NvbnRhaW5lcklkcyA9ICRjb250YWluZXJJZHMsIFBhZ2VJbmRleCA9IDAsIFBhZ2VTaXplID0gMSwgU29ydEJ5ID0gJ0RhdGUnLCBTb3J0T3JkZXIgPSAnRGVzY2VuZGluZyd9IikpDQoJDQoJI2lmICgkZ3JvdXAuVG90YWxNZW1iZXJzKCkgPT0gMSkNCgkJI3NldCAoJG1lbWJlcnNGb3JtYXQgPSAkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiTWVtYmVyc19TaW5nbGVGb3JtYXQiKSkNCgkjZWxzZQ0KCQkjc2V0ICgkbWVtYmVyc0Zvcm1hdCA9ICRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCJNZW1iZXJzX1BsdXJhbEZvcm1hdCIpKQ0KCSNlbmQNCg0KCSNpZiAoJGNvbnRlbnQgPT0gJ2Jvb2ttYXJrJykNCgkJPGxpIGNsYXNzPSJjb250ZW50LWl0ZW0iICNpZiAoJGdyb3VwLkNvbnRlbnQuVXJsKSBkYXRhLWhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGdyb3VwLkNvbnRlbnQuVXJsKSIgI2VuZD4NCgkJCTxkaXYgY2xhc3M9ImNlbGwgYXZhdGFyIj4NCgkJCQk8YSBocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRncm91cC5Db250ZW50LlVybCkiPiRjb3JlX3YyX3VpLkdldFJlc2l6ZWRJbWFnZUh0bWwoJGdyb3VwLkNvbnRlbnQuQXZhdGFyVXJsLCA0NSwgNDUsICIle2FsdD0kZ3JvdXAuQ29udGVudC5IdG1sTmFtZSgnV2ViJyksYm9yZGVyPScwJyxSZXNpemVNZXRob2QgPSAnWm9vbUFuZENyb3AnfSIpPC9hPg0KCQkJPC9kaXY+DQoJCQk8ZGl2IGNsYXNzPSJuYW1lIGNlbGwiPg0KCQkJCTxoMz4NCgkJCQkJPGEgY2xhc3M9ImludGVybmFsLWxpbmsiIHRpdGxlPSIkZ3JvdXAuQ29udGVudC5IdG1sTmFtZSgnV2ViJykiIGhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGdyb3VwLkNvbnRlbnQuVXJsKSI+JGdyb3VwLkNvbnRlbnQuSHRtbE5hbWUoJ1dlYicpPC9hPgkNCgkJCQk8L2gzPg0KCQkJCTxkaXYgY2xhc3M9ImNvbnRlbnQiPiQhZ3JvdXAuQ29udGVudC5IdG1sRGVzY3JpcHRpb24oJ1dlYicpPC9kaXY+DQoJCQk8L2Rpdj4NCgkJCTxkaXYgY2xhc3M9Im1pbmltYWwgY2VsbCBub3dyYXAiPg0KCQkJCSNmb3JlYWNoKCRzdG9yeSBpbiAkYWN0aXZpdHlTdG9yaWVzKQ0KCQkJCQkkc3RvcnkuUHJldmlld0h0bWwoKQ0KCQkJCSNlbmQNCgkJCTwvZGl2Pg0KCQkJPGRpdiBjbGFzcz0ibWluaW1hbCBjZWxsIG5vd3JhcCI+DQoJCQkJI2ZvcmVhY2goJHN0b3J5IGluICRhY3Rpdml0eVN0b3JpZXMpDQoJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdFN0cmluZygkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnTGF0ZXN0X0Zvcm1hdCcpLCAkY29yZV92Ml9sYW5ndWFnZS5Gb3JtYXRBZ29EYXRlKCRzdG9yeS5DcmVhdGVkRGF0ZSkpDQoJCQkJI2VuZA0KCQkJCSNpZigkZ3JvdXAuR3JvdXBUeXBlICE9ICdKb2lubGVzcycpDQoJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdFN0cmluZygkbWVtYmVyc0Zvcm1hdCwgJGdyb3VwLlRvdGFsTWVtYmVycygpLlRvU3RyaW5nKCkpDQoJCQkJI2VuZA0KCQkJPC9kaXY+DQoJCTwvbGk+DQoJI2Vsc2UNCgkJPGxpIGNsYXNzPSJjb250ZW50LWl0ZW0iIGRhdGEtaHJlZj0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkZ3JvdXAuVXJsKSI+DQoJCQk8ZGl2IGNsYXNzPSJjZWxsIGF2YXRhciI+DQoJCQkJPGEgaHJlZj0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkZ3JvdXAuVXJsKSI+JGNvcmVfdjJfdWkuR2V0UmVzaXplZEltYWdlSHRtbCgkZ3JvdXAuQXZhdGFyVXJsLCA0NSwgNDUsICIle2FsdD0kZ3JvdXAuTmFtZSxib3JkZXI9JzAnLFJlc2l6ZU1ldGhvZCA9ICdab29tQW5kQ3JvcCd9Iik8L2E+DQoJCQk8L2Rpdj4NCgkJCTxkaXYgY2xhc3M9Im5hbWUgY2VsbCI+DQoJCQkJPGgzPg0KCQkJCQk8YSBjbGFzcz0iaW50ZXJuYWwtbGluayIgdGl0bGU9IiRncm91cC5OYW1lIiBocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRncm91cC5VcmwpIj4kZ3JvdXAuTmFtZTwvYT4NCgkJCQk8L2gzPg0KCQkJCTxkaXYgY2xhc3M9ImNvbnRlbnQiPiQhZ3JvdXAuRGVzY3JpcHRpb248L2Rpdj4NCgkJCTwvZGl2PgkJDQoJCQk8ZGl2IGNsYXNzPSJtaW5pbWFsIGNlbGwgbm93cmFwIGFsaWduLXJpZ2h0Ij4NCgkJCQkjZm9yZWFjaCgkc3RvcnkgaW4gJGFjdGl2aXR5U3RvcmllcykNCgkJCQkJJGNvcmVfdjJfbGFuZ3VhZ2UuRm9ybWF0U3RyaW5nKCRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdMYXRlc3RfRm9ybWF0JyksICRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdEFnb0RhdGUoJHN0b3J5LkNyZWF0ZWREYXRlKSkNCgkJCQkjZW5kDQoJCQkJI2lmKCRncm91cC5Hcm91cFR5cGUgIT0gJ0pvaW5sZXNzJykNCgkJCQkJJGNvcmVfdjJfbGFuZ3VhZ2UuRm9ybWF0U3RyaW5nKCRtZW1iZXJzRm9ybWF0LCAkZ3JvdXAuVG90YWxNZW1iZXJzKCkuVG9TdHJpbmcoKSkNCgkJCQkjZW5kDQoJCQk8L2Rpdj4NCgkJPC9saT4NCgkjZW5kDQojYWZ0ZXJhbGwNCgk8L3VsPg0KI25vZGF0YQ0KCTxkaXYgY2xhc3M9Im1lc3NhZ2Ugbm9yZWNvcmRzIj4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnR3JvdXBzX0dyb3VwTGlzdF9Ob0dyb3VwcycpPC9kaXY+DQojZW5kDQo=</file>
+			<file name="pagedContent.vm">I3NldCgkcXVlcnlUeXBlID0gJGNvcmVfdjJfd2lkZ2V0LkdldFN0cmluZ1ZhbHVlKCdxdWVyeVR5cGUnLCcnKSkNCiNzZXQoJHNvcnRCeSA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgnc29ydEJ5JywnYWxwaGFiZXRpY2FsJykpDQojc2V0KCRzb3J0T3JkZXIgPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ3NvcnRPcmRlcicsJ2FzY2VuZGluZycpKQ0KI3NldCgkcGFnZVNpemUgPSAkY29yZV92Ml93aWRnZXQuR2V0SW50VmFsdWUoJ3BhZ2VTaXplJywxMCkpDQojc2V0KCR2aWV3VHlwZSA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgndmlld1R5cGUnLCdzdGFuZGFyZCcpKQ0KI3NldCgkcGFnZUluZGV4ID0gJGNvcmVfdjJfdWkuR2V0Q3VycmVudFBhZ2VJbmRleCgpKQ0KI2lmICgkcXVlcnlUeXBlID09ICcnKQ0KCSNpZigkY29yZV92Ml91cmxzLkN1cnJlbnQgPT0gJ0hvbWUnKQ0KCQkkY29yZV92Ml93aWRnZXQuU2V0U3RyaW5nVmFsdWUoJ3F1ZXJ5VHlwZScsJ2FjY2Vzc2luZ1VzZXInKQ0KCSNlbHNlaWYoJGNvcmVfdjJfdXNlci5DdXJyZW50KQ0KCQkkY29yZV92Ml93aWRnZXQuU2V0U3RyaW5nVmFsdWUoJ3F1ZXJ5VHlwZScsJ2N1cnJlbnRVc2VyJykNCgkjZWxzZQ0KCQkkY29yZV92Ml93aWRnZXQuU2V0U3RyaW5nVmFsdWUoJ3F1ZXJ5VHlwZScsJ3N1Ykdyb3VwcycpDQoJI2VuZA0KCSNzZXQoJHF1ZXJ5VHlwZSA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgncXVlcnlUeXBlJywnJykpDQojZW5kDQoNCiNpZigkcXVlcnlUeXBlID09ICdzdWJHcm91cHMnKQ0KCSNzZXQoJHNvcnRCeSA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgnc29ydEJ5Q3VzdG9tJywnYWxwaGFiZXRpY2FsJykpDQoJI3NldCgkc29ydE9yZGVyID0gJGNvcmVfdjJfd2lkZ2V0LkdldFN0cmluZ1ZhbHVlKCdzb3J0T3JkZXJDdXN0b20nLCdhc2NlbmRpbmcnKSkNCiNlbmQNCg0KI2lmICgkc29ydE9yZGVyID09ICdkZXNjZW5kaW5nJykNCgkjc2V0KCRzb3J0T3JkZXIgPSAnRGVzY2VuZGluZycpDQojZWxzZQ0KCSNzZXQoJHNvcnRPcmRlciA9ICdBc2NlbmRpbmcnKQ0KI2VuZA0KDQojaWYgKCRzb3J0QnkgPT0gJ2FscGhhYmV0aWNhbCcpDQoJI3NldCgkc29ydEJ5ID0gJ05hbWUnKQ0KI2Vsc2VpZiAoJHNvcnRCeSA9PSAnbGFzdHVwZGF0ZScpDQoJI3NldCgkc29ydEJ5ID0gJ0xhc3RVcGRhdGUnKQ0KI2Vsc2VpZiAoJHNvcnRCeSA9PSAnY29udGFpbmVyaWRzb3JkZXInKQ0KCSNzZXQoJHNvcnRCeSA9ICdDb250YWluZXJJZHNPcmRlcicpDQojZWxzZQ0KCSNzZXQoJHNvcnRCeSA9ICdTb3J0T3JkZXInKQ0KI2VuZA0KDQojc2V0KCRjb250ZW50ID0gJ2dyb3VwJykNCiNpZiAoJHF1ZXJ5VHlwZT09J3N1Ykdyb3VwcycpDQoJI3NldCgkcXVlcnkgPSAiJXtQYXJlbnRHcm91cElkPSRjb3JlX3YyX2dyb3VwLkN1cnJlbnQuSWQsUGFnZVNpemU9JHBhZ2VTaXplLFBhZ2VJbmRleD0kcGFnZUluZGV4LFNvcnRCeT0nJHNvcnRCeScsU29ydE9yZGVyPSckc29ydE9yZGVyJyxHcm91cFR5cGVzPSdhbGwnfSIpDQoNCgkjc2V0KCRncm91cFNlbGVjdGlvbiA9IGZhbHNlKQ0KCSNzZXQoJGdyb3VwU2VsZWN0aW9uID0gJGNvcmVfdjJfd2lkZ2V0LkdldEN1c3RvbVZhbHVlKCdncm91cFNlbGVjdGlvbkN1c3RvbScsICcnKSkNCgkjaWYgKCRncm91cFNlbGVjdGlvbiAmJiAkZ3JvdXBTZWxlY3Rpb24uTGVuZ3RoID4gMCkNCgkJI3NldCgkZ3JvdXBTZWxlY3Rpb24gPSAkY29yZV92Ml91dGlsaXR5LkpvaW4oJywnLCAkY29yZV92Ml9wYWdlLlBhcnNlUXVlcnlTdHJpbmcoJGdyb3VwU2VsZWN0aW9uKS5WYWx1ZXMoJ2dyb3VwJykpKQ0KCQkkcXVlcnkuQWRkKCdDb250YWluZXJJZHMnLCAkZ3JvdXBTZWxlY3Rpb24pDQoJI2VuZA0KDQoJI3NldCgkZ3JvdXBzID0gJGNvcmVfdjJfZ3JvdXAuTGlzdCgkcXVlcnkpKQ0KI2Vsc2VpZigkcXVlcnlUeXBlPT0nY3VycmVudFVzZXInKQ0KDQoJI3NldCgkdXNlciA9IGZhbHNlKQ0KCSNzZXQoJHVzZXIgPSAkY29yZV92Ml91c2VyLkN1cnJlbnQpDQoNCgkjc2V0ICgkZmlsdGVyID0gZmFsc2UpDQoJI2lmICgkdXNlci5FbmFibGVGYXZvcml0ZVNoYXJpbmcgfHwgJHVzZXIuSWQgPT0gJGNvcmVfdjJfdXNlci5BY2Nlc3NpbmcuSWQpDQoJCSNzZXQgKCRmaWx0ZXIgPSAkY29yZV92Ml9wYWdlLkdldFF1ZXJ5U3RyaW5nVmFsdWUoJ2dyb3VwLWZpbHRlcicpKQ0KCSNlbmQNCg0KCSNpZiAoJGZpbHRlciA9PSAnYm9va21hcmtzJykNCgkJI3NldCgkY29udGVudCA9ICdib29rbWFyaycpDQoJCSNzZXQoJGdyb3VwcyA9ICRjb3JlX3YyX2Jvb2ttYXJrLkxpc3QoIiV7VXNlcklkID0gJHVzZXIuSWQsIFBhZ2VTaXplID0gJHBhZ2VTaXplLCBQYWdlSW5kZXggPSAkcGFnZUluZGV4LCBDb250ZW50VHlwZUlkcz0gJGNvcmVfdjJfZ3JvdXAuQ29udGVudFR5cGVJZC5Ub1N0cmluZygpfSIpKQ0KCSNlbHNlDQoJCSNzZXQoJGdyb3VwcyA9ICRjb3JlX3YyX2dyb3VwLkxpc3QoIiV7VXNlcklkPSRjb3JlX3YyX3VzZXIuQ3VycmVudC5JZCxQYWdlU2l6ZT0kcGFnZVNpemUsUGFnZUluZGV4PSRwYWdlSW5kZXgsU29ydEJ5PSckc29ydEJ5JyxTb3J0T3JkZXI9JyRzb3J0T3JkZXInfSIpKQ0KCSNlbmQNCiNlbHNlDQoJI3NldCAoJGluY2x1ZGVQZW5kaW5nTWVtYmVyc2hpcHMgPSB0cnVlKQ0KCSNzZXQgKCRmaWx0ZXIgPSBmYWxzZSkNCgkjc2V0ICgkZmlsdGVyID0gJGNvcmVfdjJfcGFnZS5HZXRRdWVyeVN0cmluZ1ZhbHVlKCdncm91cC1maWx0ZXInKSkNCgkjaWYgKCRmaWx0ZXIgPT0gJ2Jvb2ttYXJrcycpDQoJCSNzZXQoJGNvbnRlbnQgPSAnYm9va21hcmsnKQ0KCQkjc2V0KCRncm91cHMgPSAkY29yZV92Ml9ib29rbWFyay5MaXN0KCIle1VzZXJJZCA9ICRjb3JlX3YyX3VzZXIuQWNjZXNzaW5nLklkLCBQYWdlU2l6ZSA9ICRwYWdlU2l6ZSwgUGFnZUluZGV4ID0gJHBhZ2VJbmRleCwgQ29udGVudFR5cGVJZHM9ICRjb3JlX3YyX2dyb3VwLkNvbnRlbnRUeXBlSWQuVG9TdHJpbmcoKX0iKSkNCgkjZWxzZQ0KCQkjc2V0KCRncm91cHMgPSAkY29yZV92Ml9ncm91cC5MaXN0KCIle1VzZXJJZD0kY29yZV92Ml91c2VyLkFjY2Vzc2luZy5JZCxQYWdlU2l6ZT0kcGFnZVNpemUsUGFnZUluZGV4PSRwYWdlSW5kZXgsU29ydEJ5PSckc29ydEJ5JyxTb3J0T3JkZXI9JyRzb3J0T3JkZXInLEluY2x1ZGVQZW5kaW5nTWVtYmVyc2hpcHM9JGluY2x1ZGVQZW5kaW5nTWVtYmVyc2hpcHN9IikpDQoJI2VuZA0KI2VuZA0KDQojaWYoJHZpZXdUeXBlPT0ndGh1bWJuYWlscycpDQoJI3NldCAoJGhhc01vcmUgPSBmYWxzZSkNCgkjc2V0ICgkY3VycmVudFBhZ2VkUXVhbnRpdHkgPSAoJGdyb3Vwcy5QYWdlSW5kZXggKyAxKSAqICRncm91cHMuUGFnZVNpemUpDQoJI2lmICgkZ3JvdXBzLlRvdGFsQ291bnQgPiAkY3VycmVudFBhZ2VkUXVhbnRpdHkpDQoJICAgICNzZXQgKCRoYXNNb3JlID0gdHJ1ZSkNCgkjZW5kDQoJJGNvcmVfdjJfd2lkZ2V0LkV4ZWN1dGVGaWxlKCd0aHVtYm5haWxzLnZtJykNCiNlbHNlDQoJJGNvcmVfdjJfd2lkZ2V0LkV4ZWN1dGVGaWxlKCdsaXN0LnZtJykNCiNlbmQNCg==</file>
+			<file name="search.vm">77u/I3NldCgkcGFnZUluZGV4ID0gMCkNCiNzZXQoJHBhZ2VJbmRleCA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VJbnQoJGNvcmVfdjJfcGFnZS5HZXRRdWVyeVN0cmluZ1ZhbHVlKCd3X3BhZ2VJbmRleCcpKSkNCg0KI3NldCgkcXVlcnkgPSAnJykNCiNzZXQoJHF1ZXJ5ID0gJGNvcmVfdjJfcGFnZS5HZXRRdWVyeVN0cmluZ1ZhbHVlKCd3X3F1ZXJ5JykpDQoNCiNzZXQoJHF1ZXJ5VHlwZSA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgncXVlcnlUeXBlJywnJykpDQojaWYoJHF1ZXJ5VHlwZT09J2N1cnJlbnRVc2VyJykNCgkjc2V0KCRncm91cHMgPSAkY29yZV92Ml9ncm91cC5MaXN0KCIle0dyb3VwTmFtZUZpbHRlcj0kcXVlcnksVXNlcklkPSRjb3JlX3YyX3VzZXIuQ3VycmVudC5JZCxQYWdlU2l6ZT0xMCxQYWdlSW5kZXg9JHBhZ2VJbmRleCxTb3J0Qnk9J05hbWUnLFNvcnRPcmRlcj0nQXNjZW5kaW5nJ30iKSkNCiNlbHNlDQoJI3NldCgkZ3JvdXBzID0gJGNvcmVfdjJfZ3JvdXAuTGlzdCgiJXtHcm91cE5hbWVGaWx0ZXI9JHF1ZXJ5LFVzZXJJZD0kY29yZV92Ml91c2VyLkFjY2Vzc2luZy5JZCxQYWdlU2l6ZT0xMCxQYWdlSW5kZXg9JHBhZ2VJbmRleCxTb3J0Qnk9J05hbWUnLFNvcnRPcmRlcj0nQXNjZW5kaW5nJ30iKSkNCiNlbmQNCg0KI3NldCAoJGhhc01vcmUgPSBmYWxzZSkNCiNzZXQgKCRjdXJyZW50UGFnZWRRdWFudGl0eSA9ICgkZ3JvdXBzLlBhZ2VJbmRleCArIDEpICogJGdyb3Vwcy5QYWdlU2l6ZSkNCiNpZiAoJGdyb3Vwcy5Ub3RhbENvdW50ID4gJGN1cnJlbnRQYWdlZFF1YW50aXR5KQ0KICAgICNzZXQgKCRoYXNNb3JlID0gdHJ1ZSkNCiNlbmQNCg0KI2ZvcmVhY2ggKCRncm91cCBpbiAkZ3JvdXBzKQ0KI2VhY2gNCgkjc2V0KCRjb250ZW50ID0gZmFsc2UpDQoJI3NldCgkY29udGVudCA9ICRjb3JlX3YyX2NvbnRlbnQuR2V0KCRncm91cC5Db250ZW50SWQsICRjb3JlX3YyX2dyb3VwLkNvbnRlbnRUeXBlSWQpKQ0KCSNpZiAoJGNvbnRlbnQpDQoJCTxsaSBjbGFzcz0iY29udGVudC1pdGVtIiBkYXRhLWNvbnRlbnR1cmw9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGNvbnRlbnQuVXJsKSIgI2lmKCRoYXNNb3JlKSBkYXRhLWhhc21vcmU9InRydWUiICNlbmQ+DQoJCQkkY29udGVudC5WaWV3SHRtbCgnV2ViJykNCgkJPC9saT4NCgkjZW5kDQojbm9kYXRhDQoJPGRpdiBjbGFzcz0ibWVzc2FnZSBub3JlY29yZHMiPg0KCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnbm9fc2VhcmNoX21hdGNoZXNfZm91bmQnKQ0KCTwvZGl2Pg0KI2VuZA0KDQo=</file>
+			<file name="thumbnails.vm">77u/I2ZvcmVhY2goJGdyb3VwIGluICRncm91cHMpDQojYmVmb3JlYWxsDQoJPGRpdiBjbGFzcz0iY29udGVudC1saXN0IHRodW1ibmFpbCB1aS1tYXNvbnJ5IG1hcmdpbi10b3AiIGlkPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgndGh1bWJuYWlscycpKSIgZGF0YS1jb2x1bW5jbGFzcz0idGh1bWJuYWlsLWNvbHVtbiI+DQojZWFjaA0KCSNpZiAoJGNvbnRlbnQgPT0gJ2Jvb2ttYXJrJykNCgkJPGRpdiBjbGFzcz0iY29udGVudC1pdGVtIGNvbnRlbnQgdGh1bWJuYWlsIiBkYXRhLWhhc21vcmU9IiRoYXNNb3JlIiBkYXRhLXVybD0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkZ3JvdXAuQ29udGVudC5VcmwpIiBzdHlsZT0iY3Vyc29yOiBwb2ludGVyOyI+DQoJCQk8ZGl2IGNsYXNzPSJhdmF0YXIiPg0KCQkJCSRjb3JlX3YyX3VpLkdldFJlc2l6ZWRJbWFnZUh0bWwoJGdyb3VwLkNvbnRlbnQuQXZhdGFyVXJsLCAxNDAsIDE0MCwgIiV7YWx0PSRncm91cC5Db250ZW50Lkh0bWxOYW1lKCdXZWInKSxib3JkZXI9JzAnLFJlc2l6ZU1ldGhvZCA9ICdab29tQW5kQ3JvcCd9IikNCgkJICAgICAgICA8L2Rpdj4NCgkJICAgICAgICA8aDMgY2xhc3M9Im5hbWUiPg0KCQkgICAgICAgICAgICA8YSBocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRncm91cC5Db250ZW50LlVybCkiPiRncm91cC5Db250ZW50Lkh0bWxOYW1lKCdXZWInKTwvYT4NCgkJICAgICAgICA8L2gzPg0KCQk8L2Rpdj4NCgkjZWxzZQ0KCQk8ZGl2IGNsYXNzPSJjb250ZW50LWl0ZW0gY29udGVudCB0aHVtYm5haWwiIGRhdGEtaGFzbW9yZT0iJGhhc01vcmUiIGRhdGEtdXJsPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRncm91cC5VcmwpIiBzdHlsZT0iY3Vyc29yOiBwb2ludGVyOyI+DQoJCQk8ZGl2IGNsYXNzPSJhdmF0YXIiPg0KCQkJCSRjb3JlX3YyX3VpLkdldFJlc2l6ZWRJbWFnZUh0bWwoJGdyb3VwLkF2YXRhclVybCwgMTQwLCAxNDAsICIle2FsdD0kZ3JvdXAuTmFtZSxib3JkZXI9JzAnLFJlc2l6ZU1ldGhvZCA9ICdab29tQW5kQ3JvcCd9IikNCgkJICAgICAgICA8L2Rpdj4NCgkJICAgICAgICA8aDMgY2xhc3M9Im5hbWUiPg0KCQkgICAgICAgICAgICA8YSBocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRncm91cC5VcmwpIj4kZ3JvdXAuTmFtZTwvYT4NCgkJICAgICAgICA8L2gzPg0KCQk8L2Rpdj4NCgkjZW5kDQojYWZ0ZXJhbGwNCgk8L2Rpdj4NCiNub2RhdGENCgk8ZGl2IGNsYXNzPSJtZXNzYWdlIG5vcmVjb3JkcyI+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ0dyb3Vwc19Hcm91cExpc3RfTm9Hcm91cHMnKTwvZGl2Pg0KI2VuZA==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

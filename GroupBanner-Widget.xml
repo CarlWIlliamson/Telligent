@@ -1,0 +1,570 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Groups_GroupBanner_Name}" version="10.1.8.10498" description="${resource:Groups_GroupBanner_Description}" instanceIdentifier="ab92f9a89af24721bba1c464c1334be6" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="group-banner">
+		<contentScript><![CDATA[#set ($isGroupTheme = false)
+#if ($core_v2_page.ThemeTypeId == $core_v2_group.ThemeTypeId)
+	#set ($isGroupTheme = true)
+#end
+
+$core_v2_widget.ExecuteFile('style.vm')
+
+#set ($parentNavigationId = $core_v2_widget.UniqueId('parentNavigation'))
+#set ($applicationNavigationId = $core_v2_widget.UniqueId('applicationNavigation'))
+#set ($userId = $core_v2_user.Accessing.Id)
+#set ($group = $core_v2_group.Current)
+#set ($groupType = $core_v2_group.Current.GroupType)
+#set ($isRegistered = $core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+#set ($membershipType = "None")
+#set ($groupUser = $core_v2_groupUserMember.Get($group.Id, "%{UserId = $userId}"))
+#set ($membershipType = $groupUser.MembershipType)
+#set ($canLeaveGroup = ($groupUser.IsDirectMember && !$groupUser.IsRoleMember) && ($membershipType != "Owner" || $core_v2_groupUserMember.List($group.Id, "%{MembershipType = 'Owner', PageSize = 1}").TotalCount > 1))
+#set ($canJoinGroup = $core_v2_nodePermission.Get("groups", $group.Id, $core_v2_groupPermissions.JoinGroup).IsAllowed)
+#set ($canJoinGroupByRequest = $core_v2_nodePermission.Get("groups", $group.Id, $core_v2_groupPermissions.JoinGroupByRequest).IsAllowed)
+#set ($application = false)
+#set ($application = $core_v2_application.Current)
+#set ($includeParent = $core_v2_widget.GetBoolValue('includeParent', true))
+#set ($includeNewLogin = $core_v2_widget.GetBoolValue('includeNewLogin', true))
+#set ($inheritNarrow = $core_v2_widget.GetBoolValue('inheritNarrow', true))
+#set ($inheritNarrowAppTitle = $core_v2_widget.GetBoolValue('inheritNarrowAppTitle', true))
+#set ($rootGroup = $core_v2_group.Root)
+## get current non container/app content
+#set ($content = false)
+#set ($content = $core_v2_content.Current)
+#set ($contentName = false)
+#if ($content && ($application && $content.ContentId == $application.ApplicationId) || ($group && $content.ContentId == $group.ContainerId) || $content.Errors.Count > 0)
+	#set ($content = false)
+	#set ($contentName = false)
+#elseif ($content)
+	#set ($contentName = $content.HtmlName('Web'))
+#end
+
+#set ($withAlert = false)
+#if (!$isRegistered && ($groupType == "PublicOpen" || $groupType == "PublicClosed"))
+	#set ($withAlert = true)
+#elseif ($groupType != "Joinless" && $membershipType == "None" && ($canJoinGroup || $canJoinGroupByRequest))
+	#set ($withAlert = true)
+#end
+
+#set ($isHome = false)
+#if ($core_v2_groupUrls.Current == 'Group')
+	#set($isHome = true)
+#end
+
+#set ($applications = $core_v2_customNavigation.Deserialize($group.Id, $core_v2_widget.GetCustomValue('navigation', '')))
+
+#set ($name = $group.Name)
+#set ($description = "")
+#if ($application)
+	#set ($description = $application.HtmlName(''))
+#elseif (!$isHome)
+	#foreach($app in $applications)
+		#if ($app.IsSelected)
+			#set ($description = $!app.Label)
+		#end
+	#end
+#end
+
+#set ($forceNarrow = false)
+#if (!$isGroupTheme && $inheritNarrow)
+	#set ($forceNarrow = true)
+#end
+
+#set ($currentGroupPath = false)
+#if ($includeParent && $group.Id != $rootGroup.Id)
+	#set ($currentGroupPath = $core_v2_group.CurrentGroupPath)
+#end
+
+<div class="banner context #if ($forceNarrow) slim inherited #end #if ($inheritNarrowAppTitle) with-application #end #if ($isHome && $applications.count > 0) home #end #if ($withAlert) with-alert #end #if ($includeParent && $group.Id != $rootGroup.Id && $currentGroupPath.Count >= 2) with-ancestors #end">
+	<div class="avatar">
+		<a href="$core_v2_encoding.HtmlAttributeEncode($group.Url)" #if ($isRegistered) $core_v2_tourTip.Render($core_v2_language.GetResource('TourTipTitle')) #end >
+			$core_v2_ui.GetResizedImageHtml($core_v2_group.Current.AvatarUrl, 68, 68, "%{ alt = $group.Name, ResizeMethod='ZoomAndCrop' }")
+		</a>
+	</div>
+
+	<div class="hierarchy">
+
+		#if ($includeParent && $group.Id != $rootGroup.Id)
+			#set ($pathIndex = $currentGroupPath.Count)
+			#set ($parentGroupName = false)
+			#set ($parentGroup = false)
+			#set ($depth = 0)
+			#if ($pathIndex > 2)
+				#foreach ($pathGroup in $currentGroupPath)
+				#beforeall
+					<div class="parent-navigation">
+						<div class="ui-links" data-direction="horizontal" id="$core_v2_encoding.HtmlAttributeEncode($parentNavigationId)" #if ($forceNarrow) data-maxlinks="0" #end>
+							<ul>
+				#each
+								#set ($depth = $depth + 1)
+								#if ($group.Id != $pathGroup.Id)
+									#set ($parentGroup = $pathGroup)
+								#end
+								<li class="navigation-list-item #if ($group.Id == $pathGroup.Id) selected #end">
+									<a class="crumb depth-$depth #if ($group.Id == $pathGroup.Id) selected #end" href="$core_v2_encoding.HtmlAttributeEncode($pathGroup.Url)">$pathGroup.Name</a>
+								</li>
+				#afterall
+								<li class="navigation-list-item">
+									<a href="#" class="more ui-tip" data-more title="$core_v2_encoding.HtmlAttributeEncode($core_v2_language.GetResource('ParentGroups'))">$core_v2_language.GetResource('more')</a>
+								</li>
+								<li class="navigation-list-item">
+									<a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+								</li>
+							</ul>
+						</div>
+					</div>
+				#end
+			#elseif ($pathIndex == 2)
+				#foreach ($pathGroup in $currentGroupPath)
+					#if (!$parentGroup)
+						#set ($parentGroup = $pathGroup)
+					#end
+				#end
+				<div class="parent-navigation">
+					<div class="ui-links" data-direction="horizontal" id="$core_v2_encoding.HtmlAttributeEncode($parentNavigationId)" #if ($forceNarrow) data-maxlinks="0" #end>
+						<ul>
+							<li class="navigation-list-item #if ($group.Id == $parentGroup.Id) selected #end">
+								<a class="crumb depth-$depth #if ($group.Id == $parentGroup.Id) selected #end" href="$core_v2_encoding.HtmlAttributeEncode($parentGroup.Url)">$parentGroup.Name</a>
+							</li>
+							<li class="navigation-list-item #if ($group.Id == $pathGroup.Id) selected #end">
+								<a href="$core_v2_encoding.HtmlAttributeEncode($parentGroup.Url)" class="crumb more ui-tip #if ($group.Id == $pathGroup.Id) selected #end" data-more title="$core_v2_encoding.HtmlAttributeEncode($core_v2_language.FormatString($core_v2_language.GetResource('ParentGroup'), $parentGroup.Name))">$core_v2_language.GetResource('more')</a>
+							</li>
+						</ul>
+					</div>
+				</div>
+			#end
+
+		#end
+
+		<div class="current-hierarchy">
+
+			#if ($isHome)
+				<h1 class="container hierarchy-component">
+					<a href="$core_v2_encoding.HtmlAttributeEncode($group.Url)"><span  #if ($name != $name) class="ui-tip" title="$core_v2_encoding.HtmlAttributeEncode($name)" #end>$name</span></a>
+				</h1>
+			#else
+				<div class="container hierarchy-component">
+					<a href="$core_v2_encoding.HtmlAttributeEncode($group.Url)"><span  #if ($name != $name) class="ui-tip" title="$core_v2_encoding.HtmlAttributeEncode($name)" #end>$name</span></a>
+				</div>
+			#end
+
+			#if ($application)
+				#if (!$content && $core_v2_urls.FullPath($core_v2_page.Url) == $core_v2_urls.FullPath($application.Url))
+					<h1 class="application hierarchy-component">
+						<a href="$core_v2_encoding.HtmlAttributeEncode($application.Url)"><span #if ($description != $description) class="ui-tip" title="$core_v2_encoding.HtmlAttributeEncode($description)" #end>$description</span></a>
+					</h1>
+				#else
+					<span class="application hierarchy-component">
+						<a href="$core_v2_encoding.HtmlAttributeEncode($application.Url)"><span #if ($description != $description) class="ui-tip" title="$core_v2_encoding.HtmlAttributeEncode($description)" #end>$description</span></a>
+					</span>
+				#end
+				#if ($content)
+					<span class="content hierarchy-component">
+						<a href="$core_v2_encoding.HtmlAttributeEncode($content.Url)"><span #if ($contentName != $contentName) class="ui-tip" title="$core_v2_encoding.HtmlAttributeEncode($contentName)" #end>$contentName</span></a>
+					</span>
+				#end
+			#elseif (!$isHome)
+				#foreach($app in $applications)
+					#if ($app.IsSelected)
+						#if (!$content && $core_v2_urls.FullPath($core_v2_page.Url) == $core_v2_urls.FullPath($app.Url))
+							<h1 class="application hierarchy-component">
+								<a href="$core_v2_encoding.HtmlAttributeEncode($app.Url)"><span #if ($description != $description) class="ui-tip" title="$core_v2_encoding.HtmlAttributeEncode($description)" #end>$description</span></a>
+							</h1>
+						#else
+							<span class="application hierarchy-component">
+								<a href="$core_v2_encoding.HtmlAttributeEncode($app.Url)"><span #if ($description != $description) class="ui-tip" title="$core_v2_encoding.HtmlAttributeEncode($description)" #end>$description</span></a>
+							</span>
+						#end
+						#if ($content)
+							<span class="content hierarchy-component">
+								<a href="$core_v2_encoding.HtmlAttributeEncode($content.Url)"><span #if ($contentName != $contentName) class="ui-tip" title="$core_v2_encoding.HtmlAttributeEncode($contentName)" #end>$contentName</span></a>
+							</span>
+						#end
+					#end
+				#end
+			#end
+
+			#foreach($app in $applications)
+			#beforeall
+				<div #if ($isRegistered) $core_v2_tourTip.Render($core_v2_language.GetResource('TourTipApps'), "%{ CssClass = 'navigation-list applications' }") #else class="navigation-list applications" #end >
+					<div class="ui-links" data-minlinks="0" #if ($isHome && !$forceNarrow) data-maxlinks="5" data-direction="horizontal" #else data-maxlinks="0" data-direction="vertical" #end id="$core_v2_encoding.HtmlAttributeEncode($applicationNavigationId)">
+						<ul>
+			#each
+							## don't render 'home' links
+							#if ($group.Url != $core_v2_page.AbsoluteUrl($app.Url))
+								<li class="navigation-list-application $!app.CssClass #if($app.IsSelected) selected#end">
+									<a href="$core_v2_encoding.HtmlAttributeEncode($app.Url)" class="$!app.CssClass $app.Label #if($app.IsSelected) selected#end"><span></span>$!app.Label</a>
+								</li>
+							#end
+			#afterall
+							<li class="navigation-list-item">
+								<a href="#" class="more" data-more>$core_v2_language.GetResource('more')</a>
+							</li>
+							<li class="navigation-list-item">
+								<a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+							</li>
+						</ul>
+					</div>
+				</div>
+			#nodata
+				<div class="navigation-list applications">
+					<div class="ui-links" data-minlinks="0" data-maxlinks="50" data-direction="horizontal" id="$core_v2_encoding.HtmlAttributeEncode($applicationNavigationId)" #if ($forceNarrow) data-maxlinks="0" #end>
+						<ul></ul>
+					</div>
+				</div>
+			#end
+
+		</div>
+
+	</div>
+
+	## New Post Links
+
+	#set($links = false)
+	#set($links = $core_v2_group.ListNewPostLinks($group.Id))
+
+	#if ($links.Count == 1)
+		#foreach($link in $links)
+			<div class="navigation-list new">
+				<div class="ui-links" data-direction="vertical" data-maxlinks="1" data-minlinks="1">
+					<ul class="navigation-list">
+						<li class="navigation-list-item">
+							<a
+								#if ($isRegistered)
+									$core_v2_tourTip.Render($core_v2_language.GetResource('TourTipNew'), "%{ CssClass = $link.CssClass, Index = 100 }")
+								#else
+									class="$link.CssClass"
+								#end
+								href="$core_v2_encoding.HtmlAttributeEncode($link.Url)">$core_v2_language.GetResource('new_post')</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		#end
+	#elseif ($links.Count > 1)
+		#foreach($link in $links)
+		#beforeall
+			<div class="navigation-list new">
+				<div class="ui-links" data-direction="vertical" data-maxlinks="0">
+					<ul class="navigation-list">
+		#each
+						<li class="navigation-list-item">
+							<a class="$link.CssClass" href="$core_v2_encoding.HtmlAttributeEncode($link.Url)">$link.Label</a>
+						</li>
+		#afterall
+						<li class="navigation-list-item">
+							<a
+								#if ($isRegistered)
+									$core_v2_tourTip.Render($core_v2_language.GetResource('TourTipNew'), "%{ CssClass = 'more', Index = 100 }")
+								#else
+									class="more"
+								#end
+								href="#" data-more>
+								$core_v2_language.GetResource('new_post')
+							</a>
+						</li>
+						<li class="navigation-list-item">
+							<a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		#end
+	#elseif (!$isRegistered && $includeNewLogin)
+		#set($returnToCurrentUrl = true)
+		#set($loginLink = $core_v2_urls.LogIn("%{ReturnToCurrentUrl = $returnToCurrentUrl}"))
+		<div class="navigation-list new">
+			<div class="ui-links" data-direction="vertical">
+				<ul class="navigation-list">
+					<li class="navigation-list-item">
+						<a rel="nofollow" href="$core_v2_encoding.HtmlAttributeEncode($loginLink)">$core_v2_language.GetResource('new_post')</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	#end
+	#if (!$isRegistered && ($groupType == "PublicOpen" || $groupType == "PublicClosed"))
+		<div class="join-alert"><a href="$core_v2_encoding.HtmlAttributeEncode($core_v2_groupUrls.RequestMembership($group.Id))" rel="nofollow" class="internal-link join-group">$core_v2_language.FormatString($core_v2_language.GetResource('Hubs_JoinGroup'), $group.Name)</a></div>
+		## Render extra vertical padding to allow for membership message
+		#registerEndOfPageHtml()
+			<div style="height:100px"></div>
+		#end
+	#elseif ($groupType != "Joinless" && $membershipType == "None" && ($canJoinGroup || $canJoinGroupByRequest))
+		<div class="join-alert"><a href="javascript:void(0)" id="$core_v2_widget.UniqueId('groupMembershipButton')" rel="nofollow" class="internal-link join-group">$core_v2_language.FormatString($core_v2_language.GetResource('Hubs_JoinGroup'), $group.Name)</a></div>
+		## Render extra vertical padding to allow for membership message
+		#registerEndOfPageHtml()
+			<div style="height:100px"></div>
+		#end
+		#registerEndOfPageHtml('telligent.evolution.widgets.groupBanner')
+			<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+		#end
+		#registerEndOfPageHtml()
+			<script type="text/javascript">
+				jQuery(document).ready(function() {
+					jQuery.telligent.evolution.widgets.groupBanner.register({
+						groupMembershipButton:jQuery("#$core_v2_widget.UniqueId('groupMembershipButton')"),
+						requestJoinUrl: #if(!$canJoinGroup) "$core_v2_groupUrls.RequestMembership($group.Id)",#else null,#end
+						canJoinGroup: #if($canJoinGroup) true,#else false,#end
+						canJoinGroupByRequest: #if($canJoinGroupByRequest) true,#else false,#end
+						membershipType:"$membershipType",
+						groupId:$group.Id,
+						userId:$userId,
+						errorText:"$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Groups_GroupBanner_Error'))",
+						joinedText:"$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Groups_GroupBanner_Joined'))",
+						leftText:"$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Groups_GroupBanner_Left'))",
+						#if ($core_v2_page.GetQueryStringValue("requestmembership") == "true" && $membershipType == "None")
+							forceRequestMembership:true
+						#else
+							forceRequestMembership:false
+						#end
+					});
+				});
+			</script>
+		#end
+	#end
+</div>
+
+#if (!$forceNarrow)
+	#registerEndOfPageHtml()
+		<script>
+		jQuery(function(j){
+			var isHome = #if ($isHome) true #else false #end;
+			var parents = j('#${parentNavigationId}');
+			var applications = j('#${applicationNavigationId}');
+			function expand(links) {
+				links.uilinks('reconfigure', { maxLinks: 100 });
+			}
+			function collapse(links) {
+				links.uilinks('reconfigure', { maxLinks: 0 });
+			}
+			j.telligent.evolution.messaging.subscribe('theme.social.scrolled', function(){
+				collapse(parents);
+				collapse(applications);
+			});
+			j.telligent.evolution.messaging.subscribe('theme.social.unscrolled', function(){
+				if(isHome) {
+					expand(parents);
+					expand(applications);
+				} else {
+					expand(parents);
+					collapse(applications);
+				}
+			});
+		});
+		</script>
+	#end
+#end
+
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Groups_GroupBanner_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Groups_GroupBanner_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="navigation" dataType="custom" controlType="Telligent.Evolution.Controls.CustomNavigationCustomControl, Telligent.Evolution.Platform" maximumDepth="1" resourceName="Groups_GroupApplicationNavigation_Navigation" descriptionResourceName="Groups_GroupApplicationNavigation_Navigation_Description" navigationType="group" scope="group" />
+	<property id="includeParent" dataType="bool" defaultValue="True" resourceName="Groups_GroupApplicationNavigation_IncludeParent" descriptionResourceName="Groups_GroupApplicationNavigation_IncludeParent_Description" scope="group" />
+	<property id="includeAvatar" dataType="bool" defaultValue="True" resourceName="Groups_GroupApplicationNavigation_IncludeAvatar" descriptionResourceName="Groups_GroupApplicationNavigation_IncludeAvatar_Description" scope="group" />
+	<property id="includeNewLogin" dataType="bool" defaultValue="True" resourceName="new_login" descriptionResourceName="new_login_desc" scope="group" />
+	<property id="inheritNarrow" dataType="bool" defaultValue="True" resourceName="inheritNarrow" descriptionResourceName="inheritNarrow_desc" scope="group" />
+	<property id="inheritNarrowAppTitle" dataType="bool" defaultValue="True" resourceName="inheritNarrowAppTitle" descriptionResourceName="inheritNarrowAppTitle_desc" scope="group" />
+</propertyGroup>
+<propertyGroup id="design" resourceName="design">
+	<property id="designMode" resourceName="designMode" descriptionResourceName="designMode_desc" dataType="string" defaultValue="color" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform" scope="group">
+		<propertyValue value="color" resourceName="color"  propertiesToShow="palette,colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" propertiesToHide="coverPhotoUrl,blurCoverPhoto,shadowCoverPhoto" />
+		<propertyValue value="photo" resourceName="photo" propertiesToShow="coverPhotoUrl,blurCoverPhoto,shadowCoverPhoto" propertiesToHide="palette,colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+	</property>
+	<property id="palette" resourceName="palette" descriptionResourceName="palette_desc" dataType="string" controlType="Telligent.Evolution.Controls.ColorSelectionControl, Telligent.Evolution.Platform" scope="group">
+		<propertyValue value="background-color=#ffffff&amp;color=#263238&amp;shadow=true&amp;border=true" resourceName="white" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color-from=#2BC0E4&amp;background-color-to=#EAECC6&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="tropic" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color-from=#7474BF&amp;background-color-to=#348AC7&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="stellar" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color-from=#43cea2&amp;background-color-to=#185a9d&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="river" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color-from=#3494E6&amp;background-color-to=#EC6EAD&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="city" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color-from=#36D1DC&amp;background-color-to=#5B86E5&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="scooter" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color-from=#A1FFCE&amp;background-color-to=#FAFFD1&amp;color=#000000&amp;shadow=false&amp;border=false" resourceName="limeade" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color-from=#EDE574&amp;background-color-to=#E1F5C4&amp;color=#000000&amp;shadow=false&amp;border=false" resourceName="sunny" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color-from=#DAE2F8&amp;background-color-to=#D6A4A4&amp;color=#000000&amp;shadow=false&amp;border=false" resourceName="moonrise" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color-from=#ED4264&amp;background-color-to=#FFEDBC&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="peach" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color-from=#ee0979&amp;background-color-to=#ff6a00&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="sunset" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color=#FFC107&amp;color=#000000&amp;shadow=false&amp;border=false" resourceName="amber" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color=#2196F3&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="blue" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color=#455A64&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="bluegray" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color=#00BCD4&amp;color=#000000&amp;shadow=false&amp;border=false" resourceName="cyan" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color=#8BC34A&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="green" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color=#03a9f4&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="lightblue" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color=#ECEFF1&amp;color=#263238&amp;shadow=true&amp;border=true" resourceName="lightbluegray" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color=#CDDC39&amp;color=#000000&amp;shadow=false&amp;border=false" resourceName="lime" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color=#E91E63&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="pink" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color=#9C27B0&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="purple" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color=#F44336&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="red" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color=#009688&amp;color=#ffffff&amp;shadow=false&amp;border=true" resourceName="teal" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color=#FFEB3B&amp;color=#000000&amp;shadow=false&amp;border=false" resourceName="yellow" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		<propertyValue value="background-color=#ffffff&amp;color=#263238&amp;custom=true" resourceName="custom" propertiesToShow="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" propertiesToHide="" />
+	</property>
+	<property id="coverPhotoUrl" dataType="url" resourceName="coverphoto" descriptionResourceName="coverPhotoUrl_desc" controlType="Telligent.Evolution.Controls.ThemeFileUrlControl, Telligent.Evolution.Platform" scope="group">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.FileExtensionRule, Telligent.Evolution.Platform" validExtensions="gif,jpg,jpeg,png" />
+	</property>
+	<property id="blurCoverPhoto" descriptionResourceName="coverPhotoBlur_desc" dataType="bool" defaultValue="False" resourceName="coverPhotoBlur" scope="group" />
+	<property id="shadowCoverPhoto" descriptionResourceName="shadowCoverPhoto_desc" dataType="bool" defaultValue="True" resourceName="shadowCoverPhoto" scope="group" />
+	<property id="colorMode" resourceName="colorMode" dataType="string" defaultValue="yes" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform" scope="group">
+		<propertyValue value="solid" resourceName="solid"  propertiesToShow="" propertiesToHide="backgroundColor2" />
+		<propertyValue value="gradient" resourceName="gradient" propertiesToShow="backgroundColor2" propertiesToHide="" />
+	</property>
+	<property id="backgroundColor" dataType="color" defaultValue="#fff" resourceName="backgroundColor" scope="group" />
+	<property id="backgroundColor2" dataType="color" defaultValue="#fff" resourceName="backgroundColor2" scope="group" />
+	<property id="foregroundColor" dataType="color" defaultValue="#263238" resourceName="foregroundColor" scope="group" />
+	<property id="shadow" descriptionResourceName="shadow_desc" dataType="bool" defaultValue="True" resourceName="shadow" scope="group" />
+	<property id="border" descriptionResourceName="border_desc" dataType="bool" defaultValue="True" resourceName="border" scope="group" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="amber">Amber</resource>
+  <resource name="backgroundColor">Background Color</resource>
+  <resource name="backgroundColor2">Secondary Gradient Background Color</resource>
+  <resource name="black">Black</resource>
+  <resource name="blue">Blue</resource>
+  <resource name="bluegray">Blue Gray</resource>
+  <resource name="border">Bottom Border</resource>
+  <resource name="border_desc">Render a bottom border beneath the banner. When the bottom shadow is enabled, only renders when not scrolled.</resource>
+  <resource name="cancel">Cancel</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="city">City</resource>
+  <resource name="color">Use Color</resource>
+  <resource name="colorMode">Color Type</resource>
+  <resource name="coverForeground">Cover Foreground</resource>
+  <resource name="coverphoto">Cover Photo</resource>
+  <resource name="coverPhotoBlur">Blur Cover Photo</resource>
+  <resource name="coverPhotoBlur_desc">When selected, the cover photo is blurred. This is useful for legibility of overlaid text when using a complex image.</resource>
+  <resource name="coverPhotoUrl_desc">When provided, a cover photo is rendered as the banner's background. Using a cover photo increases the height of the banner on its homepage.</resource>
+  <resource name="custom">Custom</resource>
+  <resource name="cyan">Cyan</resource>
+  <resource name="design">Design</resource>
+  <resource name="designMode">Design</resource>
+  <resource name="designMode_desc">Customize your group's banner with a cover photo or color palette.</resource>
+  <resource name="foregroundColor">Foreground Color</resource>
+  <resource name="gradient">Gradient</resource>
+  <resource name="green">Green</resource>
+  <resource name="Groups_GroupApplicationNavigation_IncludeAvatar">Include Group Avatar</resource>
+  <resource name="Groups_GroupApplicationNavigation_IncludeAvatar_Description">When enabled, render group avatar.</resource>
+  <resource name="Groups_GroupApplicationNavigation_IncludeParent">Include Parent Navigation</resource>
+  <resource name="Groups_GroupApplicationNavigation_IncludeParent_Description">When enabled, parent groups can be navigated to from the current group</resource>
+  <resource name="Groups_GroupApplicationNavigation_Navigation">Navigation Items</resource>
+  <resource name="Groups_GroupApplicationNavigation_Navigation_Description">Add, edit, delete, and reorder navigation items for this group.</resource>
+  <resource name="Groups_GroupBanner_Description">Displays a banner of common group information and links.</resource>
+  <resource name="Groups_GroupBanner_Error">There was an error joining or leaving the group.</resource>
+  <resource name="Groups_GroupBanner_Joined">You have joined this group.</resource>
+  <resource name="Groups_GroupBanner_Left">You have left this group.</resource>
+  <resource name="Groups_GroupBanner_Name">Group - Banner</resource>
+  <resource name="Hubs_EditAndAddDescription">Edit this group and add a description</resource>
+  <resource name="Hubs_JoinGroup">{0} requires membership for participation - click to join</resource>
+  <resource name="inheritNarrow">Narrow on Inheriting Themes</resource>
+  <resource name="inheritNarrow_desc">Render the narrow view on inherited themable applications that provide their own banner, such as blogs.</resource>
+  <resource name="inheritNarrowAppTitle">Application Title on Inheriting Themes</resource>
+  <resource name="inheritNarrowAppTitle_desc">Always render the application title in narrow view on inherited themable applications that provide their own banner, such as blogs.</resource>
+  <resource name="lightblue">Light Blue</resource>
+  <resource name="lightbluegray">Light Blue Gray</resource>
+  <resource name="lime">Lime</resource>
+  <resource name="limeade">Limeade</resource>
+  <resource name="moonrise">Moonrise</resource>
+  <resource name="more">More</resource>
+  <resource name="new_login">Render 'New' button to non-logged-in users</resource>
+  <resource name="new_login_desc">When enabled, renders a 'New' button to non-logged-in users which redirects to login.</resource>
+  <resource name="new_post">New</resource>
+  <resource name="no">No</resource>
+  <resource name="Options">Options</resource>
+  <resource name="palette">Color Palette</resource>
+  <resource name="palette_desc">Select a color palette for your group's banner, or create a custom one.</resource>
+  <resource name="ParentGroup">Up to {0}</resource>
+  <resource name="ParentGroups">View Parent Groups</resource>
+  <resource name="peach">Peach</resource>
+  <resource name="photo">Use Cover Photo</resource>
+  <resource name="pink">Pink</resource>
+  <resource name="purple">Purple</resource>
+  <resource name="red">Red</resource>
+  <resource name="river">River</resource>
+  <resource name="scooter">Scooter</resource>
+  <resource name="shadow">Bottom Shadow</resource>
+  <resource name="shadow_desc">Render a shadow beneath the banner. When the bottom border is enabled, only renders when scrolled.</resource>
+  <resource name="shadowCoverPhoto">Shadow Cover Photo</resource>
+  <resource name="shadowCoverPhoto_desc">When selected, the cover photo is shadowed to increase legibility of text on a light photo.</resource>
+  <resource name="solid">Solid</resource>
+  <resource name="stellar">Stellar</resource>
+  <resource name="sunny">Sunny</resource>
+  <resource name="sunset">Sunset</resource>
+  <resource name="teal">Teal</resource>
+  <resource name="TourTipApps">Navigate the group's applications.</resource>
+  <resource name="TourTipNew">Share content with the group.</resource>
+  <resource name="TourTipTitle">Groups are areas of interest within your community where people can share and collaborate together. Some groups are public while others are private.</resource>
+  <resource name="tropic">Tropic</resource>
+  <resource name="white">White</resource>
+  <resource name="yellow">Yellow</resource>
+  <resource name="yes">Yes</resource>
+</language>
+<language key="zh-cn">
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Groups_GroupApplicationNavigation_IncludeParent">包括父级导航</resource>
+  <resource name="Groups_GroupApplicationNavigation_IncludeParent_Description">启用后，可从当前社区导航到父级社区</resource>
+  <resource name="Groups_GroupApplicationNavigation_Navigation">导航项目</resource>
+  <resource name="Groups_GroupApplicationNavigation_Navigation_Description">为此社区添加、编辑、删除和重新排序导航项目。</resource>
+  <resource name="Groups_GroupBanner_Description">显示通用社区信息和链接的横幅。</resource>
+  <resource name="Groups_GroupBanner_Error">加入或退出社区时出现错误。</resource>
+  <resource name="Groups_GroupBanner_Joined">您已加入此社区。</resource>
+  <resource name="Groups_GroupBanner_Left">您已退出此社区。</resource>
+  <resource name="Groups_GroupBanner_Name">社区 - 横幅</resource>
+  <resource name="Hubs_EditAndAddDescription">编辑此社区并添加描述</resource>
+  <resource name="Hubs_JoinGroup">此社区需要成员资格才能参与 - 单击以加入</resource>
+  <resource name="more">更多</resource>
+  <resource name="new_post">新建</resource>
+  <resource name="Options">选项</resource>
+  <resource name="ParentGroup">最多 {0}</resource>
+  <resource name="ParentGroups">查看父级社区</resource>
+  <resource name="TourTipApps">导航社区的应用程序。</resource>
+  <resource name="TourTipNew">与社区共享内容。</resource>
+  <resource name="TourTipTitle">组是社区中可供用户分享和协作的相关区域。某些社区是公开社区，而某些社区是私有社区。</resource>
+</language>
+<language key="zh-tw">
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Groups_GroupApplicationNavigation_IncludeParent">包含父導覽</resource>
+  <resource name="Groups_GroupApplicationNavigation_IncludeParent_Description">當啟用時，可從目前社群導覽至父社群</resource>
+  <resource name="Groups_GroupApplicationNavigation_Navigation">導覽項目</resource>
+  <resource name="Groups_GroupApplicationNavigation_Navigation_Description">新增、編輯、刪除和重新排序這個社群的導覽項目。</resource>
+  <resource name="Groups_GroupBanner_Description">顯示一般社群資訊和連結的橫幅。</resource>
+  <resource name="Groups_GroupBanner_Error">加入或離開社群時發生錯誤。</resource>
+  <resource name="Groups_GroupBanner_Joined">您已加入此社群。</resource>
+  <resource name="Groups_GroupBanner_Left">您已離開此社群。</resource>
+  <resource name="Groups_GroupBanner_Name">社群 - 橫幅</resource>
+  <resource name="Hubs_EditAndAddDescription">編%E8%BC%AF這個社群並新增描述</resource>
+  <resource name="Hubs_JoinGroup">此社群需要會員資格才能登入 - 按一下以加入</resource>
+  <resource name="more">更多</resource>
+  <resource name="new_post">新增</resource>
+  <resource name="Options">選項</resource>
+  <resource name="ParentGroup">最多 {0}</resource>
+  <resource name="ParentGroups">檢視父社群</resource>
+  <resource name="TourTipApps">導覽社群的應用程式。</resource>
+  <resource name="TourTipNew">與社群分享內容。</resource>
+  <resource name="TourTipTitle">群組是社群內具有共同利益的區域，人們可以在此進行分享及協同合作。某些社群為公開性質，其他則為私人社群。</resource>
+</language></languageResources>
+		<additionalCssScript><![CDATA[
+#set ($designMode = $core_v2_widget.GetStringValue('designMode', 'color'))
+#if ($designMode == 'photo')
+	#set ($coverPhotoUrl = false)
+	#set ($coverPhotoUrl = $core_v2_widget.GetUrlValue('coverPhotoUrl', ''))
+	#if ($coverPhotoUrl && $coverPhotoUrl.Length > 0)
+		with-cover-photo
+	#end
+	#set ($blurCoverPhoto = $core_v2_widget.GetBoolValue('blurCoverPhoto', true))
+	#if ($blurCoverPhoto)
+		with-blur
+	#end
+	#set ($shadowCoverPhoto = $core_v2_widget.GetBoolValue('shadowCoverPhoto', false))
+	#if ($shadowCoverPhoto)
+		with-shadow
+	#end
+#end
+			]]></additionalCssScript>
+		<files>
+			<file name="style.vm">I3NldCAoJGRlc2lnbk1vZGUgPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ2Rlc2lnbk1vZGUnLCAnY29sb3InKSkNCg0KIyMgRGVmYXVsdHMNCiNzZXQgKCRiYWNrZ3JvdW5kQ29sb3IgPSAnI2ZmZicpDQojc2V0ICgkZm9yZWdyb3VuZENvbG9yID0gJyMyNjMyMzgnKQ0KI3NldCAoJHNoYWRvdyA9IHRydWUpDQojc2V0ICgkYm9yZGVyID0gdHJ1ZSkNCg0KI2lmICgkZGVzaWduTW9kZSA9PSAnY29sb3InKQ0KCSMjIFBhcnNlIFNlbGVjdGVkIENvbG9yIFBhbGV0dGUNCg0KCSNzZXQgKCRyYXdQYWxldHRlID0gJGNvcmVfdjJfd2lkZ2V0LkdldEN1c3RvbVZhbHVlKCdwYWxldHRlJywnJykpDQoNCgkjaWYgKCRyYXdQYWxldHRlLkxlbmd0aCA9PSAwKQ0KCQkjc2V0ICgkcmF3UGFsZXR0ZSA9ICJiYWNrZ3JvdW5kLWNvbG9yPSNmZmZmZmYmY29sb3I9IzI2MzIzOCZzaGFkb3c9dHJ1ZSZib3JkZXI9dHJ1ZSIpDQoJI2VuZA0KCSRjb3JlX3YyX3dpZGdldC5TZXRDdXN0b21WYWx1ZSgncGFsZXR0ZScsICRjb3JlX3YyX3V0aWxpdHkuUmVwbGFjZSgkcmF3UGFsZXR0ZSwgJyZhbXA7JywgJyYnKSkNCgkjc2V0ICgkcGFsZXR0ZSA9ICRjb3JlX3YyX3BhZ2UuUGFyc2VRdWVyeVN0cmluZygkcmF3UGFsZXR0ZSkpDQoJI3NldCAoJGJhY2tncm91bmRDb2xvciA9ICRwYWxldHRlLlZhbHVlKCdiYWNrZ3JvdW5kLWNvbG9yJykpDQoJI3NldCAoJGJhY2tncm91bmRDb2xvckZyb20gPSAkcGFsZXR0ZS5WYWx1ZSgnYmFja2dyb3VuZC1jb2xvci1mcm9tJykpDQoJI3NldCAoJGJhY2tncm91bmRDb2xvclRvID0gJHBhbGV0dGUuVmFsdWUoJ2JhY2tncm91bmQtY29sb3ItdG8nKSkNCgkjc2V0ICgkY29sb3IgPSAkcGFsZXR0ZS5WYWx1ZSgnY29sb3InKSkNCgkjc2V0ICgkY29sb3JNb2RlID0gJGNvcmVfdjJfd2lkZ2V0LkdldFN0cmluZ1ZhbHVlKCdjb2xvck1vZGUnLCAnc29saWQnKSkNCgkjc2V0ICgkc2hhZG93ID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUJvb2woJHBhbGV0dGUuVmFsdWUoJ3NoYWRvdycpKSkNCgkjc2V0ICgkYm9yZGVyID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUJvb2woJHBhbGV0dGUuVmFsdWUoJ2JvcmRlcicpKSkNCgkjc2V0ICgkY3VzdG9tID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUJvb2woJHBhbGV0dGUuVmFsdWUoJ2N1c3RvbScpKSkNCg0KCSNpZiAoJGN1c3RvbSkNCgkJIyMgQ3VzdG9tIENvbG9yIFBhbGV0dGUNCgkJI3NldCAoJGJhY2tncm91bmRDb2xvciA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgnYmFja2dyb3VuZENvbG9yJywgJyNmZmYnKSkNCgkJI3NldCAoJGJhY2tncm91bmRDb2xvcjIgPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ2JhY2tncm91bmRDb2xvcjInLCAnI2ZmZicpKQ0KCQkjaWYgKCRjb2xvck1vZGUgPT0gJ2dyYWRpZW50JykNCgkJCSNzZXQgKCRiYWNrZ3JvdW5kID0gImxpbmVhci1ncmFkaWVudCh0byByaWdodCwgJHtiYWNrZ3JvdW5kQ29sb3J9LCAke2JhY2tncm91bmRDb2xvcjJ9KSIpDQoJCSNlbHNlDQoJCQkjc2V0ICgkYmFja2dyb3VuZCA9ICRiYWNrZ3JvdW5kQ29sb3IpDQoJCSNlbmQNCgkJI3NldCAoJGZvcmVncm91bmRDb2xvciA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgnZm9yZWdyb3VuZENvbG9yJywgJyMyNjMyMzgnKSkNCgkJI3NldCAoJHNoYWRvdyA9ICRjb3JlX3YyX3dpZGdldC5HZXRCb29sVmFsdWUoJ3NoYWRvdycsIHRydWUpKQ0KCQkjc2V0ICgkYm9yZGVyID0gJGNvcmVfdjJfd2lkZ2V0LkdldEJvb2xWYWx1ZSgnYm9yZGVyJywgdHJ1ZSkpDQoJI2Vsc2UNCgkJIyMgU2VsZWN0ZWQgQ29sb3IgUGFsZXR0ZQ0KCQkjc2V0ICgkZm9yZWdyb3VuZENvbG9yID0gJGNvbG9yKQ0KCQkjaWYgKCRiYWNrZ3JvdW5kQ29sb3JGcm9tLmxlbmd0aCA+IDAgJiYgJGJhY2tncm91bmRDb2xvclRvLmxlbmd0aCA+IDApDQoJCQkjc2V0ICgkYmFja2dyb3VuZCA9ICJsaW5lYXItZ3JhZGllbnQodG8gcmlnaHQsICR7YmFja2dyb3VuZENvbG9yRnJvbX0sICR7YmFja2dyb3VuZENvbG9yVG99KSIpDQoJCQkjc2V0ICgkYmFja2dyb3VuZENvbG9yID0gJGJhY2tncm91bmRDb2xvckZyb20pDQoJCSNlbHNlaWYgKCRiYWNrZ3JvdW5kQ29sb3IubGVuZ3RoID4gMCkNCgkJCSNzZXQgKCRiYWNrZ3JvdW5kID0gJGJhY2tncm91bmRDb2xvcikNCgkJI2VuZA0KCSNlbmQNCiNlbmQNCg0KPHN0eWxlPg0KCSNzZXQgKCRpbmNsdWRlQXZhdGFyID0gJGNvcmVfdjJfd2lkZ2V0LkdldEJvb2xWYWx1ZSgnaW5jbHVkZUF2YXRhcicsIHRydWUpKQ0KCSNpZiAoISRpbmNsdWRlQXZhdGFyKQ0KCQkuYmFubmVyLmNvbnRleHQgPiAuYXZhdGFyIHsNCgkJCWRpc3BsYXk6IG5vbmU7DQoJCX0NCgkjZW5kDQoNCgkjc2V0ICgkY292ZXJQaG90b1VybCA9IGZhbHNlKQ0KCSNzZXQgKCRjb3ZlclBob3RvVXJsID0gJGNvcmVfdjJfd2lkZ2V0LkdldFVybFZhbHVlKCdjb3ZlclBob3RvVXJsJywgJycpKQ0KCSNpZiAoJGNvdmVyUGhvdG9VcmwgJiYgJGNvdmVyUGhvdG9VcmwuTGVuZ3RoID4gMCAmJiAkZGVzaWduTW9kZSA9PSAncGhvdG8nKQ0KCQkjc2V0ICgkYmFja2dyb3VuZENvbG9yID0gJyMyNjMyMzgnKQ0KCQkjc2V0ICgkZm9yZWdyb3VuZENvbG9yID0gJyNmZmYnKQ0KCQkjc2V0ICgkc2hhZG93ID0gZmFsc2UpDQoJCSNzZXQgKCRib3JkZXIgPSBmYWxzZSkNCgkJI3NldCAoJGJsdXJDb3ZlclBob3RvID0gJGNvcmVfdjJfd2lkZ2V0LkdldEJvb2xWYWx1ZSgnYmx1ckNvdmVyUGhvdG8nLCB0cnVlKSkNCgkJI3NldCAoJGNvdmVyUGhvdG9XaWR0aCA9IDEwMDApDQoJCSNzZXQgKCRjb3ZlclBob3RvSGVpZ2h0ID0gMjUwKQ0KCQkjaWYgKCRibHVyQ292ZXJQaG90bykNCgkJCSNzZXQgKCRjb3ZlclBob3RvV2lkdGggPSAyMDApDQoJCQkjc2V0ICgkY292ZXJQaG90b0hlaWdodCA9IDUwKQ0KCQkjZW5kDQoJCSNzZXQgKCRyZXNpemVkQ292ZXJQaG90b1VybCA9ICRjb3JlX3YyX3VpLkdldFJlc2l6ZWRJbWFnZVVybCgkY292ZXJQaG90b1VybCwgJGNvdmVyUGhvdG9XaWR0aCwgJGNvdmVyUGhvdG9IZWlnaHQsICIleyBTY2FsZUZhY3RvciA9IDIsIFJlc2l6ZU1ldGhvZD0nWm9vbUFuZENyb3AnIH0iKSkNCg0KCQkud2l0aC1jb3Zlci1waG90byAuY292ZXItcGhvdG8sDQoJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudCAubGF5b3V0LXJlZ2lvbi5jb250ZW50IC5sYXlvdXQtcmVnaW9uLWlubmVyIC5jb250ZW50LWZyYWdtZW50Lmdyb3VwLWJhbm5lciAuY292ZXItcGhvdG8gew0KCQkJYmFja2dyb3VuZC1pbWFnZTogdXJsKCRyZXNpemVkQ292ZXJQaG90b1VybCk7DQoJCQliYWNrZ3JvdW5kLXBvc2l0aW9uOiBjZW50ZXI7DQoJCQliYWNrZ3JvdW5kLXNpemU6IGNvdmVyOw0KCQkJI2lmICgkYmx1ckNvdmVyUGhvdG8pDQoJCQkJZmlsdGVyOiBibHVyKDE1cHgpOw0KCQkJI2VuZA0KCQl9DQoNCgkjZWxzZQ0KDQoJCS5zaW5nbGUtY29sdW1uLmhlYWRlci1mcmFnbWVudHMsDQoJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudCAubGF5b3V0LXJlZ2lvbi5jb250ZW50LA0KCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQud2l0aC1hZGFwdGFibGUtZWxlbWVudHMgLmxheW91dC1yZWdpb24uY29udGVudCB7DQoJCQliYWNrZ3JvdW5kOiAkYmFja2dyb3VuZDsNCgkJfQ0KDQoJI2VuZA0KDQoJIyMgd2hlbiBib3RoIGRlZmluZWQsIHNob3dzIHNoYWRvdyB3aGVuIHNjcm9sbGVkLCBib3JkZXIgd2hlbiBub3QNCgkjaWYgKCRzaGFkb3cgJiYgJGJvcmRlcikNCgkJLnNpbmdsZS1jb2x1bW4uaGVhZGVyLWZyYWdtZW50cyB7fQ0KDQoJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudDpub3QoLnNjcm9sbGVkKSAubGF5b3V0LXJlZ2lvbi5jb250ZW50LA0KCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQud2l0aC1hZGFwdGFibGUtZWxlbWVudHM6bm90KC5zY3JvbGxlZCkgLmxheW91dC1yZWdpb24uY29udGVudCB7DQoJCQkgYm9yZGVyLWJvdHRvbTogMXB4IHNvbGlkICNDRkQ4REM7DQoJCX0NCg0KCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQ6bm90KHNjcm9sbGVkKSB7DQoJCQlib3gtc2hhZG93OiBub25lOw0KCQl9DQoJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudC5zY3JvbGxlZCB7DQoJCQlib3gtc2hhZG93OiAwIDJweCA1cHggcmdiYSgwLCAwLCAwLCAwLjE1KTsNCgkJfQ0KCSMjIHdoZW4gb25seSBzaGFkb3csIGFsd2F5cyBzaG93cyBzaGFkb3cNCgkjZWxzZWlmICgkc2hhZG93KQ0KCQkuc2luZ2xlLWNvbHVtbi5oZWFkZXItZnJhZ21lbnRzLA0KCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQgLmxheW91dC1yZWdpb24uY29udGVudCwNCgkJLmhlYWRlci1mcmFnbWVudHMgLmxheW91dCAuaGVhZGVyLXRvcC1jb250ZW50LndpdGgtYWRhcHRhYmxlLWVsZW1lbnRzIC5sYXlvdXQtcmVnaW9uLmNvbnRlbnQgew0KCQkJYm9yZGVyLWJvdHRvbTogMHB4Ow0KCQl9DQoJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudCB7DQoJCQlib3gtc2hhZG93OiAwIDJweCA1cHggcmdiYSgwLCAwLCAwLCAwLjE1KTsNCgkJfQ0KCSMjIHdoZW4gb25seSBib3JkZXIsIGFsd2F5cyBzaG93cyBib3JkZXINCgkjZWxzZWlmICgkYm9yZGVyKQ0KCQkuc2luZ2xlLWNvbHVtbi5oZWFkZXItZnJhZ21lbnRzLA0KCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQgLmxheW91dC1yZWdpb24uY29udGVudCwNCgkJLmhlYWRlci1mcmFnbWVudHMgLmxheW91dCAuaGVhZGVyLXRvcC1jb250ZW50LndpdGgtYWRhcHRhYmxlLWVsZW1lbnRzIC5sYXlvdXQtcmVnaW9uLmNvbnRlbnQgew0KCQkJYm9yZGVyLWJvdHRvbTogMXB4IHNvbGlkICNDRkQ4REM7DQoJCX0NCgkJLmhlYWRlci1mcmFnbWVudHMgLmxheW91dCAuaGVhZGVyLXRvcC1jb250ZW50LA0KCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQuc2Nyb2xsZWQgew0KCQkJYm94LXNoYWRvdzogbm9uZTsNCgkJfQ0KCSNlbHNlDQoJCS5zaW5nbGUtY29sdW1uLmhlYWRlci1mcmFnbWVudHMsDQoJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudCAubGF5b3V0LXJlZ2lvbi5jb250ZW50LA0KCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQud2l0aC1hZGFwdGFibGUtZWxlbWVudHMgLmxheW91dC1yZWdpb24uY29udGVudCB7DQoJCQlib3JkZXItYm90dG9tOiAwcHg7DQoJCX0NCgkJLmhlYWRlci1mcmFnbWVudHMgLmxheW91dCAuaGVhZGVyLXRvcC1jb250ZW50LA0KCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQuc2Nyb2xsZWQgew0KCQkJYm94LXNoYWRvdzogbm9uZTsNCgkJfQ0KCSNlbmQNCg0KCS8qIHBhcmVudCBuYXZpZ2F0aW9uICovDQoJLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5wYXJlbnQtbmF2aWdhdGlvbiB1bCBsaSBhLA0KCS5iYW5uZXIuY29udGV4dCA+IC5oaWVyYXJjaHkgPiAucGFyZW50LW5hdmlnYXRpb24gdWwgbGkgYTpob3ZlciwNCgkuYmFubmVyLmNvbnRleHQgPiAuaGllcmFyY2h5ID4gLnBhcmVudC1uYXZpZ2F0aW9uIHVsIGxpIGE6YmVmb3JlLA0KCS5zY3JvbGxlZCAuYmFubmVyLmNvbnRleHQgPiAuaGllcmFyY2h5ID4gLnBhcmVudC1uYXZpZ2F0aW9uIGEubW9yZTpiZWZvcmUsDQoJLnNjcm9sbGVkIC5iYW5uZXIuY29udGV4dCA+IC5oaWVyYXJjaHkgPiAucGFyZW50LW5hdmlnYXRpb24gdWwgbGkgYTpiZWZvcmUsDQoJLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5wYXJlbnQtbmF2aWdhdGlvbiB1bCBsaSBhLm1vcmUubGlua3MtZXhwYW5kZWQsDQoJLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5wYXJlbnQtbmF2aWdhdGlvbiB1bCBsaSBhLm1vcmUubGlua3MtZXhwYW5kZWQ6YmVmb3JlLA0KCS5iYW5uZXIuY29udGV4dCA+IC5oaWVyYXJjaHkgPiAucGFyZW50LW5hdmlnYXRpb24gdWwgbGkgYS5tb3JlOmJlZm9yZSB7DQoJCWNvbG9yOiAkZm9yZWdyb3VuZENvbG9yOw0KCX0NCg0KCS8qIGhpZXJhcmNoeSBjb21wb25lbnRzICovDQoJLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5oaWVyYXJjaHktY29tcG9uZW50LA0KCS5iYW5uZXIuY29udGV4dCA+IC5oaWVyYXJjaHkgPiAuY3VycmVudC1oaWVyYXJjaHkgPiAuaGllcmFyY2h5LWNvbXBvbmVudCBhLA0KCS5iYW5uZXIuY29udGV4dCA+IC5oaWVyYXJjaHkgPiAuY3VycmVudC1oaWVyYXJjaHkgPiAuaGllcmFyY2h5LWNvbXBvbmVudDpiZWZvcmUsDQoJLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5oaWVyYXJjaHktY29tcG9uZW50IGE6aG92ZXIgew0KCQljb2xvcjogJGZvcmVncm91bmRDb2xvcjsNCgl9DQoNCgkvKiBhcHBsaWNhdGlvbnMgKi8NCgkuYmFubmVyLmNvbnRleHQgPiAuaGllcmFyY2h5ID4gLmN1cnJlbnQtaGllcmFyY2h5ID4gLmFwcGxpY2F0aW9ucyB1bCBhLA0KCS5iYW5uZXIuY29udGV4dCA+IC5oaWVyYXJjaHkgPiAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGE6aG92ZXIsDQoJLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYS5tb3JlLA0KCS5iYW5uZXIuY29udGV4dDpub3QoLmhvbWUpID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYS5tb3JlLA0KCS5iYW5uZXIuY29udGV4dDpub3QoLmhvbWUpID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYS5tb3JlOmJlZm9yZSwNCgkuYmFubmVyLmNvbnRleHQuaG9tZSA+IC5oaWVyYXJjaHkgPiAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGEubW9yZTpiZWZvcmUsDQoJLnNjcm9sbGVkIC5iYW5uZXIuY29udGV4dCAuaGllcmFyY2h5IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYS5tb3JlLA0KCS5zY3JvbGxlZCAuYmFubmVyLmNvbnRleHQgLmhpZXJhcmNoeSAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGEubW9yZTpiZWZvcmUsDQoJLmJhbm5lci5jb250ZXh0LnNsaW06bm90KC5ob21lKSA+IC5oaWVyYXJjaHkgPiAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGEubW9yZSwNCgkuYmFubmVyLmNvbnRleHQuc2xpbTpub3QoLmhvbWUpID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYS5tb3JlOmJlZm9yZSwNCgkuc2Nyb2xsZWQgLmJhbm5lci5jb250ZXh0Om5vdCguaG9tZSkgPiAuaGllcmFyY2h5ID4gLmN1cnJlbnQtaGllcmFyY2h5ID4gLmFwcGxpY2F0aW9ucyB1bCBhLm1vcmUsDQoJLnNjcm9sbGVkIC5iYW5uZXIuY29udGV4dDpub3QoLmhvbWUpID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYS5tb3JlOmJlZm9yZSB7DQoJCWJvcmRlci1jb2xvcjogJGZvcmVncm91bmRDb2xvcjsNCgkJY29sb3I6ICRmb3JlZ3JvdW5kQ29sb3I7DQoJfQ0KCS5iYW5uZXIuY29udGV4dC5ob21lID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYS5saW5rcy1leHBhbmRlZCwNCgkuYmFubmVyLmNvbnRleHQuaG9tZSA+IC5oaWVyYXJjaHkgPiAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGEubGlua3MtZXhwYW5kZWQ6YmVmb3JlLA0KCS5iYW5uZXIuY29udGV4dC5ob21lID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYS5tb3JlLmxpbmtzLWV4cGFuZGVkOmJlZm9yZSwNCgkuc2Nyb2xsZWQgLmJhbm5lci5jb250ZXh0IC5oaWVyYXJjaHkgLmN1cnJlbnQtaGllcmFyY2h5ID4gLmFwcGxpY2F0aW9ucyB1bCBhLm1vcmUubGlua3MtZXhwYW5kZWQsDQoJLnNjcm9sbGVkIC5iYW5uZXIuY29udGV4dCAuaGllcmFyY2h5IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYS5tb3JlLmxpbmtzLWV4cGFuZGVkOmJlZm9yZSwNCgkuYmFubmVyLmNvbnRleHQ6bm90KC5ob21lKSA+IC5oaWVyYXJjaHkgPiAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGEubW9yZS5saW5rcy1leHBhbmRlZCwNCgkuYmFubmVyLmNvbnRleHQ6bm90KC5ob21lKSA+IC5oaWVyYXJjaHkgPiAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGEubW9yZS5saW5rcy1leHBhbmRlZDpiZWZvcmUsDQoJLmJhbm5lci5jb250ZXh0LnNsaW06bm90KC5ob21lKSA+IC5oaWVyYXJjaHkgPiAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGEubW9yZS5saW5rcy1leHBhbmRlZCwNCgkuYmFubmVyLmNvbnRleHQuc2xpbTpub3QoLmhvbWUpID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYS5tb3JlLmxpbmtzLWV4cGFuZGVkOmJlZm9yZSwNCgkuc2Nyb2xsZWQgLmJhbm5lci5jb250ZXh0Om5vdCguaG9tZSkgPiAuaGllcmFyY2h5ID4gLmN1cnJlbnQtaGllcmFyY2h5ID4gLmFwcGxpY2F0aW9ucyB1bCBhLm1vcmUubGlua3MtZXhwYW5kZWQsDQoJLnNjcm9sbGVkIC5iYW5uZXIuY29udGV4dDpub3QoLmhvbWUpID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYS5tb3JlLmxpbmtzLWV4cGFuZGVkOmJlZm9yZSB7DQoJCWJhY2tncm91bmQtY29sb3I6ICRmb3JlZ3JvdW5kQ29sb3I7DQoJCWNvbG9yOiAkYmFja2dyb3VuZENvbG9yOw0KCQlib3JkZXItY29sb3I6ICRmb3JlZ3JvdW5kQ29sb3I7DQoJfQ0KDQoJLyogbmV3ICovDQoJLmJhbm5lci5jb250ZXh0ID4gLm5ldyB1bCBhLA0KCS5iYW5uZXIuY29udGV4dCAubmF2aWdhdGlvbi1saXN0Lm5ldyB1bCBhLmxpbmtzLWV4cGFuZGVkLA0KCS5iYW5uZXIuY29udGV4dCAubmF2aWdhdGlvbi1saXN0Lm5ldyB1bCBhLmxpbmtzLWV4cGFuZGVkOmhvdmVyLA0KCS5iYW5uZXIuY29udGV4dCAubmF2aWdhdGlvbi1saXN0Lm5ldyB1bCBhLmxpbmtzLWV4cGFuZGVkOmFjdGl2ZSwNCgkuYmFubmVyLmNvbnRleHQgLm5hdmlnYXRpb24tbGlzdC5uZXcgdWwgYTpob3ZlciB7DQoJCWJhY2tncm91bmQtY29sb3I6ICRmb3JlZ3JvdW5kQ29sb3I7DQoJCWNvbG9yOiAkYmFja2dyb3VuZENvbG9yOw0KCX0NCgkuc2luZ2xlLWNvbHVtbiAuYmFubmVyLmNvbnRleHQgPiAubmV3IGEsDQoJLnNpbmdsZS1jb2x1bW4gLmJhbm5lci5jb250ZXh0Om5vdCguaG9tZSkgPiAubmV3IGEsDQoJLnNpbmdsZS1jb2x1bW4gLmJhbm5lci5jb250ZXh0LmhvbWUgPiAubmV3IGEgew0KCQljb2xvcjogJGZvcmVncm91bmRDb2xvcjsNCgkJYm9yZGVyLWNvbG9yOiAkZm9yZWdyb3VuZENvbG9yOw0KCX0NCg0KCS8qIGluaGVyaXRpbmcgYXBwbGljYXRpb24gYmFubmVyICovDQoJLmJhbm5lci5hcHBsaWNhdGlvbiwNCgkuYmFubmVyLmFwcGxpY2F0aW9uIC5uYXZpZ2F0aW9uLWxpc3QgYSwNCgkuYmFubmVyLmFwcGxpY2F0aW9uIC5uYW1lIC50aXRsZSBhIHsNCgkJY29sb3I6ICRmb3JlZ3JvdW5kQ29sb3I7DQoJfQ0KCS5iYW5uZXIuYXBwbGljYXRpb246OmFmdGVyIHsNCgkJYmFja2dyb3VuZC1jb2xvcjogJGZvcmVncm91bmRDb2xvcjsNCgl9DQoNCg0KCS8qIGN1c3RvbSBuYXZpZ2F0aW9uIHdpZGdldCAqLw0KCS5oZWFkZXItZnJhZ21lbnRzIC5jb250ZW50LWZyYWdtZW50Lm5hdmlnYXRpb24tY3VzdG9tIC5uYXZpZ2F0aW9uLWxpc3RbZGF0YS1kaXJlY3Rpb249J2hvcml6b250YWwnXSBhLA0KCS5oZWFkZXItZnJhZ21lbnRzIC5jb250ZW50LWZyYWdtZW50Lm5hdmlnYXRpb24tY3VzdG9tIC5uYXZpZ2F0aW9uLWxpc3RbZGF0YS1kaXJlY3Rpb249J2hvcml6b250YWwnXSBhOmhvdmVyIHsNCgkJY29sb3I6ICRmb3JlZ3JvdW5kQ29sb3I7DQoJfQ0KCS5oZWFkZXItZnJhZ21lbnRzIC5jb250ZW50LWZyYWdtZW50Lm5hdmlnYXRpb24tY3VzdG9tOmFmdGVyLA0KCS5oZWFkZXItZnJhZ21lbnRzIC5jb250ZW50LWZyYWdtZW50Lm5hdmlnYXRpb24tY3VzdG9tIC5uYXZpZ2F0aW9uLWxpc3RbZGF0YS1kaXJlY3Rpb249J2hvcml6b250YWwnXSBhLnNlbGVjdGVkOmFmdGVyIHsNCgkJYmFja2dyb3VuZC1jb2xvcjogJGZvcmVncm91bmRDb2xvcjsNCgl9DQoJLmhlYWRlci1mcmFnbWVudHM6aG92ZXIgLmhlYWRlci10b3AtY29udGVudCAubGF5b3V0LXJlZ2lvbi5jb250ZW50IC5jb250ZW50LWZyYWdtZW50Lm5hdmlnYXRpb24tY3VzdG9tIC5uYXZpZ2F0aW9uLWxpc3RbZGF0YS1kaXJlY3Rpb249J2hvcml6b250YWwnXSBhIHsNCgkJY29sb3I6ICRmb3JlZ3JvdW5kQ29sb3I7DQoJfQ0KCS5oZWFkZXItZnJhZ21lbnRzIC5oZWFkZXItdG9wLWNvbnRlbnQgLmxheW91dC1yZWdpb24uY29udGVudCAuY29udGVudC1mcmFnbWVudC5uYXZpZ2F0aW9uLWN1c3RvbSAubmF2aWdhdGlvbi1saXN0W2RhdGEtZGlyZWN0aW9uPSdob3Jpem9udGFsJ10gYS5saW5rcy1leHBhbmRlZCwNCgkuaGVhZGVyLWZyYWdtZW50cyAuaGVhZGVyLXRvcC1jb250ZW50IC5sYXlvdXQtcmVnaW9uLmNvbnRlbnQgLmNvbnRlbnQtZnJhZ21lbnQubmF2aWdhdGlvbi1jdXN0b20gLm5hdmlnYXRpb24tbGlzdFtkYXRhLWRpcmVjdGlvbj0naG9yaXpvbnRhbCddIGEuc3VibmF2LW9wZW4sDQoJLmhlYWRlci1mcmFnbWVudHM6aG92ZXIgLmhlYWRlci10b3AtY29udGVudCAubGF5b3V0LXJlZ2lvbi5jb250ZW50IC5jb250ZW50LWZyYWdtZW50Lm5hdmlnYXRpb24tY3VzdG9tIC5uYXZpZ2F0aW9uLWxpc3RbZGF0YS1kaXJlY3Rpb249J2hvcml6b250YWwnXSBhLmxpbmtzLWV4cGFuZGVkLA0KCS5oZWFkZXItZnJhZ21lbnRzOmhvdmVyIC5oZWFkZXItdG9wLWNvbnRlbnQgLmxheW91dC1yZWdpb24uY29udGVudCAuY29udGVudC1mcmFnbWVudC5uYXZpZ2F0aW9uLWN1c3RvbSAubmF2aWdhdGlvbi1saXN0W2RhdGEtZGlyZWN0aW9uPSdob3Jpem9udGFsJ10gYS5zdWJuYXYtb3BlbiB7DQoJCWJhY2tncm91bmQtY29sb3I6ICRmb3JlZ3JvdW5kQ29sb3I7DQoJCWNvbG9yOiAkYmFja2dyb3VuZENvbG9yOw0KCX0NCg0KPC9zdHlsZT4NCg0KI2lmICgkY292ZXJQaG90b1VybCAmJiAkY292ZXJQaG90b1VybC5MZW5ndGggPiAwICYmICRkZXNpZ25Nb2RlID09ICdwaG90bycpDQoJPGRpdiBjbGFzcz0iY292ZXItcGhvdG8iPjwvZGl2Pg0KI2VuZA0K</file>
+			<file name="ui.js">KGZ1bmN0aW9uICgkLCBnbG9iYWwpIHsNCg0KCSQudGVsbGlnZW50ID0gJC50ZWxsaWdlbnQgfHwge307DQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uID0gJC50ZWxsaWdlbnQuZXZvbHV0aW9uIHx8IHt9Ow0KCSQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID0gJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgfHwge307DQoNCglmdW5jdGlvbiBsZWF2ZUdyb3VwKGNvbnRleHQpIHsNCgkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLmRlbCh7DQoJCQl1cmw6ICQudGVsbGlnZW50LmV2b2x1dGlvbi5zaXRlLmdldEJhc2VVcmwoKSArICdhcGkuYXNoeC92Mi9ncm91cHMve0dyb3VwSWR9L21lbWJlcnMvdXNlcnMve1VzZXJJZH0uanNvbicsDQoJCQlkYXRhOiB7DQoJCQkJVXNlcklkOiBjb250ZXh0LnVzZXJJZCwNCgkJCQlHcm91cElkOiBjb250ZXh0Lmdyb3VwSWQNCgkJCX0sDQoJCQlzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsNCgkJCQlhbGVydChjb250ZXh0LmxlZnRUZXh0KTsNCgkJCQlpZihjb250ZXh0LmlzR3JvdXBQcml2YXRlKQ0KCQkJCQlnbG9iYWwubG9jYXRpb24uaHJlZj0kLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkNCgkJCQllbHNlDQoJCQkJCWdsb2JhbC5sb2NhdGlvbi5yZWxvYWQoKTsNCgkJCX0sDQoJCQlkZWZhdWx0RXJyb3JNZXNzYWdlOiBjb250ZXh0LmVycm9yVGV4dA0KCQl9KTsNCgl9DQoNCglmdW5jdGlvbiBqb2luR3JvdXAoY29udGV4dCkgew0KCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ucG9zdCh7DQoJCQl1cmw6ICQudGVsbGlnZW50LmV2b2x1dGlvbi5zaXRlLmdldEJhc2VVcmwoKSArICdhcGkuYXNoeC92Mi9ncm91cHMve0dyb3VwSWR9L21lbWJlcnMvdXNlcnMuanNvbicsDQoJCQlkYXRhOiB7DQoJCQkJVXNlcklkOiBjb250ZXh0LnVzZXJJZCwNCgkJCQlHcm91cElkOiBjb250ZXh0Lmdyb3VwSWQNCgkJCX0sDQoJCQlzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsNCgkJCQlhbGVydChjb250ZXh0LmpvaW5lZFRleHQpOw0KCQkJCWdsb2JhbC5sb2NhdGlvbi5yZWxvYWQoKTsNCgkJCX0sDQoJCQlkZWZhdWx0RXJyb3JNZXNzYWdlOiBjb250ZXh0LmVycm9yVGV4dA0KCQl9KTsNCgl9DQoNCglmdW5jdGlvbiByZXF1ZXN0Sm9pbkdyb3VwKGNvbnRleHQpIHsNCgkJVGVsbGlnZW50X01vZGFsLk9wZW4oY29udGV4dC5yZXF1ZXN0Sm9pblVybCwgNTUwLCAzMDAsIGZ1bmN0aW9uKCkgew0KCQkJZ2xvYmFsLmxvY2F0aW9uLnJlbG9hZCgpOw0KCQl9KTsNCgl9DQoNCglmdW5jdGlvbiB0b2dnbGVNZW1iZXJzaGlwKGNvbnRleHQpIHsNCgkJaWYgKGNvbnRleHQubWVtYmVyc2hpcFR5cGUgIT0gIk5vbmUiKQ0KCQkJbGVhdmVHcm91cChjb250ZXh0KTsNCgkJZWxzZSBpZiAoY29udGV4dC5jYW5Kb2luR3JvdXApDQoJCQlqb2luR3JvdXAoY29udGV4dCk7DQoJCWVsc2UNCgkJCXJlcXVlc3RKb2luR3JvdXAoY29udGV4dCk7DQoJfQ0KDQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMuZ3JvdXBCYW5uZXIgPSB7DQoJCXJlZ2lzdGVyOiBmdW5jdGlvbiAoY29udGV4dCkgew0KCQkJaWYgKGNvbnRleHQuZm9yY2VSZXF1ZXN0TWVtYmVyc2hpcCkgew0KCQkJCWlmIChjb250ZXh0LmNhbkpvaW5Hcm91cCkgew0KCQkJCQlqb2luR3JvdXAoY29udGV4dCk7DQoJCQkJfSBlbHNlIHsNCgkJCQkJcmVxdWVzdEpvaW5Hcm91cChjb250ZXh0KTsNCgkJCQl9DQoJCQl9DQoNCgkJCWlmIChjb250ZXh0Lmdyb3VwTWVtYmVyc2hpcEJ1dHRvbiAmJiBjb250ZXh0Lmdyb3VwTWVtYmVyc2hpcEJ1dHRvbi5sZW5ndGggPiAwKXsNCgkJCQljb250ZXh0Lmdyb3VwTWVtYmVyc2hpcEJ1dHRvbi5jbGljayhmdW5jdGlvbihlKXsNCgkJCQkJdG9nZ2xlTWVtYmVyc2hpcChjb250ZXh0KTsgZS5wcmV2ZW50RGVmYXVsdCgpOw0KCQkJCX0pOw0KCQkJfQ0KCQl9DQoJfTsNCg0KfSkoalF1ZXJ5LCB3aW5kb3cpOw0K</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

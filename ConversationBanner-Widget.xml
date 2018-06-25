@@ -1,0 +1,105 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_ConversationBanner_Name}" version="10.1.8.10498" description="${resource:Core_ConversationBanner_Description}" instanceIdentifier="5dbce7fe58ea4d5abfe70bebdd57b192" theme="" isCacheable="false" varyCacheByUser="false" showHeaderByDefault="false" cssClass="conversation-banner">
+		<contentScript><![CDATA[
+## Only show on Conversations Page
+#if ($core_v2_urls.Current != 'Conversations')
+	$core_v2_widget.Hide()
+#end
+
+## Only for registered users
+#if (!$core_v2_user.Accessing || !$core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+	$core_v2_widget.Hide()
+#end
+
+#set ($deleteId = $core_v2_widget.UniqueId('delete'))
+#set ($newId = $core_v2_widget.UniqueId('new'))
+#set ($subjectId = $core_v2_widget.UniqueId('subject'))
+#set ($countId = $core_v2_widget.UniqueId('count'))
+
+<div class="banner context slim conversation">
+    <h1 class="name">
+		<span>$core_v2_language.GetResource('Inbox')</span>
+		<span class="count" id="$core_v2_encoding.HtmlAttributeEncode($countId)"></span>
+		<a class="new ui-tip" title="$core_v2_encoding.HtmlAttributeEncode($core_v2_language.GetResource('NewConversation'))" href="#" id="$core_v2_encoding.HtmlAttributeEncode($newId)">$core_v2_language.GetResource('New')</a>
+    </h1>
+	<a href="#" class="ui-tip delete" style="display:none" title="$core_v2_encoding.HtmlAttributeEncode($core_v2_language.GetResource('DeleteThis'))" id="$core_v2_encoding.HtmlAttributeEncode($deleteId)">$core_v2_language.GetResource('Delete')</a>
+	<span class="subject" id="$core_v2_encoding.HtmlAttributeEncode($subjectId)">$core_v2_language.GetResource('EmptySubject')</span>
+</div>
+
+#registerEndOfPageHtml('telligent.evolution.widgets.conversationBanner')
+    <script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl("ui.js"))"></script>
+#end
+#registerEndOfPageHtml()
+	<script>
+		jQuery(function(){
+			jQuery.telligent.evolution.widgets.conversationBanner.register({
+				newLink: '#$core_v2_encoding.JavascriptEncode($newId)',
+				newUrl: "$core_v2_encoding.JavascriptEncode($core_v2_urls.AddConversation())",
+				deleteUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('delete.vm'))',
+				deleteLink: '#$core_v2_encoding.JavascriptEncode($deleteId)',
+				subject: '#$core_v2_encoding.JavascriptEncode($subjectId)',
+				count: '#$core_v2_encoding.JavascriptEncode($countId)',
+				deleteConfirm: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('DeleteConfirmation'))',
+				emptySubject: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('EmptySubject'))'
+			});
+		});
+	</script>
+#end
+
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Core_ConversationBanner_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Core_ConversationBanner_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Core_ConversationBanner_Name">Conversation - Banner</resource>
+  <resource name="Core_ConversationBanner_Description">Displays a conversation banner</resource>
+  <resource name="Options">Options</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Inbox">Inbox</resource>
+  <resource name="Delete">Delete</resource>
+  <resource name="New">New</resource>
+  <resource name="EmptySubject">Please select a conversation</resource>
+  <resource name="DeleteConfirmation">Are you sure you want to delete this conversation?</resource>
+  <resource name="NewConversation">Start a new Conversation</resource>
+  <resource name="DeleteThis">Delete this Conversation</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Core_ConversationBanner_Name">对话 - 横幅</resource>
+  <resource name="Core_ConversationBanner_Description">显示对话横幅</resource>
+  <resource name="Options">选项</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Inbox">收件箱</resource>
+  <resource name="Delete">删除</resource>
+  <resource name="New">新建</resource>
+  <resource name="EmptySubject">请选择对话</resource>
+  <resource name="DeleteConfirmation">是否确定要删除此对话?</resource>
+  <resource name="NewConversation">开始新对话</resource>
+  <resource name="DeleteThis">删除此对话</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Core_ConversationBanner_Name">交談 - 橫幅</resource>
+  <resource name="Core_ConversationBanner_Description">顯示交談橫幅</resource>
+  <resource name="Options">選項</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Inbox">收件匣</resource>
+  <resource name="Delete">刪除</resource>
+  <resource name="New">新增</resource>
+  <resource name="EmptySubject">請選取交談</resource>
+  <resource name="DeleteConfirmation">您確定要刪除這個交談嗎?</resource>
+  <resource name="NewConversation">開始新的交談</resource>
+  <resource name="DeleteThis">刪除此交談</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="fdf895d93a38459687e568b28de6d5b4" />
+		</requiredContext>
+		<files>
+			<file name="delete.vm">77u/I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkNCgkkY29yZV92Ml9wYWdlLlNldENvbnRlbnRUeXBlKCdhcHBsaWNhdGlvbi9qc29uJykNCgkjc2V0KCRjb252ZXJzYXRpb25JZCA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VHdWlkKCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdjb252ZXJzYXRpb25JZCcpKSkNCgkjc2V0KCRyZXN1bHQgPSAkY29yZV92Ml9jb252ZXJzYXRpb24uRGVsZXRlKCRjb252ZXJzYXRpb25JZCkpDQoJI2lmKCRyZXN1bHQuSGFzRXJyb3JzKCkpDQoJCSRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcigkcmVzdWx0LkVycm9ycykNCgkjZWxzZQ0KCQl7InN1Y2Nlc3MiOiAidHJ1ZSJ9DQoJI2VuZA0KI2VuZA==</file>
+			<file name="ui.js">LyoNClB1Ymxpc2hlcyBtZXNzYWdlczoNCgl3aWRnZXRzLmNvbnZlcnNhdGlvbkJhbm5lci5jb252ZXJzYXRpb25EZWxldGVkDQoJCWNvbnZlcnNhdGlvbklkDQpTdWJzY3JpYmVzIHRvIG1lc3NhZ2VzOg0KCXdpZGdldHMuY29udmVyc2F0aW9uLmNvbnZlcnNhdGlvbkxvYWRlZA0KCQlzdWJqZWN0DQoJCWNvbnZlcnNhdGlvbklkDQoJd2lkZ2V0cy5jb252ZXJzYXRpb25MaXN0LmNvbnZlcnNhdGlvbnNMb2FkZWQNCgkJdG90YWxDb3VudA0KCXdpZGdldHMuY29udmVyc2F0aW9uQmFubmVyLmNvbnZlcnNhdGlvbkRlbGV0ZWQNCgkJY29udmVyc2F0aW9uSWQNCiAqLw0KKGZ1bmN0aW9uKCQsIGdsb2JhbCwgdW5kZWYpew0KDQoJJC50ZWxsaWdlbnQgPSAkLnRlbGxpZ2VudCB8fCB7fTsNCgkkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSAkLnRlbGxpZ2VudC5ldm9sdXRpb24gfHwge307DQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPSAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyB8fCB7fTsNCg0KCXZhciBtZXNzYWdlcyA9IHsNCgkJY29udmVyc2F0aW9uRGVsZXRlZDogJ3dpZGdldHMuY29udmVyc2F0aW9uQmFubmVyLmNvbnZlcnNhdGlvbkRlbGV0ZWQnLA0KCQljb252ZXJzYXRpb25Mb2FkZWQ6ICd3aWRnZXRzLmNvbnZlcnNhdGlvbi5jb252ZXJzYXRpb25Mb2FkZWQnLA0KCQljb252ZXJzYXRpb25zTG9hZGVkOiAnd2lkZ2V0cy5jb252ZXJzYXRpb25MaXN0LmNvbnZlcnNhdGlvbnNMb2FkZWQnDQoJfTsNCg0KICAgIHZhciBDb252ZXJzYXRpb25Nb2RlbCA9IChmdW5jdGlvbigpew0KICAgICAgICB2YXIgZGVmYXVsdHMgPSB7DQogICAgICAgICAgICBkZWxldGVVcmw6ICcnDQogICAgICAgIH07DQogICAgICAgIHJldHVybiBmdW5jdGlvbihvcHRpb25zKSB7DQogICAgICAgICAgICB2YXIgc2V0dGluZ3MgPSAkLmV4dGVuZCh7fSwgZGVmYXVsdHMsIG9wdGlvbnMgfHwge30pOw0KDQogICAgICAgICAgICByZXR1cm4gew0KICAgICAgICAgICAgICAgIGRlbDogZnVuY3Rpb24oY29udmVyc2F0aW9uSWQpIHsNCiAgICAgICAgICAgICAgICAgICAgcmV0dXJuICQudGVsbGlnZW50LmV2b2x1dGlvbi5wb3N0KHsNCiAgICAgICAgICAgICAgICAgICAgICAgIHVybDogc2V0dGluZ3MuZGVsZXRlVXJsLA0KICAgICAgICAgICAgICAgICAgICAgICAgZGF0YTogew0KICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNvbnZlcnNhdGlvbklkOiBjb252ZXJzYXRpb25JZA0KICAgICAgICAgICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgICAgICAgICB9KTsNCiAgICAgICAgICAgICAgICB9DQogICAgICAgICAgICB9Ow0KICAgICAgICB9Ow0KICAgIH0pKCk7DQoNCiAgICBmdW5jdGlvbiByZW5kZXJDb252ZXJzYXRpb25Db3VudChjb250ZXh0KSB7DQogICAgCWNvbnRleHQuY291bnQuaHRtbChjb250ZXh0LmN1cnJlbnRDb3VudCk7DQogICAgCWlmKGNvbnRleHQuY3VycmVudENvdW50ICYmIGNvbnRleHQuY3VycmVudENvdW50ID4gMCkgew0KICAgIAkJY29udGV4dC5jb3VudC5zaG93KCk7DQogICAgCX0gZWxzZSB7DQogICAgCQljb250ZXh0LmNvdW50LmhpZGUoKTsNCiAgICAJfQ0KICAgIH0NCg0KCWZ1bmN0aW9uIHN1YnNjcmliZVRvTWVzc2FnZXMoY29udGV4dCkgew0KCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ubWVzc2FnaW5nLnN1YnNjcmliZShtZXNzYWdlcy5jb252ZXJzYXRpb25Mb2FkZWQsIGZ1bmN0aW9uKGRhdGEpIHsNCgkJCWNvbnRleHQuY29udmVyc2F0aW9uSWQgPSBkYXRhLmNvbnZlcnNhdGlvbklkOw0KCQkJY29udGV4dC5zdWJqZWN0Lmh0bWwoZGF0YS5zdWJqZWN0KTsNCgkJCWNvbnRleHQuZGVsZXRlTGluay5zaG93KCk7DQoJCX0pOw0KDQoJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5tZXNzYWdpbmcuc3Vic2NyaWJlKG1lc3NhZ2VzLmNvbnZlcnNhdGlvbnNMb2FkZWQsIGZ1bmN0aW9uKGRhdGEpIHsNCgkJCWNvbnRleHQuY3VycmVudENvdW50ID0gZGF0YS50b3RhbENvdW50Ow0KCQkJcmVuZGVyQ29udmVyc2F0aW9uQ291bnQoY29udGV4dCk7DQoJCX0pOw0KDQoJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5tZXNzYWdpbmcuc3Vic2NyaWJlKG1lc3NhZ2VzLmNvbnZlcnNhdGlvbkRlbGV0ZWQsIGZ1bmN0aW9uKGRhdGEpIHsNCgkJCWlmKGNvbnRleHQuY3VycmVudENvdW50ICYmIGNvbnRleHQuY3VycmVudENvdW50ID4gMCkNCgkJCQljb250ZXh0LmN1cnJlbnRDb3VudC0tOw0KCQkJcmVuZGVyQ29udmVyc2F0aW9uQ291bnQoY29udGV4dCk7DQoJCQljb250ZXh0LnN1YmplY3QuaHRtbChjb250ZXh0LmVtcHR5U3ViamVjdCk7DQoJCQljb250ZXh0LmRlbGV0ZUxpbmsuaGlkZSgpOw0KCQl9KTsNCgl9DQoNCglmdW5jdGlvbiBoYW5kbGVVc2VyRXZlbnRzKGNvbnRleHQpIHsNCgkJY29udGV4dC5kZWxldGVMaW5rLm9uKCdjbGljaycsIGZ1bmN0aW9uKGUpew0KCQkJZS5wcmV2ZW50RGVmYXVsdCgpOw0KCQkJaWYoY29udGV4dC5jb252ZXJzYXRpb25JZCAmJiBjb25maXJtKGNvbnRleHQuZGVsZXRlQ29uZmlybSkpIHsNCgkJCQljb250ZXh0Lm1vZGVsLmRlbChjb250ZXh0LmNvbnZlcnNhdGlvbklkKS50aGVuKGZ1bmN0aW9uKCl7DQoJCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5tZXNzYWdpbmcucHVibGlzaChtZXNzYWdlcy5jb252ZXJzYXRpb25EZWxldGVkLCB7DQoJCQkJCQljb252ZXJzYXRpb25JZDogY29udGV4dC5jb252ZXJzYXRpb25JZA0KCQkJCQl9KTsNCgkJCQl9KQ0KCQkJfQ0KCQl9KTsNCg0KCQljb250ZXh0Lm5ld0xpbmsub24oJ2NsaWNrJywgZnVuY3Rpb24oZSkgew0KCQkJZS5wcmV2ZW50RGVmYXVsdCgpOw0KICAgICAgICAgICAgJC5nbG93TW9kYWwoY29udGV4dC5uZXdVcmwsIHsNCiAgICAgICAgICAgICAgICB3aWR0aDogNTUwLA0KICAgICAgICAgICAgICAgIGhlaWdodDogMzYwDQogICAgICAgICAgICB9KTsNCgkJfSk7DQoJfQ0KDQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMuY29udmVyc2F0aW9uQmFubmVyID0gew0KCQlyZWdpc3RlcjogZnVuY3Rpb24oY29udGV4dCkgew0KCQkJY29udGV4dC5kZWxldGVMaW5rID0gJChjb250ZXh0LmRlbGV0ZUxpbmspOw0KCQkJY29udGV4dC5zdWJqZWN0ID0gJChjb250ZXh0LnN1YmplY3QpOw0KCQkJY29udGV4dC5jb3VudCA9ICQoY29udGV4dC5jb3VudCk7DQoJCQljb250ZXh0Lm5ld0xpbmsgPSAkKGNvbnRleHQubmV3TGluayk7DQoNCgkJCWNvbnRleHQubW9kZWwgPSBDb252ZXJzYXRpb25Nb2RlbCh7DQoJCQkJZGVsZXRlVXJsOiBjb250ZXh0LmRlbGV0ZVVybA0KCQkJfSk7DQoNCgkJCXN1YnNjcmliZVRvTWVzc2FnZXMoY29udGV4dCk7DQoJCQloYW5kbGVVc2VyRXZlbnRzKGNvbnRleHQpOw0KCQl9DQoJfTsNCg0KfSkoalF1ZXJ5LCB3aW5kb3cpOw0K</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

@@ -1,0 +1,206 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Calendar_CalendarLinks_Name}" version="10.1.8.10498" description="${resource:Calendar_CalendarLinks_Description}" instanceIdentifier="cfb63a8508bf4d81b92002ed33d867b7" theme="" isCacheable="false" varyCacheByUser="true" showHeaderByDefault="true" cssClass="calendar-links">
+		<contentScript><![CDATA[
+#set($links = $core_v2_page.ParseQueryString($core_v2_widget.GetCustomValue('links','Link=calendarSubscribe&amp;Link=calendarEdit&amp;Link=calendarRss')))
+#set($hasLinks = false)
+#set($currentGroup = $core_v2_group.Current)
+#set($currentCalendar = $calendar_v1_calendars.Current)
+#set($url = false)
+
+#foreach($link in $links.Values('Link'))
+#beforeall
+
+<div class="ui-links navigation-list links" data-minlinks="0" data-maxlinks="0" data-direction="vertical">
+	<ul class="navigation-list">
+		
+#each			
+
+			#if($link == 'calendarRss')
+				#if ($currentCalendar)
+					#if( $calendar_v1_calendars.HasPermission($currentCalendar.Id,$calendar_v1_permissions.ViewCalendar))
+						#set($url = $calendar_v1_urls.CalendarRss($currentCalendar.Id))
+						#if($url)
+							<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link rss"><span></span>$core_v2_language.GetResource('calendar_CalendarLinks_Rss')</a></li>
+							#set($hasLinks = true)
+						#end
+					#end
+				#end
+
+			#elseif($link == 'calendarSubscribe')
+				#if($currentCalendar)
+					#if ($core_v2_user.IsRegistered($core_v2_user.Accessing.Id) && $calendar_v1_calendars.HasPermission($currentCalendar.Id,$calendar_v1_permissions.ViewCalendar))
+          
+            <li class="navigation-list-item">
+	            <a data-messagename="widget.${core_v2_widget.WrapperElementId}.calendarSubscribe" data-calendarid="$currentCalendar.Id" data-subscribed="false" href="#" #if($calendar_v1_calendars.IsSubscribed($currentCalendar.Id)) style="display:none" #end>$core_v2_language.GetResource('calendar_Subscribe_Off')</a>
+            </li>
+            <li class="navigation-list-item">
+	            <a data-messagename="widget.${core_v2_widget.WrapperElementId}.calendarSubscribe" data-calendarid="$currentCalendar.Id" data-subscribed="true" href="#" #if(!$calendar_v1_calendars.IsSubscribed($currentCalendar.Id)) style="display:none" #end>$core_v2_language.GetResource('calendar_Subscribe_On')</a>
+            </li>
+
+            #registerEndOfPageHtml("widget.${core_v2_widget.WrapperElementId}.calendarSubscribe") 
+	            <script type="text/javascript">
+		            jQuery(function(j){
+			            function update(value, link) {
+				            j.telligent.evolution.post({
+					            url: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('subscribe.vm'))',
+					            data: {
+						            subscribe: value,
+						            calendarId: link.data('calendarid')
+					            },
+					            dataType: 'json',
+					            success: function(response) {
+						            if (response.subscribe) {
+							            link.closest('ul').find('a[data-subscribed="false"]').hide();
+							            link.closest('ul').find('a[data-subscribed="true"]').show();
+						            } else {
+							            link.closest('ul').find('a[data-subscribed="false"]').show();
+							            link.closest('ul').find('a[data-subscribed="true"]').hide();
+						            }
+
+						            if (response.warnings && response.warnings.length > 0) {
+							            j.telligent.evolution.notifications.show(response.warnings[0], { type: 'warning' });
+						            }
+					            }
+				            });
+			            }
+			            j.telligent.evolution.messaging.subscribe('widget.${core_v2_widget.WrapperElementId}.calendarSubscribe', function(data){
+				            update(!j(data.target).data('subscribed'), j(data.target));
+			            });
+		            });
+	            </script>
+            #end
+                        
+						#set($hasLinks = true)
+					#end
+				#end
+
+			#elseif($link == 'calendarEdit')
+				#if ($currentCalendar)
+					#if($calendar_v1_calendars.HasPermission($currentCalendar.Id,$calendar_v1_permissions.EditCalendar))
+						#set($url = $calendar_v1_urls.EditCalendar($currentCalendar.Id))
+						#if($url)
+							<li class="navigation-list-item">
+							  <a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link edit-post">
+								<span></span>$core_v2_language.GetResource('calendar_CalendarLinks_Edit')
+							  </a>
+							</li>
+							#set($hasLinks = true)
+						#end
+					#end
+				#end
+			#end
+#afterall
+
+		#if($hasLinks)    
+      <li class="navigation-list-item">
+		    <a href="#" data-more>$core_v2_language.GetResource('more')</a>
+		  </li>
+		  <li class="navigation-list-item">
+		    <a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+		  </li>
+    #end
+
+	</ul>
+</div>
+
+#end
+
+#if($hasLinks == false)
+  $core_v2_widget.Hide()
+#end
+
+      ]]></contentScript>
+		<headerScript><![CDATA[$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Calendar_CalendarLinks_Title}'))]]></headerScript>
+		<configuration><![CDATA[      
+      <propertyGroup id="options" resourceName="Options">
+          <property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Calendar_CalendarLinks_Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+          <property id="links" resourceName="calendar_Links" dataType="custom" defaultValue="Link=calendarSubscribe&amp;Link=calendarEdit&amp;Link=calendarRss" controlType="Telligent.Evolution.Controls.SortableListControl, Telligent.Evolution.Platform" height="300" key="Link" >
+          <propertyValue value="calendarSubscribe" resourceName="calendar_CalendarLinks_Subscribe" />
+          <propertyValue value="calendarEdit" resourceName="calendar_CalendarLinks_EditLink" />
+          <propertyValue value="calendarRss" resourceName="calendar_CalendarLinks_RssLink" />
+        </property>
+      </propertyGroup>
+      ]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="calendar_CalendarLinks_Add">&lt;span&gt;&lt;/span&gt;Add Calendar</resource>
+  <resource name="calendar_CalendarLinks_AddLink">Add Calendar</resource>
+  <resource name="calendar_CalendarLinks_DeleteCalendar">&lt;span&gt;&lt;/span&gt;Delete Calendar</resource>
+  <resource name="Calendar_CalendarLinks_DeleteCalendarConfirmation">Are you sure you want to delete this calendar?</resource>
+  <resource name="Calendar_CalendarLinks_DeleteCalendarError">Unable to delete calendar, an error occurred.</resource>
+  <resource name="calendar_CalendarLinks_DeleteLink">Delete Calendar</resource>
+  <resource name="Calendar_CalendarLinks_Description">Displays a list of options related to a calendar</resource>
+  <resource name="calendar_CalendarLinks_Edit">Manage Calendar</resource>
+  <resource name="calendar_CalendarLinks_EditLink">Edit calendar</resource>
+  <resource name="Calendar_CalendarLinks_Name">Event Calendar - Calendar Links</resource>
+  <resource name="calendar_CalendarLinks_Rss">RSS</resource>
+  <resource name="calendar_CalendarLinks_RssLink">Rss Subscription</resource>
+  <resource name="calendar_CalendarLinks_Subscribe">Email Subscribe</resource>
+  <resource name="Calendar_CalendarLinks_Title">Options</resource>
+  <resource name="calendar_EventLinks_Add">Add a new event</resource>
+  <resource name="calendar_EventLinks_AddLink">Add Event</resource>
+  <resource name="calendar_Links">Select, rearrange, and enable the links to be displayed</resource>
+  <resource name="calendar_Options_Description">Links for a calendar</resource>
+  <resource name="calendar_Subscribe_Off">Turn Calendar notifications on</resource>
+  <resource name="calendar_Subscribe_On">Turn Calendar notifications off</resource>
+  <resource name="cancel">Cancel</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="more">More</resource>
+  <resource name="Options">Options</resource>
+</language>
+<language key="zh-cn">
+  <resource name="calendar_CalendarLinks_Add">&lt;span&gt;&lt;/span&gt;添加日历</resource>
+  <resource name="calendar_CalendarLinks_AddLink">添加日历</resource>
+  <resource name="calendar_CalendarLinks_DeleteCalendar">&lt;span&gt;&lt;/span&gt;删除日历</resource>
+  <resource name="Calendar_CalendarLinks_DeleteCalendarConfirmation">是否确定要删除此日历?</resource>
+  <resource name="Calendar_CalendarLinks_DeleteCalendarError">无法删除日历，已出现错误。</resource>
+  <resource name="calendar_CalendarLinks_DeleteLink">删除日历</resource>
+  <resource name="Calendar_CalendarLinks_Description">显示与日历相关的选项列表</resource>
+  <resource name="calendar_CalendarLinks_Edit">管理日历</resource>
+  <resource name="calendar_CalendarLinks_EditLink">编辑日历</resource>
+  <resource name="Calendar_CalendarLinks_Name">活动日历 - 日历链接</resource>
+  <resource name="calendar_CalendarLinks_Rss">RSS</resource>
+  <resource name="calendar_CalendarLinks_RssLink">Rss 订阅</resource>
+  <resource name="calendar_CalendarLinks_Subscribe">电子邮件订阅</resource>
+  <resource name="Calendar_CalendarLinks_Title">选项</resource>
+  <resource name="calendar_EventLinks_Add">添加新活动</resource>
+  <resource name="calendar_EventLinks_AddLink">添加活动</resource>
+  <resource name="calendar_Links">选择、重新排列和启用要显示的链接</resource>
+  <resource name="calendar_Options_Description">针对日历的链接</resource>
+  <resource name="calendar_Subscribe_Off">打开日历通知</resource>
+  <resource name="calendar_Subscribe_On">关闭日历通知</resource>
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="more">更多</resource>
+  <resource name="Options">选项</resource>
+</language>
+<language key="zh-tw">
+  <resource name="calendar_CalendarLinks_Add">&lt;span&gt;&lt;/span&gt;新增行事曆</resource>
+  <resource name="calendar_CalendarLinks_AddLink">新增行事曆</resource>
+  <resource name="calendar_CalendarLinks_DeleteCalendar">&lt;span&gt;&lt;/span&gt;刪除行事曆</resource>
+  <resource name="Calendar_CalendarLinks_DeleteCalendarConfirmation">您確定要刪除這個行事曆嗎?</resource>
+  <resource name="Calendar_CalendarLinks_DeleteCalendarError">發生錯誤，無法刪除行事曆。</resource>
+  <resource name="calendar_CalendarLinks_DeleteLink">刪除行事曆</resource>
+  <resource name="Calendar_CalendarLinks_Description">顯示與行事曆相關的選項清單</resource>
+  <resource name="calendar_CalendarLinks_Edit">管理行事曆</resource>
+  <resource name="calendar_CalendarLinks_EditLink">編輯行事曆</resource>
+  <resource name="Calendar_CalendarLinks_Name">事件行事曆 - 行事曆連結</resource>
+  <resource name="calendar_CalendarLinks_Rss">RSS</resource>
+  <resource name="calendar_CalendarLinks_RssLink">Rss 訂閱</resource>
+  <resource name="calendar_CalendarLinks_Subscribe">電子郵件訂閱</resource>
+  <resource name="Calendar_CalendarLinks_Title">選項</resource>
+  <resource name="calendar_EventLinks_Add">加入新的事件</resource>
+  <resource name="calendar_EventLinks_AddLink">新增事件</resource>
+  <resource name="calendar_Links">選取、重新排列並啟用要顯示的連結</resource>
+  <resource name="calendar_Options_Description">行事曆的連結</resource>
+  <resource name="calendar_Subscribe_Off">開啟行事曆通知</resource>
+  <resource name="calendar_Subscribe_On">關閉行事曆通知</resource>
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="more">更多</resource>
+  <resource name="Options">選項</resource>
+</language></languageResources>
+		<files>
+			<file name="subscribe.vm">77u/I3NldCgkdHlwZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCd0eXBlJykpDQojc2V0KCRzdWJzY3JpYmUgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlQm9vbCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnc3Vic2NyaWJlJykpKQ0KJGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoNCiRjYWxlbmRhcl92MV9jYWxlbmRhcnMuU2V0U3Vic2NyaWJlZCgkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdjYWxlbmRhcklkJykpLCAkc3Vic2NyaWJlKQ0KeyJzdWJzY3JpYmUiOiNpZigkc3Vic2NyaWJlKSB0cnVlI2Vsc2UgZmFsc2UjZW5kfQ==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

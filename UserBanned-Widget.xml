@@ -1,0 +1,77 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_UserBanned_Name}" version="10.1.8.10498" description="${resource:Core_UserBanned_Description}" instanceIdentifier="782e9ac51fc442df956cac13604d176a" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="user-banned">
+		<contentScript><![CDATA[
+#set ($banReason = $core_v2_user.Accessing.BanReason)
+#set ($bannedMessage = $core_v2_language.GetResource("Utility_UserBanReason_Other"))
+#if ($bannedMessage == "Profanity")
+	#set ($bannedMessage = $core_v2_language.GetResource("Utility_UserBanReason_Profanity"))
+#elseif ($bannedMessage == "Advertising")
+	#set ($bannedMessage = $core_v2_language.GetResource("Utility_UserBanReason_Advertising"))
+#elseif ($bannedMessage == "Spam")
+	#set ($bannedMessage = $core_v2_language.GetResource("Utility_UserBanReason_Spam"))
+#elseif ($bannedMessage == "Aggresive")
+	#set ($bannedMessage = $core_v2_language.GetResource("Utility_UserBanReason_Aggresive"))
+#elseif ($bannedMessage == "BadUsername")
+	#set ($bannedMessage = $core_v2_language.GetResource("Utility_UserBanReason_BadUsername"))
+#elseif ($bannedMessage == "BadSignature")
+	#set ($bannedMessage = $core_v2_language.GetResource("Utility_UserBanReason_BadSignature"))
+#elseif ($bannedMessage == "BanDodging")
+	#set ($bannedMessage = $core_v2_language.GetResource("Utility_UserBanReason_BanDodging"))
+#end
+<p>$core_v2_language.FormatString($core_v2_language.GetResource("UserBanned_Message"), $core_v2_language.FormatDateAndTime($core_v2_user.Accessing.BannedUntil), "", $bannedMessage)</p>
+		]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Core_UserBanned_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Core_UserBanned_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Core_UserBanned_Description">Displays a message informing user they have been banned from posting and the reason for banning.</resource>
+  <resource name="Core_UserBanned_Name">User Banned</resource>
+  <resource name="Options">Options</resource>
+  <resource name="UserBanned_Message">You have been banned from posting on the forums until {0} {1}. The reason for this ban is {2}. Please return to participate in the forums after the ban has elapsed.</resource>
+  <resource name="Utility_UserBanReason_Advertising">Advertising</resource>
+  <resource name="Utility_UserBanReason_Aggresive">Attacking other members</resource>
+  <resource name="Utility_UserBanReason_BadSignature">Inappropriate Links or Signature</resource>
+  <resource name="Utility_UserBanReason_BadUsername">Inappropriate username</resource>
+  <resource name="Utility_UserBanReason_BanDodging">Ban Dodging</resource>
+  <resource name="Utility_UserBanReason_Other">Other</resource>
+  <resource name="Utility_UserBanReason_Profanity">Profanity</resource>
+  <resource name="Utility_UserBanReason_Spam">Spam</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Core_UserBanned_Description">显示一条消息，告知用户已被禁止发布文章以及禁止原因。</resource>
+  <resource name="Core_UserBanned_Name">用户被封禁</resource>
+  <resource name="Options">选项</resource>
+  <resource name="UserBanned_Message">您已被封禁，在 {0} {1} 之前不能在论坛上发布文章。封禁原因是 {2}。请在封禁期后再参与论坛活动。</resource>
+  <resource name="Utility_UserBanReason_Advertising">广告</resource>
+  <resource name="Utility_UserBanReason_Aggresive">攻击其他成员</resource>
+  <resource name="Utility_UserBanReason_BadSignature">链接或签名不恰当</resource>
+  <resource name="Utility_UserBanReason_BadUsername">用户名不恰当</resource>
+  <resource name="Utility_UserBanReason_BanDodging">规避封禁</resource>
+  <resource name="Utility_UserBanReason_Other">其他</resource>
+  <resource name="Utility_UserBanReason_Profanity">猥亵语言</resource>
+  <resource name="Utility_UserBanReason_Spam">垃圾邮件</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Core_UserBanned_Description">顯示訊息以告知使用者，他們已經被禁止張貼內容，以及禁止的原因。</resource>
+  <resource name="Core_UserBanned_Name">使用者被禁止</resource>
+  <resource name="Options">選項</resource>
+  <resource name="UserBanned_Message">您已經被禁止在論壇上張貼內容，直到 {0} {1} 為止。這項禁令的原因是 {2}。請在禁令期限過後回來參與論壇。</resource>
+  <resource name="Utility_UserBanReason_Advertising">廣告</resource>
+  <resource name="Utility_UserBanReason_Aggresive">攻擊其他成員</resource>
+  <resource name="Utility_UserBanReason_BadSignature">不適當的連結或簽名</resource>
+  <resource name="Utility_UserBanReason_BadUsername">不適當的使用者名稱</resource>
+  <resource name="Utility_UserBanReason_BanDodging">規避禁令</resource>
+  <resource name="Utility_UserBanReason_Other">其他</resource>
+  <resource name="Utility_UserBanReason_Profanity">不雅內容</resource>
+  <resource name="Utility_UserBanReason_Spam">垃圾郵件</resource>
+</language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

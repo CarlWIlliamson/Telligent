@@ -1,0 +1,148 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Leaderboard_Name}" version="10.1.8.10498" description="${resource:Leaderboard_Description}" instanceIdentifier="f975d8bccd8f4609844b4e93e770f9fd" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="leaderboard">
+		<contentScript><![CDATA[
+#set($pageIndex = 0)
+#set($pageIndex = $core_v2_ui.GetCurrentPageIndex())
+#set($pageSize = 10)
+#set($pageSize = $core_v2_widget.GetIntValue('pageSize', 10))
+#set($viewType = $core_v2_widget.GetStringValue('viewType', 'full'))
+#set($showValue = $core_v2_widget.GetBoolValue('showValue', true))
+#set($showCurrentUser = $core_v2_widget.GetBoolValue('showCurrentUser', true))
+
+#set($selectedLeaderboard = $core_v2_widget.GetStringValue("selectedLeaderboard", ""))
+#set($leaderboardId = $core_v2_utility.ParseInt($selectedLeaderboard))
+
+#if($leaderboardId > 0)
+	#set($leaderboard = $core_v2_leaderboard.Get($leaderboardId))
+	#set($isCurrent = false)
+#else
+	#set($leaderboard = $core_v2_leaderboard.Current)
+	#set($isCurrent = true)
+#end	
+
+#if($leaderboard && $leaderboard.Errors.Count == 0 && $leaderboard.IsEnabled)
+	#set($leaders = $core_v2_leader.List($leaderboard.Id, "%{PageSize = $pageSize, PageIndex = $pageIndex}"))
+	
+	#if(!$core_v2_user.Accessing.IsSystemAccount && $core_v2_user.Accessing.EnableDisplayInMemberList && $showCurrentUser && $leaderboard.LastCalculatedDate && $pageIndex == 0 && $leaders.TotalCount > 0 && $core_v2_leaderboard.UserIsEligible($leaderboard.Id))
+		#set($currentUserInList = false)
+		#foreach ($leader in $leaders)
+			#if($leader.user.Id == $core_v2_user.Accessing.Id)
+				#set($currentUserInList = true)
+			#end
+		#end
+		
+		#if(!$currentUserInList)
+			#set($currentLeader = $core_v2_leader.Get($leaderboard.Id))
+			#if ($currentLeader && $currentLeader.LeaderboardId > 0)
+				$leaders.Add($currentLeader)
+			#end
+		#end
+	#end
+	
+	<ul class="content-list $viewType leaderboards">
+		<li class="content-item $viewType leaderboard">
+			#if($viewType == 'simple')
+				$core_v2_widget.ExecuteFile('simple.vm')
+			#else
+				$core_v2_widget.ExecuteFile('full.vm')
+				
+				#if($leaders && $viewType == 'full')
+					$core_v2_ui.Pager($leaders.PageIndex, $leaders.PageSize, $leaders.TotalCount)
+				#end
+			#end	
+		</li>
+	</ul>
+#else
+	$core_v2_widget.Hide()
+#end
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Leaderboard_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Leaderboard_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="viewType" resourceName="View" dataType="string" defaultValue="full">
+		<propertyValue value="full" resourceName="View_Default" />
+		<propertyValue value="simple" resourceName="View_Simple" />
+	</property>
+	<property id="pageSize" resourceName="PageSize" dataType="int" defaultValue="10">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="100" />
+	</property>
+	<property id="showValue" resourceName="ShowValueColumn" dataType="bool" defaultValue="true" />
+	<property id="showCurrentUser" resourceName="ShowCurrentUserPosition" dataType="bool" defaultValue="true" />
+    <property id="selectedLeaderboard" resourceName="SelectedLeaderboard" dataType="custom" controlType="Telligent.Evolution.Controls.LeaderboardLookupPropertyControl, Telligent.Evolution.Platform" width="95%" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="cancel">Cancel</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="LastUpdated">Updated:</resource>
+  <resource name="Leaderboard_Description">Displays a leaderboard.</resource>
+  <resource name="Leaderboard_Name">Leaderboard</resource>
+  <resource name="LeaderboardNotCalculated">Leaderboard has not been calculated yet.</resource>
+  <resource name="more">More</resource>
+  <resource name="Name">Name</resource>
+  <resource name="NoLeaders">No leaders found.</resource>
+  <resource name="NotRanked">--</resource>
+  <resource name="Options">Options</resource>
+  <resource name="PageSize">Items per page</resource>
+  <resource name="Points">Points</resource>
+  <resource name="Rank">Rank</resource>
+  <resource name="SelectedLeaderboard">Leaderboard to display</resource>
+  <resource name="ShowCurrentUserPosition">Show current user's position on first page</resource>
+  <resource name="ShowValueColumn">Show points column</resource>
+  <resource name="View">View</resource>
+  <resource name="View_Default">Full</resource>
+  <resource name="View_Simple">Simple</resource>
+</language>
+<language key="zh-cn">
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="LastUpdated">已更新:</resource>
+  <resource name="Leaderboard_Description">显示排行榜。</resource>
+  <resource name="Leaderboard_Name">排行榜</resource>
+  <resource name="LeaderboardNotCalculated">尚未计算排行榜。</resource>
+  <resource name="more">更多</resource>
+  <resource name="Name">名称</resource>
+  <resource name="NoLeaders">未找到上榜对象。</resource>
+  <resource name="NotRanked">--</resource>
+  <resource name="Options">选项</resource>
+  <resource name="PageSize">每页项目数</resource>
+  <resource name="Points">积分</resource>
+  <resource name="Rank">排名</resource>
+  <resource name="SelectedLeaderboard">要显示的排行榜</resource>
+  <resource name="ShowCurrentUserPosition">显示当前用户在第一页上的位置</resource>
+  <resource name="ShowValueColumn">显示积分列</resource>
+  <resource name="View">视图</resource>
+  <resource name="View_Default">全部</resource>
+  <resource name="View_Simple">简单</resource>
+</language>
+<language key="zh-tw">
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="LastUpdated">已更新:</resource>
+  <resource name="Leaderboard_Description">顯示排行榜。</resource>
+  <resource name="Leaderboard_Name">排行榜</resource>
+  <resource name="LeaderboardNotCalculated">尚未計算排行榜。</resource>
+  <resource name="more">更多</resource>
+  <resource name="Name">名稱</resource>
+  <resource name="NoLeaders">找不到前端項目。</resource>
+  <resource name="NotRanked">--</resource>
+  <resource name="Options">選項</resource>
+  <resource name="PageSize">每頁的項目</resource>
+  <resource name="Points">點數</resource>
+  <resource name="Rank">等級</resource>
+  <resource name="SelectedLeaderboard">要顯示的排行榜</resource>
+  <resource name="ShowCurrentUserPosition">在第一頁顯示目前使用者的位置</resource>
+  <resource name="ShowValueColumn">顯示點數欄</resource>
+  <resource name="View">檢視</resource>
+  <resource name="View_Default">完整</resource>
+  <resource name="View_Simple">簡易</resource>
+</language></languageResources>
+		<files>
+			<file name="full.vm">I2lmICgkaXNDdXJyZW50KQ0KCTxoMT48YSBocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRsZWFkZXJib2FyZC5VcmwpIj4kbGVhZGVyYm9hcmQuTmFtZTwvYT48L2gxPgkNCiNlbHNlDQoJPGgzPjxhIGhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGxlYWRlcmJvYXJkLlVybCkiPiRsZWFkZXJib2FyZC5OYW1lPC9hPjwvaDM+CQ0KI2VuZA0KPGRpdiBjbGFzcz0iZGVzY3JpcHRpb24iPiQhbGVhZGVyYm9hcmQuRGVzY3JpcHRpb248L2Rpdj4JDQoNCjxkaXYgY2xhc3M9ImxlYWRlcnMgY29udGVudCBmdWxsIj4NCgkNCgkjZm9yZWFjaCAoJGxlYWRlciBpbiAkbGVhZGVycykNCgkjYmVmb3JlYWxsDQoJCTx1bCBjbGFzcz0ibGVhZGVycyI+DQoJCTxsaSBjbGFzcz0icm93IGxlYWRlci1oZWFkZXIiPg0KCQkJPGRpdiBjbGFzcz0iY29sdW1uIHJhbmstY29sdW1uIj4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiUmFuayIpPC9kaXY+CQkJCQkNCgkJCTxkaXYgY2xhc3M9ImNvbHVtbiBuYW1lLWNvbHVtbiI+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoIk5hbWUiKTwvZGl2PgkJCQ0KCQkJI2lmICgkc2hvd1ZhbHVlKQkJCQ0KCQkJCTxkaXYgY2xhc3M9ImNvbHVtbiBwb2ludHMtY29sdW1uIj4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiUG9pbnRzIik8L2Rpdj4JCQkJCQ0KCQkJI2VuZA0KCQk8L2xpPg0KCSNlYWNoDQoJCTxsaSBjbGFzcz0icm93IGxlYWRlci1pdGVtICNpZigkbGVhZGVyLnVzZXIuSWQgPT0gJGNvcmVfdjJfdXNlci5BY2Nlc3NpbmcuSWQpY3VycmVudC1sZWFkZXItaXRlbSNlbmQiPg0KCQkJPGRpdiBjbGFzcz0iY29sdW1uIHJhbmstY29sdW1uIj4jaWYoJGxlYWRlci5SYW5rICE9IC0xKSRsZWFkZXIuUmFuayAjZWxzZSAkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiTm90UmFua2VkIikgI2VuZDwvZGl2Pg0KCQkJPGRpdiBjbGFzcz0iY29sdW1uIG5hbWUtY29sdW1uIj4NCgkJCQkjaWYgKCRsZWFkZXIudXNlci5Qcm9maWxlVXJsKQ0KCQkJCQk8YSBocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRsZWFkZXIudXNlci5Qcm9maWxlVXJsKSIgY2xhc3M9ImludGVybmFsLWxpbmsgdmlldy11c2VyLXByb2ZpbGUgYXZhdGFyIj4NCgkJCQkJCSRjb3JlX3YyX3VpLkdldFJlc2l6ZWRJbWFnZUh0bWwoJGxlYWRlci51c2VyLkF2YXRhclVybCwgMzUsIDM1LCAiJXsgYWx0ID0gJGxlYWRlci51c2VyLkRpc3BsYXlOYW1lLCBSZXNpemVNZXRob2Q9J1pvb21BbmRDcm9wJyB9IikNCgkJCQkJPC9hPg0KCQkJCQk8YSBocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRsZWFkZXIudXNlci5Qcm9maWxlVXJsKSIgY2xhc3M9ImludGVybmFsLWxpbmsgdmlldy11c2VyLXByb2ZpbGUgdXNlcm5hbWUiPg0KCQkJCQkJJGxlYWRlci51c2VyLkRpc3BsYXlOYW1lDQoJCQkJCTwvYT4NCgkJCQkjZWxzZQ0KCQkJCQkkY29yZV92Ml91aS5HZXRSZXNpemVkSW1hZ2VIdG1sKCRsZWFkZXIudXNlci5BdmF0YXJVcmwsIDM1LCAzNSwgIiV7IGFsdCA9ICRsZWFkZXIudXNlci5EaXNwbGF5TmFtZSwgUmVzaXplTWV0aG9kPSdab29tQW5kQ3JvcCcgfSIpDQoJCQkJCTxzcGFuIGNsYXNzPSJ1c2VybmFtZSI+JGxlYWRlci51c2VyLkRpc3BsYXlOYW1lPC9zcGFuPg0KCQkJCSNlbmQJDQoJCQkJDQoJCQk8L2Rpdj4JCQkJDQoJCQkjaWYgKCRzaG93VmFsdWUpDQoJCQkJI3NldCAoJHF1ZXJ5ID0gIiV7fSIpDQoJCQkJI2lmKCRsZWFkZXJib2FyZC5Db250YWluZXJJZCkNCgkJCQkJJHF1ZXJ5LkFkZCgnQ29udGFpbmVySWQnLCAkbGVhZGVyYm9hcmQuQ29udGFpbmVySWQuVG9TdHJpbmcoKSkNCgkJCQkjZW5kDQoJCQkJI2lmKCRsZWFkZXJib2FyZC5TdGFydERhdGUpDQoJCQkJCSRxdWVyeS5BZGQoJ1N0YXJ0RGF0ZScsICRsZWFkZXJib2FyZC5TdGFydERhdGUuVG9TdHJpbmcoKSkNCgkJCQkjZW5kDQoJCQkJI2lmKCRsZWFkZXJib2FyZC5FbmREYXRlKQ0KCQkJCQkkcXVlcnkuQWRkKCdFbmREYXRlJywgJGxlYWRlcmJvYXJkLkVuZERhdGUuVG9TdHJpbmcoKSkNCgkJCQkjZW5kDQoJCQkJPGRpdiBjbGFzcz0iY29sdW1uIHBvaW50cy1jb2x1bW4iPg0KICAgICAgICAgICAgICAgICAgICAjc2V0KCRwb2ludHNVcmwgPSBmYWxzZSkNCgkJCQkgICAgI3NldCgkcG9pbnRzVXJsID0gJGNvcmVfdjJfdXJscy5Vc2VyUG9pbnRzKCRsZWFkZXIuVXNlci5JZCwgJHF1ZXJ5KSkNCiAgICAgICAgICAgICAgICAgICAgI2lmKCRsZWFkZXIuVmFsdWUgIT0gLTEpDQoJCQkJICAgICAgICAjaWYoJHBvaW50c1VybCkNCiAgICAJCQkJICAgICAgICA8YSBocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRwb2ludHNVcmwpIj4kY29yZV92Ml9sYW5ndWFnZS5Gb3JtYXROdW1iZXIoJGxlYWRlci5WYWx1ZSk8L2E+IA0KICAgIAkJCQkgICAgI2Vsc2UNCiAgICAgICAgCQkJCSAgICAkY29yZV92Ml9sYW5ndWFnZS5Gb3JtYXROdW1iZXIoJGxlYWRlci5WYWx1ZSkNCiAgICAJCQkJICAgICNlbmQNCgkJCQkgICAgI2Vsc2UgDQoJCQkJICAgICAgICAmbmJzcDsNCgkJCQkgICAgI2VuZA0KCQkJICAgIDwvZGl2Pg0KCQkJI2VuZA0KCQk8L2xpPg0KCSNhZnRlcmFsbA0KCQk8L3VsPg0KCSNub2RhdGENCgkJI2lmKCRsZWFkZXJCb2FyZC5MYXN0Q2FsY3VsYXRlZERhdGUpDQoJCQk8ZGl2IGNsYXNzPSJtZXNzYWdlIj4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiTm9MZWFkZXJzIik8L2Rpdj4NCgkJI2Vsc2UNCgkJCTxkaXYgY2xhc3M9Im1lc3NhZ2UiPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCJMZWFkZXJib2FyZE5vdENhbGN1bGF0ZWQiKTwvZGl2Pg0KCQkjZW5kDQoJI2VuZA0KDQoJPGRpdiBjbGFzcz0iYWN0aW9ucyI+DQoJCSNzZXQoJG1heExpbmtzID0gMykNCgkJPGRpdiBjbGFzcz0idWktbGlua3MgbmF2aWdhdGlvbi1saXN0IiBkYXRhLW1pbmxpbmtzPSIkbWF4TGlua3MiIGRhdGEtZGlyZWN0aW9uPSJob3Jpem9udGFsIiBkYXRhLW1heGxpbmtzPSIkbWF4TGlua3MiPg0KCQkJPHVsIGNsYXNzPSJuYXZpZ2F0aW9uLWxpc3QiPg0KCQkJCSNpZiAoJGxlYWRlcmJvYXJkLkxhc3RDYWxjdWxhdGVkRGF0ZSkNCgkJCQkJPGxpIGNsYXNzPSJuYXZpZ2F0aW9uLWxpc3QtaXRlbSBkYXRlIj4NCgkJCQkJCTxzcGFuIGNsYXNzPSJhdHRyaWJ1dGUtdmFsdWUiPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCJMYXN0VXBkYXRlZCIpICRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdERhdGVBbmRUaW1lKCRsZWFkZXJib2FyZC5MYXN0Q2FsY3VsYXRlZERhdGUpPC9zcGFuPg0KCQkJCQk8L2xpPg0KCQkJCSNlbmQNCgkJCQkjaWYgKCRjb3JlX3YyX3VzZXIuSXNSZWdpc3RlcmVkKCRjb3JlX3YyX3VzZXIuQWNjZXNzaW5nLklkKSkNCgkJCQkJI3NldCAoJGxpa2VGb3JtYXQgPSAne3RvZ2dsZX0gPHNwYW4gY2xhc3M9ImNvdW50Ij48c3BhbiBjbGFzcz0iaWNvbiI+PC9zcGFuPntjb3VudH08L3NwYW4+JykNCgkJCQkjZWxzZQ0KCQkJCQkjc2V0ICgkbGlrZUZvcm1hdCA9ICc8c3BhbiBjbGFzcz0iY291bnQiPjxzcGFuIGNsYXNzPSJpY29uIj48L3NwYW4+e2NvdW50fTwvc3Bhbj4nKQ0KCQkJCSNlbmQNCgkJCQk8bGkgY2xhc3M9Im5hdmlnYXRpb24tbGlzdC1pdGVtIGxpa2UiPg0KCQkJCQkkY29yZV92Ml91aS5MaWtlKCRsZWFkZXJib2FyZC5Db250ZW50SWQsICRsZWFkZXJib2FyZC5Db250ZW50VHlwZUlkLCAiJXsgRm9ybWF0ID0gJGxpa2VGb3JtYXQsIEluY2x1ZGVUaXAgPSAndHJ1ZScgfSIpDQoJCQkJPC9saT4NCgkNCgkJCQk8bGkgY2xhc3M9Im5hdmlnYXRpb24tbGlzdC1pdGVtIj4NCgkJCQkJPGEgaHJlZj0iIyIgZGF0YS1tb3JlPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdtb3JlJyk8L2E+DQoJCQkJPC9saT4NCgkJCQk8bGkgY2xhc3M9Im5hdmlnYXRpb24tbGlzdC1pdGVtIj4NCgkJCQkJPGEgaHJlZj0iIyIgZGF0YS1jYW5jZWw+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ2NhbmNlbCcpPC9hPg0KCQkJCTwvbGk+DQoJCQk8L3VsPg0KCQk8L2Rpdj4NCgk8L2Rpdj4NCjwvZGl2Pg0K</file>
+			<file name="simple.vm">PGgzPjxhIGhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGxlYWRlcmJvYXJkLlVybCkiPiRsZWFkZXJib2FyZC5OYW1lPC9hPjwvaDM+CQ0KDQojZm9yZWFjaCAoJGxlYWRlciBpbiAkbGVhZGVycykNCiNiZWZvcmVhbGwNCgk8dWwgY2xhc3M9ImxlYWRlcnMiPg0KCQk8bGkgY2xhc3M9InJvdyBsZWFkZXItaGVhZGVyIj4NCgkJCTxkaXYgY2xhc3M9ImNvbHVtbiByYW5rLWNvbHVtbiI+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoIlJhbmsiKTwvZGl2PgkJCQkJDQoJCQk8ZGl2IGNsYXNzPSJjb2x1bW4gbmFtZS1jb2x1bW4iPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCJOYW1lIik8L2Rpdj4JCQkJCQ0KCQkJI2lmICgkc2hvd1ZhbHVlKQkJCQ0KCQkJCTxkaXYgY2xhc3M9ImNvbHVtbiBwb2ludHMtY29sdW1uIj4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiUG9pbnRzIik8L2Rpdj4JCQkJCQ0KCQkJI2VuZA0KCQk8L2xpPg0KI2VhY2gNCgkJPGxpIGNsYXNzPSJyb3cgbGVhZGVyLWl0ZW0gI2lmKCRsZWFkZXIudXNlci5JZCA9PSAkY29yZV92Ml91c2VyLkFjY2Vzc2luZy5JZCljdXJyZW50LWxlYWRlci1pdGVtI2VuZCI+DQoJCQk8ZGl2IGNsYXNzPSJjb2x1bW4gcmFuay1jb2x1bW4iPiNpZigkbGVhZGVyLlJhbmsgIT0gLTEpJGxlYWRlci5SYW5rICNlbHNlICRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCJOb3RSYW5rZWQiKSAjZW5kPC9kaXY+DQoJCQk8ZGl2IGNsYXNzPSJjb2x1bW4gbmFtZS1jb2x1bW4iPg0KCQkJCSNpZiAoJGxlYWRlci51c2VyLlByb2ZpbGVVcmwpDQoJCQkJCTxhIGhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGxlYWRlci51c2VyLlByb2ZpbGVVcmwpIiBjbGFzcz0iaW50ZXJuYWwtbGluayB2aWV3LXVzZXItcHJvZmlsZSBhdmF0YXIiPg0KCQkJCQkJJGNvcmVfdjJfdWkuR2V0UmVzaXplZEltYWdlSHRtbCgkbGVhZGVyLnVzZXIuQXZhdGFyVXJsLCAzNSwgMzUsICIleyBhbHQgPSAkbGVhZGVyLnVzZXIuRGlzcGxheU5hbWUsIFJlc2l6ZU1ldGhvZD0nWm9vbUFuZENyb3AnIH0iKQ0KCQkJCQk8L2E+DQoJCQkJCTxhIGhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGxlYWRlci51c2VyLlByb2ZpbGVVcmwpIiBjbGFzcz0iaW50ZXJuYWwtbGluayB2aWV3LXVzZXItcHJvZmlsZSB1c2VybmFtZSI+DQoJCQkJCQkkbGVhZGVyLnVzZXIuRGlzcGxheU5hbWUNCgkJCQkJPC9hPg0KCQkJCSNlbHNlDQoJCQkJCSRjb3JlX3YyX3VpLkdldFJlc2l6ZWRJbWFnZUh0bWwoJGxlYWRlci51c2VyLkF2YXRhclVybCwgMzUsIDM1LCAiJXsgYWx0ID0gJGxlYWRlci51c2VyLkRpc3BsYXlOYW1lLCBSZXNpemVNZXRob2Q9J1pvb21BbmRDcm9wJyB9IikNCgkJCQkJPHNwYW4gY2xhc3M9InVzZXJuYW1lIj4kbGVhZGVyLnVzZXIuRGlzcGxheU5hbWU8L3NwYW4+DQoJCQkJI2VuZAkNCgkJCQkNCgkJCTwvZGl2PgkJCQkJDQoJCQkjaWYgKCRzaG93VmFsdWUpDQoJCQkJI3NldCAoJHF1ZXJ5ID0gIiV7fSIpDQoJCQkJI2lmKCRsZWFkZXJib2FyZC5Db250YWluZXJJZCkNCgkJCQkJJHF1ZXJ5LkFkZCgnQ29udGFpbmVySWQnLCAkbGVhZGVyYm9hcmQuQ29udGFpbmVySWQuVG9TdHJpbmcoKSkNCgkJCQkjZW5kDQoJCQkJI2lmKCRsZWFkZXJib2FyZC5TdGFydERhdGUpDQoJCQkJCSRxdWVyeS5BZGQoJ1N0YXJ0RGF0ZScsICRsZWFkZXJib2FyZC5TdGFydERhdGUuVG9TdHJpbmcoKSkNCgkJCQkjZW5kDQoJCQkJI2lmKCRsZWFkZXJib2FyZC5FbmREYXRlKQ0KCQkJCQkkcXVlcnkuQWRkKCdFbmREYXRlJywgJGxlYWRlcmJvYXJkLkVuZERhdGUuVG9TdHJpbmcoKSkNCgkJCQkjZW5kDQoJCQkJPGRpdiBjbGFzcz0iY29sdW1uIHBvaW50cy1jb2x1bW4iPg0KICAgICAgICAgICAgICAgICAgICAjc2V0KCRwb2ludHNVcmwgPSBmYWxzZSkNCgkJCQkgICAgI3NldCgkcG9pbnRzVXJsID0gJGNvcmVfdjJfdXJscy5Vc2VyUG9pbnRzKCRsZWFkZXIuVXNlci5JZCwgJHF1ZXJ5KSkNCiAgICAgICAgICAgICAgICAgICAgI2lmKCRsZWFkZXIuVmFsdWUgIT0gLTEpDQoJCQkJICAgICAgICAjaWYoJHBvaW50c1VybCkNCiAgICAJCQkJICAgICAgICA8YSBocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRwb2ludHNVcmwpIj4kY29yZV92Ml9sYW5ndWFnZS5Gb3JtYXROdW1iZXIoJGxlYWRlci5WYWx1ZSk8L2E+IA0KICAgIAkJCQkgICAgI2Vsc2UNCiAgICAgICAgCQkJCSAgICAkY29yZV92Ml9sYW5ndWFnZS5Gb3JtYXROdW1iZXIoJGxlYWRlci5WYWx1ZSkNCiAgICAJCQkJICAgICNlbmQNCgkJCQkgICAgI2Vsc2UgDQoJCQkJICAgICAgICAmbmJzcDsgDQoJCQkJICAgICNlbmQNCgkJCSAgICA8L2Rpdj4NCgkJCSNlbmQJCQkNCgkJPC9saT4NCiNhZnRlcmFsbA0KCTwvdWw+DQojbm9kYXRhDQoJI2lmKCRsZWFkZXJCb2FyZC5MYXN0Q2FsY3VsYXRlZERhdGUpDQoJCTxkaXYgY2xhc3M9Im1lc3NhZ2UiPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCJOb0xlYWRlcnMiKTwvZGl2Pg0KCSNlbHNlDQoJCTxkaXYgY2xhc3M9Im1lc3NhZ2UiPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCJMZWFkZXJib2FyZE5vdENhbGN1bGF0ZWQiKTwvZGl2Pg0KCSNlbmQNCg0KI2VuZA==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

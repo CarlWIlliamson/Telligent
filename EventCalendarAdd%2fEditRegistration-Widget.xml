@@ -1,0 +1,341 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Calendar_EventRegistrationAdd_Name}" version="10.1.8.10498" description="${resource:Calendar_EventRegistrationAdd_Description}" instanceIdentifier="8ceacb300fed4dcfa5fdc67b26189023" theme="" isCacheable="false" varyCacheByUser="true" showHeaderByDefault="true" cssClass="event-registration-add-form">
+		<contentScript><![CDATA[
+#set ($event = false)
+#set ($event = $calendar_v1_events.Current)
+
+#set ($userId = $core_v2_user.Accessing.Id)
+#set ($user = $core_v2_user.Accessing)
+#set ($userIsRegistered = $core_v2_user.IsRegistered($userId))
+
+#if (!$event || $event.IsCancelled || $event.EventEndDate <= $calendar_v1_UI.AdjustForUserTime($core_v2_utility.CurrentDate))
+    $core_v2_widget.Hide()
+#end
+
+#if(!$userIsRegistered)
+    #set ($userId =-1)
+#end
+
+#set ($firstName = "")
+#set ($lastName = "")
+#if ($userIsRegistered)
+    #set ($nameArray = $core_v2_utility.Split(" ", $user.DisplayName).ToArray())
+    #set ($firstName = $nameArray.get(0))
+    #if ($nameArray.Count > 1)
+        #set ($lastName = $core_v2_utility.Trim($user.DisplayName.Substring($firstName.Length)))
+    #end
+#end
+
+#set($group = false)
+#set($group = $core_v2_group.Current)
+
+#set ($calendar = false)
+#set ($calendar = $calendar_v1_calendars.Current)
+
+#set ($registration = false)
+#set ($registration = $calendar_v1_registrations.Current)
+#if (!$registration)
+    #set ($registration = $calendar_v1_registrations.Get($event.Id, $user.Id))
+#end
+
+#if($event.RegistrationType == 'NotSet' || (!$event.AllowAnonymousRegistrations && !$userIsRegistered) || ($event.RegistrationType == 'InvitationOnly' && !$registration))
+  $core_v2_widget.Hide()
+#end
+
+#if($event.RegistrationType != "InvitationOnly" && !$registration)
+    #if(($event.TotalRegistrations >= $event.MaximumRegistrationsAllowed) &&  $event.MaximumRegistrationsAllowed > 0)
+        $core_v2_widget.Hide()
+    #end
+#end
+
+<div id="$core_v2_widget.UniqueId('successMessage')" class="message success" style="display:none">$core_v2_language.GetResource("RegistrationSavingSuccess")</div>
+<div id="$core_v2_widget.UniqueId('errorMessage')" class="message error" style="display:none">$core_v2_language.GetResource("calendar_GenericError")</div>
+
+#if ($registration && $registration.Status == 'Confirmed')
+    <div class="message success">$core_v2_language.GetResource("Registration_AttendingEvent")</div>
+#elseif ($registration && $registration.Status == 'Invited')
+    <div class="message success">$core_v2_language.GetResource("Registration_Invited")</div>
+#elseif (($registration && $registration.Status == 'Cancelled') || $core_v2_page.GetQueryStringValue('cancelled') == 'true')
+    <div class="message error">$core_v2_language.GetResource("Registration_Cancelled")</div>
+#elseif ($core_v2_page.GetQueryStringValue('registered') == 'NotApproved')
+    <div class="message success">$core_v2_language.GetResource("Registration_RequestSuccessful")</div>
+#end
+
+<div id="$core_v2_widget.UniqueId('infoMessageWrapper')" class="message success" style="display:none" ></div>
+
+<div id="$core_v2_widget.UniqueId('form')">
+  <div class="field-list-header"></div>
+  <fieldset class="field-list">
+    <ul class="field-list">
+      <li class="field-item email-address">
+        <label class="field-item-header" for="$core_v2_widget.UniqueId('email')">$core_v2_language.GetResource("EmailAddress")</label>
+        <span class="field-item-input">
+          <input type="text" id="$core_v2_widget.UniqueId('email')" size="60" name="$core_v2_widget.UniqueId('email')" value="#if($registration && $registration.EmailAddress.length > 0)$registration.EmailAddress#elseif($core_v2_user.IsRegistered($userId))$user.PrivateEmail#end" />
+        </span>
+        <span class="field-item-validation" style="display: none;"></span>
+      </li>
+      <li class="field-item first-name">
+        <label class="field-item-header" for="$core_v2_widget.UniqueId('firstName')">$core_v2_language.GetResource("FirstName")</label>
+        <span class="field-item-input">
+          <input type="text" id="$core_v2_widget.UniqueId('firstName')" size="60" name="$core_v2_widget.UniqueId('firstName')" value="#if($registration && $registration.FirstName.length > 0)$registration.FirstName#else$firstName#end" />
+        </span>
+        <span class="field-item-validation" style="display: none;"></span>
+      </li>
+      <li class="field-item last-name">
+        <label class="field-item-header" for="$core_v2_widget.UniqueId('lastName')">$core_v2_language.GetResource("LastName")</label>
+        <span class="field-item-input">
+          <input type="text" id="$core_v2_widget.UniqueId('lastName')" size="60" name="$core_v2_widget.UniqueId('lastName')" value="#if($registration && $registration.LastName.length > 0)$registration.LastName#else$lastName#end" />
+        </span>
+        <span class="field-item-validation" style="display: none;"></span>
+      </li>
+      <li class="field-item registration-buttons">
+#if ($registration == false || $registration.Status == 'Cancelled')
+        <span class="field-item-input">
+          <a id="$core_v2_widget.UniqueId('save')" onclick="return false;" class="internal-link submit-button save" href="#"><span></span>$core_v2_language.GetResource('AddRegistration')</a>
+          <span class="processing" style="display:none;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+        </span>
+#elseif ($registration && ($registration.Status == 'Confirmed' || $registration.Status == 'NotApproved'))
+        <span class="field-item-input">
+          <a id="$core_v2_widget.UniqueId('update')" onclick="return false;" class="internal-link submit-button update" href="#"><span></span>$core_v2_language.GetResource('UpdateRegistration')</a>
+          <span class="processing" style="display:none;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+        </span> |
+        <span class="field-item-input">
+          <a id="$core_v2_widget.UniqueId('cancel')" onclick="return false;" class="internal-link submit-button cancel-button" href="#"><span></span>$core_v2_language.GetResource('CancelRegistration')</a>
+          <span class="processing" style="display:none;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+        </span>
+#elseif ($registration && $registration.Status == 'Invited')
+        <span class="field-item-input">
+          <a id="$core_v2_widget.UniqueId('update')" onclick="return false;" class="internal-link submit-button update" href="#"><span></span>$core_v2_language.GetResource('AcceptInvitation')</a>
+          <span class="processing" style="display:none;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+        </span> |
+        <span class="field-item-input">
+          <a id="$core_v2_widget.UniqueId('cancel')" onclick="return false;" class="internal-link submit-button cancel-button" href="#"><span></span>$core_v2_language.GetResource('RejectInvitation')</a>
+          <span class="processing" style="display:none;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+        </span>
+#end
+
+      </li>
+    </ul>
+  </fieldset>
+  <div class="field-list-footer"></div>
+</div>
+
+
+#if (!$userIsRegistered)
+<div id="$core_v2_widget.UniqueId('cancelForm')">
+<div class="field-list-header"></div>
+<fieldset class="field-list">
+  <ul class="field-list">
+    <li class="field-item registration-code">
+      <label class="field-item-header" for="$core_v2_widget.UniqueId('code')">$core_v2_language.GetResource("RegistrationCode")</label>
+      <span class="field-item-input">
+        <input type="text" id="$core_v2_widget.UniqueId('code')" size="60" name="$core_v2_widget.UniqueId('registrationCode')" />
+      </span>
+      <span class="field-item-validation" style="display: none;"></span>
+    </li>
+      <li class="field-item registration-cancel">
+          <span class="field-item-input">
+            <a id="$core_v2_widget.UniqueId('cancelWithCode')" onclick="return false;" class="internal-link submit-button cancel-button" href="#"><span></span>$core_v2_language.GetResource('CancelRegistration')</a>
+            <span class="processing" style="display:none;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+          </span>
+        </li>
+    </ul>
+  </fieldset>
+  <div class="field-list-footer"></div>
+</div>
+#end
+
+#registerEndOfPageHtml('telligent.evolution.Calendar.widgets.eventregistrationadd')
+  <script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+#end
+
+#registerEndOfPageHtml()
+  <script type="text/javascript">
+  //<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+  jQuery(document).ready(function(j)
+  {
+    j.telligent.evolution.Calendar.widgets.eventRegistrationAdd.register({
+      wrapperId:'$core_v2_widget.WrapperElementId',
+      resultMessageWrapper:'#$core_v2_widget.UniqueId('infoMessageWrapper')',
+      elements : {
+        save : '#$core_v2_widget.UniqueId('save')',
+        update: '#$core_v2_widget.UniqueId('update')',
+        cancel: '#$core_v2_widget.UniqueId('cancel')',
+        cancelWithCode: '#$core_v2_widget.UniqueId('cancelWithCode')',
+        accept: '#$core_v2_widget.UniqueId('accept')',
+        reject: '#$core_v2_widget.UniqueId('reject')'
+    },
+      inputs: {
+          email:'#$core_v2_widget.UniqueId('email')',
+          firstName:'#$core_v2_widget.UniqueId('firstName')',
+          lastName:'#$core_v2_widget.UniqueId('lastName')',
+          code:'#$core_v2_widget.UniqueId('code')',
+      },
+      eventId:#if($event)$event.Id#else-1#end,
+      eventRegistrationType:#if($event)'$event.RegistrationType'#else'NotSet'#end,
+      token:#if($registration)'$registration.Token'#else-1#end,
+      status:#if($registration)'$registration.Status'#else'NotSet'#end,
+      user:$userId,
+      userIsRegistered:#if($userIsRegistered == 'True')true #else false #end,
+      resources: {
+          emailRequiredMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_validator_emailRequired'))',
+          emailLengthMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_validator_emailLength'))',
+          emailFormatMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_validator_emailFormat'))',
+          firstNameRequiredMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_validator_firstNameRequired'))',
+          firstNameLengthMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_validator_firstNameLength'))',
+          lastNameRequiredMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_validator_lastNameRequired'))',
+          lastNameLengthMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_validator_lastNameLength'))',
+          saveProcessingMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('RegistrationSaving'))',
+          updateProcessingMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('RegistrationUpdating'))',
+          cancelprocessingMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('RegistrationCancelling'))',
+          saveSuccessMessage:j('#$core_v2_widget.UniqueId('RegistrationSavingSuccess')'),
+          updateSuccessMessage:j('#$core_v2_widget.UniqueId('RegistrationUpdatingSuccess')'),
+          cancelSuccessMessage:j('#$core_v2_widget.UniqueId('RegistrationCancellingSuccess')'),
+          saveErrorMessage:j('#$core_v2_widget.UniqueId('RegistrationSavingError')'),
+          updateErrorMessage:j('#$core_v2_widget.UniqueId('RegistrationUpdatingError')'),
+          cancelErrorMessage:j('#$core_v2_widget.UniqueId('RegistrationCancellingError')'),
+          registrationSuccessMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Registration_RequestSuccessful'))',
+          updateRegSuccessMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('RegistrationUpdatingSuccess'))',
+          invalidGuidMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('invalid_Guid'))'
+      },
+      saveUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('save.vm'))',
+      cancelUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('cancel.vm'))',
+    });
+  });
+
+  //<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+  </script>
+#end
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${Calendar_EventRegistrationAdd_Title}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="linkArea" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Calendar_EventRegistrationAdd_Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="AcceptInvitation">Accept Invitation</resource>
+  <resource name="AddRegistration">Register for this Event</resource>
+  <resource name="Calendar_EventRegistrationAdd_Description">Allows a user to register for an event and displays the status of that registration</resource>
+  <resource name="Calendar_EventRegistrationAdd_Name">Event Calendar - Add/Edit Registration</resource>
+  <resource name="Calendar_EventRegistrationAdd_Title">Registration</resource>
+  <resource name="calendar_GenericError">An error occurred.</resource>
+  <resource name="calendar_validator_emailFormat">Invalid Email Address</resource>
+  <resource name="calendar_validator_emailLength">Email Address Length should not exceed 256 characters</resource>
+  <resource name="calendar_validator_emailRequired">Email Address is required</resource>
+  <resource name="calendar_validator_firstNameLength">First Name should not exceed 128 characters</resource>
+  <resource name="calendar_validator_firstNameRequired">First Name is required</resource>
+  <resource name="calendar_validator_lastNameLength">Last Name should not exceed 128 characters</resource>
+  <resource name="calendar_validator_lastNameRequired">Last Name is required</resource>
+  <resource name="CancelRegistration">Cancel Registration</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="EmailAddress">Email Address</resource>
+  <resource name="FirstName">First Name</resource>
+  <resource name="invalid_Guid">Registration code is not valid</resource>
+  <resource name="LastName">Last Name</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Registration_AttendingEvent">You are currently attending this event.</resource>
+  <resource name="Registration_Cancelled">Your registration has been cancelled.</resource>
+  <resource name="Registration_Invited">You have been invited to attend this event.</resource>
+  <resource name="Registration_RequestSuccessful">Your registration request has been received. You will receive further information soon.</resource>
+  <resource name="RegistrationCancelling">Cancelling Registration...</resource>
+  <resource name="RegistrationCancellingError">An error occurred cancelling Event Registration</resource>
+  <resource name="RegistrationCancellingSuccess">Registration cancelled successfully</resource>
+  <resource name="RegistrationCode">Registration Code</resource>
+  <resource name="RegistrationSaving">Saving Registration...</resource>
+  <resource name="RegistrationSavingError">An error occurred creating Event Registration</resource>
+  <resource name="RegistrationSavingSuccess">Registration created successfully</resource>
+  <resource name="RegistrationUpdating">Updating Registration...</resource>
+  <resource name="RegistrationUpdatingError">An error occurred updating Event Registration</resource>
+  <resource name="RegistrationUpdatingSuccess">Registration updated successfully</resource>
+  <resource name="RejectInvitation">Reject Invitation.</resource>
+  <resource name="UpdateRegistration">Update Registration</resource>
+</language>
+<language key="zh-cn">
+  <resource name="AcceptInvitation">接受邀请</resource>
+  <resource name="AddRegistration">注册参加此活动</resource>
+  <resource name="Calendar_EventRegistrationAdd_Description">允许用户注册活动并显示该注册的状态</resource>
+  <resource name="Calendar_EventRegistrationAdd_Name">活动日历 - 添加/编辑注册</resource>
+  <resource name="Calendar_EventRegistrationAdd_Title">注册</resource>
+  <resource name="calendar_GenericError">出现错误。</resource>
+  <resource name="calendar_validator_emailFormat">无效的电子邮件地址</resource>
+  <resource name="calendar_validator_emailLength">电子邮件地址长度不能超过 256 个字符</resource>
+  <resource name="calendar_validator_emailRequired">电子邮件地址是必需的</resource>
+  <resource name="calendar_validator_firstNameLength">名字不能超过 128 个字符</resource>
+  <resource name="calendar_validator_firstNameRequired">名字是必需的</resource>
+  <resource name="calendar_validator_lastNameLength">姓氏不能超过 128 个字符</resource>
+  <resource name="calendar_validator_lastNameRequired">姓氏是必需的</resource>
+  <resource name="CancelRegistration">取消注册</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="EmailAddress">电子邮件地址</resource>
+  <resource name="FirstName">名字</resource>
+  <resource name="invalid_Guid">注册代码无效</resource>
+  <resource name="LastName">姓氏</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Registration_AttendingEvent">您目前已参加此活动。</resource>
+  <resource name="Registration_Cancelled">您的注册已取消。</resource>
+  <resource name="Registration_Invited">已邀请您参加此活动。</resource>
+  <resource name="Registration_RequestSuccessful">已接收您的注册请求。您将在不久后收到更多信息。</resource>
+  <resource name="RegistrationCancelling">正在取消注册...</resource>
+  <resource name="RegistrationCancellingError">取消活动注册时出错</resource>
+  <resource name="RegistrationCancellingSuccess">已成功取消注册</resource>
+  <resource name="RegistrationCode">注册代码</resource>
+  <resource name="RegistrationSaving">正在保存注册...</resource>
+  <resource name="RegistrationSavingError">创建活动注册时出错</resource>
+  <resource name="RegistrationSavingSuccess">已成功创建注册</resource>
+  <resource name="RegistrationUpdating">正在更新注册...</resource>
+  <resource name="RegistrationUpdatingError">更新活动注册时出错</resource>
+  <resource name="RegistrationUpdatingSuccess">已成功更新注册</resource>
+  <resource name="RejectInvitation">拒绝邀请。</resource>
+  <resource name="UpdateRegistration">更新注册</resource>
+</language>
+<language key="zh-tw">
+  <resource name="AcceptInvitation">接受邀請</resource>
+  <resource name="AddRegistration">註冊這個事件</resource>
+  <resource name="Calendar_EventRegistrationAdd_Description">允許使用者註冊事件並顯示該註冊的狀態</resource>
+  <resource name="Calendar_EventRegistrationAdd_Name">事件%E8%A1%8C事曆 - 新增/編輯註冊</resource>
+  <resource name="Calendar_EventRegistrationAdd_Title">註冊</resource>
+  <resource name="calendar_GenericError">發生錯誤。</resource>
+  <resource name="calendar_validator_emailFormat">無效的電子郵件地址</resource>
+  <resource name="calendar_validator_emailLength">電子郵件地址長度不可超過 256 個字元</resource>
+  <resource name="calendar_validator_emailRequired">需要電子郵件地址</resource>
+  <resource name="calendar_validator_firstNameLength">名字長度不可超過 128 個字元</resource>
+  <resource name="calendar_validator_firstNameRequired">需要名字</resource>
+  <resource name="calendar_validator_lastNameLength">姓氏長度不可超過 128 個字元</resource>
+  <resource name="calendar_validator_lastNameRequired">需要姓氏</resource>
+  <resource name="CancelRegistration">取消註冊</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="EmailAddress">電子郵件地址</resource>
+  <resource name="FirstName">名字</resource>
+  <resource name="invalid_Guid">註冊代碼無效</resource>
+  <resource name="LastName">姓氏</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Registration_AttendingEvent">您目前正在參加這個事件。</resource>
+  <resource name="Registration_Cancelled">已取消您的註冊。</resource>
+  <resource name="Registration_Invited">您已獲邀參加這個事件。</resource>
+  <resource name="Registration_RequestSuccessful">已收到您的註冊要求。您將立即收到詳細資訊。</resource>
+  <resource name="RegistrationCancelling">正在取消註冊...</resource>
+  <resource name="RegistrationCancellingError">取消事件註冊時發生錯誤</resource>
+  <resource name="RegistrationCancellingSuccess">已成功取消註冊</resource>
+  <resource name="RegistrationCode">註冊代碼</resource>
+  <resource name="RegistrationSaving">正在儲存註冊...</resource>
+  <resource name="RegistrationSavingError">建立事件註冊時發生錯誤</resource>
+  <resource name="RegistrationSavingSuccess">已成功建立註冊</resource>
+  <resource name="RegistrationUpdating">正在更新註冊...</resource>
+  <resource name="RegistrationUpdatingError">更新事件註冊時發生錯誤</resource>
+  <resource name="RegistrationUpdatingSuccess">已成功更新註冊</resource>
+  <resource name="RejectInvitation">拒絕邀請。</resource>
+  <resource name="UpdateRegistration">更新註冊</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="ca14a7db70934b0abcce06169b6f2272" />
+		</requiredContext>
+		<files>
+			<file name="cancel.vm">77u/JGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoNCiNzZXQoJGV2ZW50SWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdFdmVudElkJykpKQ0KI3NldCgkZXZlbnQgPSBmYWxzZSkNCiNzZXQoJGV2ZW50ID0gJGNhbGVuZGFyX3YxX2V2ZW50cy5TaG93KCRldmVudElkKSkNCiNpZighJGV2ZW50KQ0KICAgICRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcignVGhlIHNwZWNpZmllZCBldmVudCBub3QgYmUgcmV0cmlldmVkJykNCiNlbmQNCg0KI3NldCgkdG9rZW4gPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlR3VpZCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnVG9rZW4nKSkpDQoNCiNzZXQoJHJlZ2lzdHJhdGlvbiA9ICRjYWxlbmRhcl92MV9yZWdpc3RyYXRpb25zLkNhbmNlbCgkdG9rZW4pKQ0KDQojaWYoISRyZWdpc3RyYXRpb24pDQogICAgJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCdUaGUgcmVnaXN0cmF0aW9uIGhhcyBub3QgYmVlbiBmb3VuZCcpDQojZWxzZQ0KDQoJI2lmKCRyZWdpc3RyYXRpb24uRXJyb3JzLkNvdW50ID4gMCkNCgkJJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCRyZWdpc3RyYXRpb24uRXJyb3JzKQ0KCSNlbmQNCg0KCSNzZXQgKCRxdWVyeXN0cmluZyA9ICdjYW5jZWxsZWQ9dHJ1ZScpDQoJI3NldCAoJHVybCA9ICRjYWxlbmRhcl92MV91cmxzLkV2ZW50KCRldmVudElkKSkNCg0KCXsicmVkaXJlY3RVcmwiOiIkY29yZV92Ml9lbmNvZGluZy5KYXZhc2NyaXB0RW5jb2RlKCRjb3JlX3YyX3BhZ2UuQWRqdXN0UXVlcnlTdHJpbmcoJHVybCwgJHF1ZXJ5c3RyaW5nKSkifQ0KDQojZW5k</file>
+			<file name="save.vm">77u/JGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoNCiNzZXQoJGV2ZW50SWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdFdmVudElkJykpKQ0KI3NldCgkZXZlbnQgPSBmYWxzZSkNCiNzZXQoJGV2ZW50ID0gJGNhbGVuZGFyX3YxX2V2ZW50cy5TaG93KCRldmVudElkKSkNCiNpZighJGV2ZW50KQ0KICAgICRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcignVGhlIHNwZWNpZmllZCBldmVudCBub3QgYmUgcmV0cmlldmVkJykNCiNlbmQNCg0KI3NldCgkdG9rZW4gPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlR3VpZCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnVG9rZW4nKSkpDQoNCiNzZXQoJHJlZ2lzdHJhdGlvbiA9IGZhbHNlKQ0KDQojc2V0KCRlbWFpbCA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdFbWFpbCcpKQ0KI3NldCgkdXNlcklkID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ1VzZXJJZCcpKQ0KI3NldCgkZmlyc3ROYW1lID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0ZpcnN0TmFtZScpKQ0KI3NldCgkbGFzdE5hbWUgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnTGFzdE5hbWUnKSkNCiNzZXQoJHN0YXR1cyA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdTdGF0dXMnKSkNCg0KI2lmICgkdG9rZW4gPT0gJzAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCcpDQogICAgI3NldCgkb3B0aW9ucyA9ICIle0VtYWlsPSRlbWFpbCxVc2VySWQ9JHVzZXJJZCxGaXJzdE5hbWU9JGZpcnN0TmFtZSxMYXN0TmFtZT0kbGFzdE5hbWUsU3RhdHVzPSRzdGF0dXN9IikNCiAgICAjc2V0KCRyZWdpc3RyYXRpb24gPSAkY2FsZW5kYXJfdjFfcmVnaXN0cmF0aW9ucy5DcmVhdGUoJGV2ZW50SWQsICRvcHRpb25zKSkNCiNlbHNlDQogICAgI3NldCgkb3B0aW9ucyA9ICIle0VtYWlsPSRlbWFpbCxGaXJzdE5hbWU9JGZpcnN0TmFtZSxMYXN0TmFtZT0kbGFzdE5hbWUsU3RhdHVzPSRzdGF0dXN9IikNCiAgICAjc2V0KCRyZWdpc3RyYXRpb24gPSAkY2FsZW5kYXJfdjFfcmVnaXN0cmF0aW9ucy5VcGRhdGUoJHRva2VuLCAkb3B0aW9ucykpDQojZW5kDQoNCiNpZigkcmVnaXN0cmF0aW9uLkVycm9ycy5Db3VudCA+IDApDQogICAgJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCRyZWdpc3RyYXRpb24uRXJyb3JzKQ0KI2VuZA0KDQojaWYgKCR1c2VySWQgPT0gLTEpDQogICAgI3NldCAoJHF1ZXJ5c3RyaW5nID0gInRrbj0kcmVnaXN0cmF0aW9uLlRva2VuJnJlZ2lzdGVyZWQ9JHJlZ2lzdHJhdGlvbi5TdGF0dXMuVG9TdHJpbmcoKSIpDQojZWxzZQ0KICAgICNzZXQgKCRxdWVyeXN0cmluZyA9ICJyZWdpc3RlcmVkPSRyZWdpc3RyYXRpb24uU3RhdHVzLlRvU3RyaW5nKCkiKQ0KI2VuZA0KDQojc2V0ICgkdXJsID0gJGNhbGVuZGFyX3YxX3VybHMuRXZlbnQoJGV2ZW50SWQpKQ0KDQp7InJlZGlyZWN0VXJsIjoiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkY29yZV92Ml9wYWdlLkFkanVzdFF1ZXJ5U3RyaW5nKCR1cmwsICRxdWVyeXN0cmluZykpIn0=</file>
+			<file name="ui.js">KGZ1bmN0aW9uICgkLCBnbG9iYWwpIHsNCiAgICBpZiAodHlwZW9mICQudGVsbGlnZW50ID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudCA9IHt9OyB9DQogICAgaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbiA9IHt9OyB9DQogICAgaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPSB7fTsgfQ0KICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLkNhbGVuZGFyID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24uQ2FsZW5kYXIgPSB7fTsgfQ0KICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLkNhbGVuZGFyLndpZGdldHMgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi5DYWxlbmRhci53aWRnZXRzID0ge307IH0NCg0KICAgIHZhciBidXR0b25UZXh0ID0gIiIsDQogICAgIF9zZXRFcnJvciA9IGZ1bmN0aW9uIChjb250ZXh0KSB7DQogICAgICAgICBjb250ZXh0LmVycm9yTWVzc2FnZS5zbGlkZURvd24oKTsNCiAgICAgICAgIGdsb2JhbC5zZXRUaW1lb3V0KGZ1bmN0aW9uICgpIHsNCiAgICAgICAgICAgICBjb250ZXh0LmVycm9yTWVzc2FnZS5mYWRlT3V0KCkuc2xpZGVVcCgpOw0KICAgICAgICAgfSwgOTk5OSk7DQogICAgIH0sDQogICAgX3NldFN1Y2Nlc3MgPSBmdW5jdGlvbiAod3JhcHBlcikgew0KICAgICAgICB3cmFwcGVyLnNsaWRlVXAoZnVuY3Rpb24gKCkgew0KICAgICAgICAgICAgd3JhcHBlci5zbGlkZURvd24oKTsNCiAgICAgICAgfSk7DQogICAgfSwNCiAgICBfc2V0V2FpdCA9IGZ1bmN0aW9uIChjb250ZXh0LCBidXR0b24pIHsNCiAgICAgICAgdmFyIHNwaW5uZXIgPSAnPHNwYW4gY2xhc3M9InVpLWxvYWRpbmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PC9zcGFuPic7DQogICAgICAgIGJ1dHRvbi5hdHRyKCJkaXNhYmxlZCIsIHRydWUpOw0KICAgICAgICBidXR0b25UZXh0ID0gYnV0dG9uLnZhbCgpOw0KICAgICAgICBidXR0b24udmFsKGNvbnRleHQucHJvY2Vzc2luZ01lc3NhZ2UpOw0KICAgICAgICAkKCcucHJvY2Vzc2luZycsICQoJyMnICsgY29udGV4dC53cmFwcGVySWQpKS5odG1sKHNwaW5uZXIpLnNob3coKTsNCiAgICB9LA0KICAgIF9jbGVhcldhaXQgPSBmdW5jdGlvbiAoY29udGV4dCwgYnV0dG9uKSB7DQogICAgICAgIGJ1dHRvbi5yZW1vdmVBdHRyKCJkaXNhYmxlZCIpOw0KICAgICAgICBidXR0b24udmFsKGJ1dHRvblRleHQpOw0KICAgICAgICAkKCcucHJvY2Vzc2luZycsICQoJyMnICsgY29udGV4dC53cmFwcGVySWQpKS5odG1sKCcnKS5oaWRlKCk7DQogICAgfSwNCglfYXR0YWNoSGFuZGxlcnMgPSBmdW5jdGlvbiAoY29udGV4dCkgew0KCSAgICAkY2FuY2VsV2l0aENvZGUgPSAkKGNvbnRleHQuZWxlbWVudHMuY2FuY2VsV2l0aENvZGUpOw0KCSAgICAkY2FuY2VsV2l0aENvZGUuZXZvbHV0aW9uVmFsaWRhdGlvbih7DQoJICAgICAgICBvblZhbGlkYXRlZDogZnVuY3Rpb24gKGlzVmFsaWQsIGJ1dHRvbkNsaWNrZWQsIGMpIHsgaWYgKGlzVmFsaWQpIHsgJGNhbmNlbFdpdGhDb2RlLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOyB9IGVsc2UgeyAkY2FuY2VsV2l0aENvZGUuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7IH0gfSwNCgkgICAgICAgIG9uU3VjY2Vzc2Z1bENsaWNrOiBmdW5jdGlvbiAoZSkgeyBfY2FuY2VsUmVnaXN0cmF0aW9uV2l0aENvZGUoY29udGV4dCk7IH0NCgkgICAgfSk7DQoJICAgICRjYW5jZWxXaXRoQ29kZS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRDdXN0b21WYWxpZGF0aW9uJywgY29udGV4dC5pbnB1dHMuY29kZSwgZnVuY3Rpb24gKCkgew0KCSAgICAgICAgcmV0dXJuIF90ZXN0R3VpZCgkKGNvbnRleHQuaW5wdXRzLmNvZGUpLnZhbCgpKTsNCgkgICAgfSwgY29udGV4dC5yZXNvdXJjZXMuaW52YWxpZEd1aWRNZXNzYWdlLCAnIycgKyBjb250ZXh0LndyYXBwZXJJZCArICcgLmZpZWxkLWl0ZW0ucmVnaXN0cmF0aW9uLWNvZGUgLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicsIG51bGwpOw0KDQoJICAgICRzYXZlID0gJChjb250ZXh0LmVsZW1lbnRzLnNhdmUpOw0KCSAgICAkc2F2ZS5ldm9sdXRpb25WYWxpZGF0aW9uKHsNCgkgICAgICAgIG9uVmFsaWRhdGVkOiBmdW5jdGlvbiAoaXNWYWxpZCwgYnV0dG9uQ2xpY2tlZCwgYykgeyBpZiAoaXNWYWxpZCkgeyAkc2F2ZS5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsgfSBlbHNlIHsgJHNhdmUuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7IH0gfSwNCgkgICAgICAgIG9uU3VjY2Vzc2Z1bENsaWNrOiBmdW5jdGlvbiAoZSkgeyBfc2F2ZVJlZ2lzdHJhdGlvbihjb250ZXh0KTsgfQ0KCSAgICB9KTsNCgkgICAgJHNhdmUuZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkRmllbGQnLCBjb250ZXh0LmlucHV0cy5lbWFpbCwgeyBlbWFpbDogdHJ1ZSwgcmVxdWlyZWQ6IHRydWUsIG1lc3NhZ2VzOiB7IGVtYWlsOiBjb250ZXh0LnJlc291cmNlcy5lbWFpbEZvcm1hdE1lc3NhZ2UsIHJlcXVpcmVkOiBjb250ZXh0LnJlc291cmNlcy5lbWFpbFJlcXVpcmVkTWVzc2FnZX0gfSwgJyMnICsgY29udGV4dC53cmFwcGVySWQgKyAnIC5maWVsZC1pdGVtLmVtYWlsLWFkZHJlc3MgLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicsIG51bGwpOw0KCSAgICAkc2F2ZS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRGaWVsZCcsIGNvbnRleHQuaW5wdXRzLmZpcnN0TmFtZSwgeyByZXF1aXJlZDogdHJ1ZSwgbWVzc2FnZXM6IHsgcmVxdWlyZWQ6IGNvbnRleHQucmVzb3VyY2VzLmZpcnN0TmFtZVJlcXVpcmVkTWVzc2FnZX0gfSwgJyMnICsgY29udGV4dC53cmFwcGVySWQgKyAnIC5maWVsZC1pdGVtLmZpcnN0LW5hbWUgLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicsIG51bGwpOw0KCSAgICAkc2F2ZS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRGaWVsZCcsIGNvbnRleHQuaW5wdXRzLmxhc3ROYW1lLCB7IHJlcXVpcmVkOiB0cnVlLCBtZXNzYWdlczogeyByZXF1aXJlZDogY29udGV4dC5yZXNvdXJjZXMubGFzdE5hbWVSZXF1aXJlZE1lc3NhZ2V9IH0sICcjJyArIGNvbnRleHQud3JhcHBlcklkICsgJyAuZmllbGQtaXRlbS5sYXN0LW5hbWUgLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicsIG51bGwpDQoNCgkgICAgJHVwZGF0ZSA9ICQoY29udGV4dC5lbGVtZW50cy51cGRhdGUpOw0KCSAgICAkdXBkYXRlLmV2b2x1dGlvblZhbGlkYXRpb24oew0KCSAgICAgICAgb25WYWxpZGF0ZWQ6IGZ1bmN0aW9uIChpc1ZhbGlkLCBidXR0b25DbGlja2VkLCBjKSB7IGlmIChpc1ZhbGlkKSB7ICR1cGRhdGUucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7IH0gZWxzZSB7ICR1cGRhdGUuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7IH0gfSwNCgkgICAgICAgIG9uU3VjY2Vzc2Z1bENsaWNrOiBmdW5jdGlvbiAoZSkgeyBfdXBkYXRlUmVnaXN0cmF0aW9uKGNvbnRleHQpOyB9DQoJICAgIH0pOw0KCSAgICAkdXBkYXRlLmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEZpZWxkJywgY29udGV4dC5pbnB1dHMuZW1haWwsIHsgZW1haWw6IHRydWUsIHJlcXVpcmVkOiB0cnVlLCBtZXNzYWdlczogeyBlbWFpbDogY29udGV4dC5yZXNvdXJjZXMuZW1haWxGb3JtYXRNZXNzYWdlLCByZXF1aXJlZDogY29udGV4dC5yZXNvdXJjZXMuZW1haWxSZXF1aXJlZE1lc3NhZ2V9IH0sICcjJyArIGNvbnRleHQud3JhcHBlcklkICsgJyAuZmllbGQtaXRlbS5lbWFpbC1hZGRyZXNzIC5maWVsZC1pdGVtLXZhbGlkYXRpb24nLCBudWxsKTsNCgkgICAgJHVwZGF0ZS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRGaWVsZCcsIGNvbnRleHQuaW5wdXRzLmZpcnN0TmFtZSwgeyByZXF1aXJlZDogdHJ1ZSwgbWVzc2FnZXM6IHsgcmVxdWlyZWQ6IGNvbnRleHQucmVzb3VyY2VzLmZpcnN0TmFtZVJlcXVpcmVkTWVzc2FnZX0gfSwgJyMnICsgY29udGV4dC53cmFwcGVySWQgKyAnIC5maWVsZC1pdGVtLmZpcnN0LW5hbWUgLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicsIG51bGwpOw0KCSAgICAkdXBkYXRlLmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEZpZWxkJywgY29udGV4dC5pbnB1dHMubGFzdE5hbWUsIHsgcmVxdWlyZWQ6IHRydWUsIG1lc3NhZ2VzOiB7IHJlcXVpcmVkOiBjb250ZXh0LnJlc291cmNlcy5sYXN0TmFtZVJlcXVpcmVkTWVzc2FnZX0gfSwgJyMnICsgY29udGV4dC53cmFwcGVySWQgKyAnIC5maWVsZC1pdGVtLmxhc3QtbmFtZSAuZmllbGQtaXRlbS12YWxpZGF0aW9uJywgbnVsbCkNCg0KCSAgICAkKGNvbnRleHQuZWxlbWVudHMuY2FuY2VsKS5jbGljayhmdW5jdGlvbiAoKSB7DQoJICAgICAgICBfY2FuY2VsUmVnaXN0cmF0aW9uKGNvbnRleHQpOw0KCSAgICAgICAgcmV0dXJuIGZhbHNlOw0KCSAgICB9KTsNCgl9LA0KCV9zYXZlUmVnaXN0cmF0aW9uID0gZnVuY3Rpb24gKGNvbnRleHQpIHsNCg0KCSAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ucG9zdCh7DQoJICAgICAgICB1cmw6IGNvbnRleHQuc2F2ZVVybCwNCgkgICAgICAgIGRhdGE6IF9wb3B1bGF0ZURhdGEoY29udGV4dCwgdHJ1ZSksDQoJICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsNCgkgICAgICAgICAgICBpZiAocmVzcG9uc2UucmVkaXJlY3RVcmwpIHsNCgkgICAgICAgICAgICAgICAgd2luZG93LmxvY2F0aW9uID0gcmVzcG9uc2UucmVkaXJlY3RVcmw7DQoJICAgICAgICAgICAgfQ0KCSAgICAgICAgICAgIGVsc2UgaWYgKHJlc3BvbnNlLmVycm9ycykgew0KCSAgICAgICAgICAgICAgICBhbGVydChjb250ZXh0LnJlc291cmNlcy5zYXZlRXJyb3JNZXNzYWdlICsgJ1xuXG4nICsgcmVzcG9uc2UuZXJyb3JzWzBdLmVycm9yKTsNCg0KCSAgICAgICAgICAgICAgICAkKGNvbnRleHQuZWxlbWVudHMuc2F2ZSkucGFyZW50KCkucmVtb3ZlQ2xhc3MoJ3Byb2Nlc3NpbmcnKTsNCgkgICAgICAgICAgICAgICAgJChjb250ZXh0LmVsZW1lbnRzLnNhdmUpLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCSAgICAgICAgICAgIH0NCgkgICAgICAgIH0sDQoJICAgICAgICBkZWZhdWx0RXJyb3JNZXNzYWdlOiBjb250ZXh0LnJlc291cmNlcy5zYXZlRXJyb3JNZXNzYWdlLA0KCSAgICAgICAgZXJyb3I6IGZ1bmN0aW9uICh4aHIsIGRlc2MsIGV4KSB7DQoJICAgICAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyhkZXNjLCB7IHR5cGU6ICdlcnJvcicgfSk7DQoJICAgICAgICAgICAgJChjb250ZXh0LmVsZW1lbnRzLnNhdmUpLnBhcmVudCgpLnJlbW92ZUNsYXNzKCdwcm9jZXNzaW5nJyk7DQoJICAgICAgICAgICAgJChjb250ZXh0LmVsZW1lbnRzLnNhdmUpLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCSAgICAgICAgfQ0KCSAgICB9KTsNCg0KCX0sDQoJX3VwZGF0ZVJlZ2lzdHJhdGlvbiA9IGZ1bmN0aW9uIChjb250ZXh0KSB7DQoNCgkgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KCSAgICAgICAgdXJsOiBjb250ZXh0LnNhdmVVcmwsDQoJICAgICAgICBkYXRhOiBfcG9wdWxhdGVEYXRhKGNvbnRleHQsIGZhbHNlKSwNCgkgICAgICAgIHN1Y2Nlc3M6IGZ1bmN0aW9uIChyZXNwb25zZSkgew0KCSAgICAgICAgICAgIGlmIChyZXNwb25zZS5yZWRpcmVjdFVybCkgew0KCSAgICAgICAgICAgICAgICB3aW5kb3cubG9jYXRpb24gPSByZXNwb25zZS5yZWRpcmVjdFVybDsNCgkgICAgICAgICAgICB9DQoJICAgICAgICAgICAgZWxzZSBpZiAocmVzcG9uc2UuZXJyb3JzKSB7DQoJICAgICAgICAgICAgICAgIGFsZXJ0KGNvbnRleHQucmVzb3VyY2VzLnVwZGF0ZUVycm9yTWVzc2FnZSArICdcblxuJyArIHJlc3BvbnNlLmVycm9yc1swXS5lcnJvcik7DQoJICAgICAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy51ZHBhdGUpLnBhcmVudCgpLnJlbW92ZUNsYXNzKCdwcm9jZXNzaW5nJyk7DQoJICAgICAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy51ZHBhdGUpLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCSAgICAgICAgICAgIH0NCgkgICAgICAgICAgICBlbHNlIHsNCgkgICAgICAgICAgICAgICAgJChjb250ZXh0LnJlc3VsdE1lc3NhZ2VXcmFwcGVyKS5odG1sKGNvbnRleHQucmVzb3VyY2VzLnVwZGF0ZVJlZ1N1Y2Nlc3NNZXNzYWdlKTsNCgkgICAgICAgICAgICAgICAgX3NldFN1Y2Nlc3MoJChjb250ZXh0LnJlc3VsdE1lc3NhZ2VXcmFwcGVyKSk7DQoJICAgICAgICAgICAgfQ0KCSAgICAgICAgfSwNCgkgICAgICAgIGRlZmF1bHRFcnJvck1lc3NhZ2U6IGNvbnRleHQucmVzb3VyY2VzLnVwZGF0ZUVycm9yTWVzc2FnZSwNCgkgICAgICAgIGVycm9yOiBmdW5jdGlvbiAoeGhyLCBkZXNjLCBleCkgew0KCSAgICAgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coZGVzYywgeyB0eXBlOiAnZXJyb3InIH0pOw0KCSAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy51ZHBhdGUpLnBhcmVudCgpLnJlbW92ZUNsYXNzKCdwcm9jZXNzaW5nJyk7DQoJICAgICAgICAgICAgJChjb250ZXh0LmVsZW1lbnRzLnVkcGF0ZSkucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJICAgICAgICB9DQoJICAgIH0pOw0KDQoJfSwNCglfY2FuY2VsUmVnaXN0cmF0aW9uID0gZnVuY3Rpb24gKGNvbnRleHQpIHsNCg0KCSAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ucG9zdCh7DQoJICAgICAgICB1cmw6IGNvbnRleHQuY2FuY2VsVXJsLA0KCSAgICAgICAgZGF0YTogX3BvcHVsYXRlQ2FuY2VsRGF0YShjb250ZXh0KSwNCgkgICAgICAgIHN1Y2Nlc3M6IGZ1bmN0aW9uIChyZXNwb25zZSkgew0KCSAgICAgICAgICAgIGlmIChyZXNwb25zZS5yZWRpcmVjdFVybCkgew0KCSAgICAgICAgICAgICAgICB3aW5kb3cubG9jYXRpb24gPSByZXNwb25zZS5yZWRpcmVjdFVybDsNCgkgICAgICAgICAgICB9DQoJICAgICAgICAgICAgZWxzZSBpZiAocmVzcG9uc2UuZXJyb3JzKSB7DQoJICAgICAgICAgICAgICAgIGFsZXJ0KGNvbnRleHQucmVzb3VyY2VzLmNhbmNlbEVycm9yTWVzc2FnZSArICdcblxuJyArIHJlc3BvbnNlLmVycm9yc1swXS5lcnJvcik7DQoNCgkgICAgICAgICAgICAgICAgJChjb250ZXh0LmVsZW1lbnRzLmNhbmNlbCkucGFyZW50KCkucmVtb3ZlQ2xhc3MoJ3Byb2Nlc3NpbmcnKTsNCgkgICAgICAgICAgICAgICAgJChjb250ZXh0LmVsZW1lbnRzLmNhbmNlbCkucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJICAgICAgICAgICAgfQ0KCSAgICAgICAgfSwNCgkgICAgICAgIGRlZmF1bHRFcnJvck1lc3NhZ2U6IGNvbnRleHQucmVzb3VyY2VzLmNhbmNlbEVycm9yTWVzc2FnZSwNCgkgICAgICAgIGVycm9yOiBmdW5jdGlvbiAoeGhyLCBkZXNjLCBleCkgew0KCSAgICAgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coZGVzYywgeyB0eXBlOiAnZXJyb3InIH0pOw0KCSAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy5jYW5jZWwpLnBhcmVudCgpLnJlbW92ZUNsYXNzKCdwcm9jZXNzaW5nJyk7DQoJICAgICAgICAgICAgJChjb250ZXh0LmVsZW1lbnRzLmNhbmNlbCkucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJICAgICAgICB9DQoJICAgIH0pOw0KCX0sDQoNCiAgICBfcG9wdWxhdGVEYXRhID0gZnVuY3Rpb24gKGNvbnRleHQsIGlzTmV3KSB7DQogICAgICAgIHZhciBkYXRhID0gew0KICAgICAgICAgICAgRXZlbnRJZDogY29udGV4dC5ldmVudElkLA0KICAgICAgICAgICAgVXNlcklkOiBjb250ZXh0LnVzZXIsDQogICAgICAgICAgICBUb2tlbjogY29udGV4dC50b2tlbg0KICAgICAgICB9Ow0KDQogICAgICAgIGlmICgkKGNvbnRleHQuaW5wdXRzLmVtYWlsKS5sZW5ndGggPiAwKSB7DQogICAgICAgICAgICBkYXRhLkVtYWlsID0gJChjb250ZXh0LmlucHV0cy5lbWFpbCkudmFsKCk7DQogICAgICAgIH0NCg0KICAgICAgICBpZiAoJChjb250ZXh0LmlucHV0cy5maXJzdE5hbWUpLmxlbmd0aCA+IDApIHsNCiAgICAgICAgICAgIGRhdGEuRmlyc3ROYW1lID0gJChjb250ZXh0LmlucHV0cy5maXJzdE5hbWUpLnZhbCgpOw0KICAgICAgICB9DQoNCiAgICAgICAgaWYgKCQoY29udGV4dC5pbnB1dHMubGFzdE5hbWUpLmxlbmd0aCA+IDApIHsNCiAgICAgICAgICAgIGRhdGEuTGFzdE5hbWUgPSAkKGNvbnRleHQuaW5wdXRzLmxhc3ROYW1lKS52YWwoKTsNCiAgICAgICAgfQ0KDQogICAgICAgIGlmIChpc05ldyB8fCBjb250ZXh0LnN0YXR1cyA9PSAnQ2FuY2VsbGVkJyB8fCBjb250ZXh0LnN0YXR1cyA9PSAnTm90U2V0Jykgew0KICAgICAgICAgICAgaWYgKGNvbnRleHQuZXZlbnRSZWdpc3RyYXRpb25UeXBlID09ICdPcGVuJyAmJiBjb250ZXh0LnVzZXJJc1JlZ2lzdGVyZWQpDQogICAgICAgICAgICAgICAgZGF0YS5TdGF0dXMgPSAnQ29uZmlybWVkJzsNCiAgICAgICAgICAgIGVsc2UNCiAgICAgICAgICAgICAgICBkYXRhLlN0YXR1cyA9ICdOb3RBcHByb3ZlZCc7DQogICAgICAgIH0NCiAgICAgICAgZWxzZSB7DQogICAgICAgICAgICBpZiAoY29udGV4dC5zdGF0dXMgPT0gJ0ludml0ZWQnKSAvLyYmIHJlZy5Ub2tlbkV4cGlyZURhdGUgPiBVc2VyVGltZS5DdXJyZW50U2VydmVyVGltZSkNCiAgICAgICAgICAgICAgICBkYXRhLlN0YXR1cyA9ICdDb25maXJtZWQnOw0KICAgICAgICB9DQogICAgICAgIHJldHVybiBkYXRhOw0KICAgIH0sDQoNCiAgICBfcG9wdWxhdGVDYW5jZWxEYXRhID0gZnVuY3Rpb24gKGNvbnRleHQpIHsNCiAgICAgICAgdmFyIGRhdGEgPSB7DQogICAgICAgICAgICBFdmVudElkOiBjb250ZXh0LmV2ZW50SWQsDQogICAgICAgICAgICBUb2tlbjogY29udGV4dC50b2tlbg0KICAgICAgICB9Ow0KDQogICAgICAgIHJldHVybiBkYXRhOw0KICAgIH0sDQoNCiAgICBfY2FuY2VsUmVnaXN0cmF0aW9uV2l0aENvZGUgPSBmdW5jdGlvbiAoY29udGV4dCkgew0KDQogICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5wb3N0KHsNCiAgICAgICAgICAgIHVybDogY29udGV4dC5jYW5jZWxVcmwsDQogICAgICAgICAgICBkYXRhOiBfcG9wdWxhdGVDYW5jZWxXaXRoQ29kZURhdGEoY29udGV4dCksDQogICAgICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsNCiAgICAgICAgICAgICAgICBpZiAocmVzcG9uc2UucmVkaXJlY3RVcmwpIHsNCiAgICAgICAgICAgICAgICAgICAgd2luZG93LmxvY2F0aW9uID0gcmVzcG9uc2UucmVkaXJlY3RVcmw7DQogICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgICAgIGVsc2UgaWYgKHJlc3BvbnNlLmVycm9ycykgew0KICAgICAgICAgICAgICAgICAgICBhbGVydChjb250ZXh0LnJlc291cmNlcy5jYW5jZWxFcnJvck1lc3NhZ2UgKyAnXG5cbicgKyByZXNwb25zZS5lcnJvcnNbMF0uZXJyb3IpOw0KDQogICAgICAgICAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy5jYW5jZWwpLnBhcmVudCgpLnJlbW92ZUNsYXNzKCdwcm9jZXNzaW5nJyk7DQogICAgICAgICAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy5jYW5jZWwpLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KICAgICAgICAgICAgICAgIH0NCiAgICAgICAgICAgIH0sDQogICAgICAgICAgICBkZWZhdWx0RXJyb3JNZXNzYWdlOiBjb250ZXh0LnJlc291cmNlcy5jYW5jZWxFcnJvck1lc3NhZ2UsDQogICAgICAgICAgICBlcnJvcjogZnVuY3Rpb24gKHhociwgZGVzYywgZXgpIHsNCiAgICAgICAgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ubm90aWZpY2F0aW9ucy5zaG93KGRlc2MsIHsgdHlwZTogJ2Vycm9yJyB9KTsNCiAgICAgICAgICAgICAgICAkKGNvbnRleHQuZWxlbWVudHMuY2FuY2VsKS5wYXJlbnQoKS5yZW1vdmVDbGFzcygncHJvY2Vzc2luZycpOw0KICAgICAgICAgICAgICAgICQoY29udGV4dC5lbGVtZW50cy5jYW5jZWwpLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KICAgICAgICAgICAgfQ0KICAgICAgICB9KTsNCiAgICB9LA0KDQogICAgX3BvcHVsYXRlQ2FuY2VsV2l0aENvZGVEYXRhID0gZnVuY3Rpb24gKGNvbnRleHQpIHsNCiAgICAgICAgdmFyIGRhdGEgPSB7DQogICAgICAgICAgICBFdmVudElkOiBjb250ZXh0LmV2ZW50SWQNCiAgICAgICAgfTsNCg0KICAgICAgICBpZiAoJChjb250ZXh0LmlucHV0cy5jb2RlKS5sZW5ndGggPiAwKSB7DQogICAgICAgICAgICBkYXRhLlRva2VuID0gJChjb250ZXh0LmlucHV0cy5jb2RlKS52YWwoKTsNCiAgICAgICAgfQ0KDQogICAgICAgIHJldHVybiBkYXRhOw0KICAgIH07DQoNCiAgICBfdGVzdEd1aWQgPSBmdW5jdGlvbih2YWx1ZSkgew0KICAgICAgICB2YXIgdmFsaWRHdWlkID0gL14oe3woKT9bMC05YS1mQS1GXXs4fS0oWzAtOWEtZkEtRl17NH0tKXszfVswLTlhLWZBLUZdezEyfSh9fCkpPyQvOw0KICAgICAgICB2YXIgZW1wdHlHdWlkID0gL14oe3woKT8wezh9LSgwezR9LSl7M30wezEyfSh9fCkpPyQvOw0KICAgICAgICByZXR1cm4gdmFsaWRHdWlkLnRlc3QodmFsdWUpICYmICFlbXB0eUd1aWQudGVzdCh2YWx1ZSk7DQogICAgfTsNCg0KICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5DYWxlbmRhci53aWRnZXRzLmV2ZW50UmVnaXN0cmF0aW9uQWRkID0gew0KICAgICAgICByZWdpc3RlcjogZnVuY3Rpb24gKGNvbnRleHQpIHsNCiAgICAgICAgICAgIF9hdHRhY2hIYW5kbGVycyhjb250ZXh0KTsNCiAgICAgICAgfQ0KICAgIH07DQoNCn0pKGpRdWVyeSwgd2luZG93KTsNCg==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

@@ -1,0 +1,406 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Forums_ThreadList_Name}" version="10.1.8.10498" description="${resource:Forums_ThreadList_Description}" instanceIdentifier="c6af9d06240940beae71ade1bf750570" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="thread-list">
+		<contentScript><![CDATA[
+
+#set ($showSidebarList = false)
+#set ($region = $core_v2_widget.RegionName.ToLower())
+#set ($layout = $core_v2_page.Layout.ToLower())
+
+#if ($region == 'split-sidebar-left' || $region == 'split-sidebar-right' || $region == 'left-sidebar') 
+    #set ($showSidebarList = true)
+#elseif ($region == 'right-sidebar' && !$layout.Contains('split-content') && !$layout.Contains('split-sidebar'))
+    #set ($showSidebarList = true)
+#end
+
+#if($showSidebarList)
+    $core_v2_widget.ExecuteFile('sidebar.vm')
+#else
+    $core_v2_ui.PagedContent('list.vm')
+
+    #registerEndOfPageHtml()
+        <script type="text/javascript">
+        jQuery(function(j){
+            j('#$core_v2_widget.WrapperElementId').on('click', '.answer-status a', function(e){
+                e.preventDefault();
+                var link = j(this),
+                    threadItem = link.closest('.content-item');
+                    previewItem = threadItem.next('.preview');
+                    container = previewItem.find('.content');
+
+                if(!container.is(':empty')) {
+                    container.empty();
+                    threadItem.removeClass('previewing');
+                    previewItem.removeClass('previewing');
+                } else {
+                    threadItem.addClass('previewing');
+                    previewItem.addClass('previewing');
+                    j.telligent.evolution.get({
+                        url: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('answer.vm'))',
+                        data: {
+                            threadId: link.data('threadid'),
+                            answerType: link.data('answertype')
+                        }
+                    }).then(function(excerpt){
+                        container.hide().empty().append(excerpt).show();
+                    });
+                }
+            });
+        });
+        </script>
+    #end
+#end
+
+			]]></contentScript>
+		<headerScript><![CDATA[
+#set($header = $core_v2_widget.GetStringValue('fragmentHeader', ''))
+#set ($forumOrGroup = $core_v2_page.ParseQueryString($core_v2_widget.GetStringValue('selectedForumOrGroup', '')))
+
+#if($header == '' || $header == '${resource:Forums_ThreadList_Name}')
+	#if ($forumOrGroup.Value('Forum'))
+		#set ($forumId = $core_v2_utility.ParseInt($forumOrGroup.Value('Forum')))
+		#set ($header = $core_v2_forum.Get($forumId).Name)
+	#elseif ($forumOrGroup.Value('Group'))
+		#set ($groupId = $core_v2_utility.ParseInt($forumOrGroup.Value('Group')))
+		#set ($header = $core_v2_group.Get("%{Id=$groupId}").Name)
+	#elseif ($core_v2_forum.Current)
+		#set ($header = $core_v2_forum.Current.Name)
+	#else
+		#set ($header = $core_v2_widget.GetStringValue('fragmentHeader', '${resource:Forums_ThreadList_Name}'))
+	#end
+#end
+
+$core_v2_widget.ApplyTokens($header)
+		]]></headerScript>
+		<configuration><![CDATA[<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Forums_ThreadList_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="includeDiscussions" resourceName="CF_IncludeDiscussions" dataType="bool" defaultValue="true" />
+	<property id="includeQuestions" resourceName="CF_IncludeQuestions" dataType="bool" defaultValue="true" />
+	<property id="supportUserFiltering" resourceName="CF_SupportUserFiltering" dataType="bool" defaultValue="true" />
+	<property id="filter" resourceName="CF_Filter" dataType="string" defaultValue="all">
+		<propertyValue value="Active" resourceName="CF_Filter_All" />
+		<propertyValue value="Unread" resourceName="CF_Filter_Unread" />
+		<propertyValue value="Answered" resourceName="CF_Filter_Answered" />
+		<propertyValue value="Unanswered" resourceName="CF_Filter_Unanswered" />
+		<propertyValue value="AnsweredNotVerified" resourceName="CF_Filter_AnsweredNotVerified" />
+		<propertyValue value="AnsweredWithNotVerified" resourceName="CF_Filter_AnsweredIncludingNotVerified" />
+		<propertyValue value="MyThreads" resourceName="CF_Filter_MyThreads" />
+		<propertyValue value="Authored" resourceName="CF_Filter_Authored" />
+		<propertyValue value="ContextualMyThreads" resourceName="CF_Filter_MyThreads_Contextual" />
+		<propertyValue value="ContextualAuthored" resourceName="CF_Filter_Authored_Contextual" />
+	</property>
+	<property id="sortBy" resourceName="CF_SortBy" dataType="string" defaultValue="LastPost">
+		<propertyValue value="LastPost" resourceName="CF_ForumThreadList_Sort_DateTime" />
+		<propertyValue value="Replies" resourceName="CF_ForumThreadList_Sort_Replies" />
+		<propertyValue value="Views" resourceName="CF_ForumThreadList_Sort_Views" />
+		<propertyValue value="Topic" resourceName="CF_ForumThreadList_Sort_Topic" />
+		<propertyValue value="ContentQuality" resourceName="CF_ForumThreadList_Sort_Quality" />
+		<propertyValue value="TotalVotes" resourceName="CF_ForumThreadList_Sort_Votes" />
+		<propertyValue value="QualityScore" resourceName="CF_ForumThreadList_Sort_QualityVotes" />
+	</property>
+	<property id="sortOrder" resourceName="CF_SortOrder" dataType="string" defaultValue="Descending">
+		<propertyValue value="Ascending" resourceName="SortOrderDropDownList_Asc" />
+		<propertyValue value="Descending" resourceName="SortOrderDropDownList_Desc" />
+	</property>
+	<property id="popularOnly" resourceName="CF_ForumThreadList_PopularOnly" dataType="bool" defaultValue="false" />
+	<property id="selectedForumOrGroup" resourceName="CF_Forum_SelectGroupAndForum" dataType="custom" defaultValue="" controlType="Telligent.Evolution.Discussions.Controls.ForumSelectionControl, Telligent.Evolution.Forums" />
+	<property id="pageSize" resourceName="Pagesize" dataType="int" defaultValue="15">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="100" />
+	</property>
+	<property id="hideEmpty" resourceName="CF_ForumThreadList_HideEmpty" dataType="bool" defaultValue="false" />
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="AllRecent">All recent questions and discussions</resource>
+  <resource name="AllRecent_Discussions">All recent discussions</resource>
+  <resource name="AllRecent_Questions">All recent questions</resource>
+  <resource name="Announcement">Announcement</resource>
+  <resource name="Answered_Tip">Question answered (click to preview)</resource>
+  <resource name="AnsweredNotVerified">Questions with suggested answers</resource>
+  <resource name="AnsweredWithNotVerified">Answered questions and discussions</resource>
+  <resource name="AnsweredWithNotVerified_Discussions">Answered discussions</resource>
+  <resource name="AnsweredWithNotVerified_Questions">Answered questions</resource>
+  <resource name="Authored">Questions and discussions you've started</resource>
+  <resource name="Authored_Discussions">Discussions you've started</resource>
+  <resource name="Authored_Questions">Questions you've asked</resource>
+  <resource name="by">by</resource>
+  <resource name="cancel">Cancel</resource>
+  <resource name="CF_Filter">Default Filter</resource>
+  <resource name="CF_Filter_All">None (Show All)</resource>
+  <resource name="CF_Filter_Answered">Only Answered</resource>
+  <resource name="CF_Filter_AnsweredIncludingNotVerified">Only Answered (including Not Verified Answers)</resource>
+  <resource name="CF_Filter_AnsweredNotVerified">Only Answered but not Verified</resource>
+  <resource name="CF_Filter_Authored">Accessing User has Authored</resource>
+  <resource name="CF_Filter_Authored_Contextual">Contextual User has Authored</resource>
+  <resource name="CF_Filter_MyThreads">Accessing User has Participated In</resource>
+  <resource name="CF_Filter_MyThreads_Contextual">Contextual User has Participated In</resource>
+  <resource name="CF_Filter_Unanswered">Only Unanswered</resource>
+  <resource name="CF_Filter_Unread">Unread by Accessing User</resource>
+  <resource name="CF_Forum_SelectGroupAndForum">Select group/forum to pull content from</resource>
+  <resource name="CF_ForumAdministration">Administer forum</resource>
+  <resource name="CF_ForumLinks_Subscribe">Turn Forum notifications on</resource>
+  <resource name="CF_ForumLinks_Unsubscribe">Turn Forum notifications off</resource>
+  <resource name="CF_ForumsModeration_Plural">{0} posts to moderate</resource>
+  <resource name="CF_ForumsModeration_Singular">{0} post to moderate</resource>
+  <resource name="CF_ForumThreadList_HideEmpty">Hide if empty</resource>
+  <resource name="CF_ForumThreadList_PopularOnly">Show only popular threads</resource>
+  <resource name="CF_ForumThreadList_Sort_ContentQuality">Content Quality Score</resource>
+  <resource name="CF_ForumThreadList_Sort_DateTime">By date</resource>
+  <resource name="CF_ForumThreadList_Sort_Quality">By quality</resource>
+  <resource name="CF_ForumThreadList_Sort_QualityVotes">By votes</resource>
+  <resource name="CF_ForumThreadList_Sort_Replies">By reply count</resource>
+  <resource name="CF_ForumThreadList_Sort_Topic">By name</resource>
+  <resource name="CF_ForumThreadList_Sort_Views">By view count</resource>
+  <resource name="CF_ForumThreadList_Sort_Votes">By most asked</resource>
+  <resource name="CF_IncludeDiscussions">Include Discussion Threads</resource>
+  <resource name="CF_IncludeQuestions">Include Question and Answer Threads</resource>
+  <resource name="CF_SortBy">Sort By</resource>
+  <resource name="CF_SortOrder">Sort Order</resource>
+  <resource name="CF_SupportUserFiltering">Support User Filtering and Sorting</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Contextual_Authored">Questions and discussions this user has started</resource>
+  <resource name="Contextual_Authored_Discussions">Discussions this user has started</resource>
+  <resource name="Contextual_Authored_Questions">Questions this user has asked</resource>
+  <resource name="Contextual_Your">Questions and discussions this user has participated in</resource>
+  <resource name="Contextual_Your_Discussions">Discussions this user has participated in</resource>
+  <resource name="Contextual_Your_Questions">Questions this user has participated in</resource>
+  <resource name="Date">Date</resource>
+  <resource name="Discussion">start a discussion</resource>
+  <resource name="Discussion_Tip">Discussion</resource>
+  <resource name="Forums_ThreadList_Description">Displays a list of forum threads.</resource>
+  <resource name="Forums_ThreadList_Name">Forum - Thread List</resource>
+  <resource name="FrequentlyAsked">Frequently Asked</resource>
+  <resource name="LatestReplyFormat">Latest &lt;a href="{0}" class="internal-link view-user-profile"&gt;{1}&lt;/a&gt;&lt;br /&gt;</resource>
+  <resource name="MarkAllRead_Threads_Link">Mark all read</resource>
+  <resource name="more">More</resource>
+  <resource name="NotAnswered_Tip">Unanswered question</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Pagesize">Number of items to display</resource>
+  <resource name="plus_more_answer">Plus {0} more answer</resource>
+  <resource name="plus_more_answers">Plus {0} more answers</resource>
+  <resource name="Question">ask a question</resource>
+  <resource name="Question_or_Discussion">ask a question or start a discussion</resource>
+  <resource name="Recent_Questions">Recent Questions</resource>
+  <resource name="ReplyCount_Plural">replies</resource>
+  <resource name="ReplyCount_Singular">reply</resource>
+  <resource name="SortOrderDropDownList_Asc">Ascending</resource>
+  <resource name="SortOrderDropDownList_Desc">Descending</resource>
+  <resource name="StartedFormat">Started &lt;a href="{0}" class="internal-link view-user-profile"&gt;{1}&lt;/a&gt;&lt;br /&gt;</resource>
+  <resource name="Status_Discussion">Discussion</resource>
+  <resource name="Status_NotAnswered">Not Answered</resource>
+  <resource name="Status_SuggestedAnswer">Suggested Answer</resource>
+  <resource name="Status_VerifiedAnswer">Answered</resource>
+  <resource name="Sticky">Sticky</resource>
+  <resource name="SuggestedAnswer_Tip">Answer suggested (click to preview)</resource>
+  <resource name="tags">Tags</resource>
+  <resource name="TitleItem_Discussions">Discussions</resource>
+  <resource name="TitleItem_UnanswerQuestions">Unanswered Questions</resource>
+  <resource name="Unanswered">Unanswered questions and discussions</resource>
+  <resource name="Unanswered_Discussions">Unanswered discussions</resource>
+  <resource name="Unanswered_Questions">Unanswered questions</resource>
+  <resource name="Unread">Unread questions and discussions</resource>
+  <resource name="Unread_Discussions">Unread discussions</resource>
+  <resource name="Unread_Questions">Unread questions</resource>
+  <resource name="View">View</resource>
+  <resource name="ViewCount_Plural">views</resource>
+  <resource name="ViewCount_Singular">view</resource>
+  <resource name="ViewThreads_FilterByTopic">By title</resource>
+  <resource name="ViewThreads_NoTopics">There are no posts to show. This could be because there are no posts in this forum or due to a filter.</resource>
+  <resource name="ViewThreads_NoTopics_Link">There are no posts to show.  Be the first to &lt;a href="{0}"&gt; {1}&lt;/a&gt;.</resource>
+  <resource name="Your">Questions and discussions you've participated in</resource>
+  <resource name="Your_Discussions">Discussions you've participated in</resource>
+  <resource name="Your_Questions">Questions you've participated in</resource>
+</language>
+<language key="zh-cn">
+  <resource name="AllRecent">所有最新问题和讨论</resource>
+  <resource name="AllRecent_Discussions">所有最新讨论</resource>
+  <resource name="AllRecent_Questions">所有最新问题</resource>
+  <resource name="Announcement">公告</resource>
+  <resource name="AnsweredNotVerified">有建议答案的问题</resource>
+  <resource name="AnsweredWithNotVerified">已回答的问题和讨论</resource>
+  <resource name="AnsweredWithNotVerified_Discussions">已回复的讨论</resource>
+  <resource name="AnsweredWithNotVerified_Questions">已回答的问题</resource>
+  <resource name="Authored">您已发起的问题和讨论</resource>
+  <resource name="Authored_Discussions">您已发起的讨论</resource>
+  <resource name="Authored_Questions">您已提出的问题</resource>
+  <resource name="by">排序方式</resource>
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Filter">缺省筛选器</resource>
+  <resource name="CF_Filter_All">无(显示全部)</resource>
+  <resource name="CF_Filter_Answered">仅已回答</resource>
+  <resource name="CF_Filter_AnsweredIncludingNotVerified">仅已回答(包括未验证的答案)</resource>
+  <resource name="CF_Filter_AnsweredNotVerified">仅已回答但未验证</resource>
+  <resource name="CF_Filter_Authored">访问用户已撰写</resource>
+  <resource name="CF_Filter_Authored_Contextual">上下文用户已撰写</resource>
+  <resource name="CF_Filter_MyThreads">访问用户已参与</resource>
+  <resource name="CF_Filter_MyThreads_Contextual">上下文用户已参与</resource>
+  <resource name="CF_Filter_Unanswered">仅未回答</resource>
+  <resource name="CF_Filter_Unread">访问用户未读</resource>
+  <resource name="CF_Forum_SelectGroupAndForum">选择要从中拉入内容的社区/论坛</resource>
+  <resource name="CF_ForumAdministration">管理论坛</resource>
+  <resource name="CF_ForumLinks_Subscribe">打开论坛通知</resource>
+  <resource name="CF_ForumLinks_Unsubscribe">关闭论坛通知</resource>
+  <resource name="CF_ForumsModeration_Plural">{0} 篇待审核文章</resource>
+  <resource name="CF_ForumsModeration_Singular">{0} 篇待审核文章</resource>
+  <resource name="CF_ForumThreadList_HideEmpty">如果为空，则隐藏</resource>
+  <resource name="CF_ForumThreadList_PopularOnly">只显示受欢迎的话题</resource>
+  <resource name="CF_ForumThreadList_Sort_ContentQuality">内容质量分数</resource>
+  <resource name="CF_ForumThreadList_Sort_DateTime">按日期</resource>
+  <resource name="CF_ForumThreadList_Sort_Quality">按质量</resource>
+  <resource name="CF_ForumThreadList_Sort_Replies">按回复数</resource>
+  <resource name="CF_ForumThreadList_Sort_Topic">按名称</resource>
+  <resource name="CF_ForumThreadList_Sort_Views">按查看数</resource>
+  <resource name="CF_ForumThreadList_Sort_Votes">按投票数</resource>
+  <resource name="CF_IncludeDiscussions">包括讨论话题</resource>
+  <resource name="CF_IncludeQuestions">包括问题和答案话题</resource>
+  <resource name="CF_SortBy">排序方式</resource>
+  <resource name="CF_SortOrder">排序顺序</resource>
+  <resource name="CF_SupportUserFiltering">支持用户筛选和排序</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Contextual_Authored">此用户已发起的问题和讨论</resource>
+  <resource name="Contextual_Authored_Discussions">此用户已发起的讨论</resource>
+  <resource name="Contextual_Authored_Questions">此用户已提出的问题</resource>
+  <resource name="Contextual_Your">此用户已参与的问题和讨论</resource>
+  <resource name="Contextual_Your_Discussions">此用户已参与的讨论</resource>
+  <resource name="Contextual_Your_Questions">此用户已参与的问题</resource>
+  <resource name="Date">日期</resource>
+  <resource name="Forums_ThreadList_Description">显示论坛话题的列表。</resource>
+  <resource name="Forums_ThreadList_Name">论坛 - 话题列表</resource>
+  <resource name="FrequentlyAsked">常见问题</resource>
+  <resource name="LatestReplyFormat">最新&lt;a href="{0}" class="internal-link view-user-profile"&gt;{1}&lt;/a&gt;&lt;br /&gt;提交者 &lt;a href="{2}" class="internal-link view-user-profile"&gt;{3}&lt;/a&gt;</resource>
+  <resource name="MarkAllRead_Threads_Link">全部标记为已读</resource>
+  <resource name="more">更多</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Pagesize">要显示的项目数</resource>
+  <resource name="plus_more_answer">加上另外 {0} 个答案</resource>
+  <resource name="plus_more_answers">加上另外 {0} 个答案</resource>
+  <resource name="PreviewAnswer">预览答案</resource>
+  <resource name="Recent_Questions">最新问题</resource>
+  <resource name="ReplyCount_None">{0} 个回%E5%A4%8D</resource>
+  <resource name="ReplyCount_Plural">{0} 个回复</resource>
+  <resource name="ReplyCount_Singular">{0} 个回复</resource>
+  <resource name="SortOrderDropDownList_Asc">升序</resource>
+  <resource name="SortOrderDropDownList_Desc">降序</resource>
+  <resource name="StartedFormat">发起&lt;a href="{0}" class="internal-link view-user-profile"&gt;{1}&lt;/a&gt;&lt;br /&gt;者&lt;a href="{2}" class="internal-link view-user-profile"&gt;{3}&lt;/a&gt;</resource>
+  <resource name="Status_Discussion">讨论</resource>
+  <resource name="Status_NotAnswered">未回答</resource>
+  <resource name="Status_SuggestedAnswer">推荐答案</resource>
+  <resource name="Status_VerifiedAnswer">已回答</resource>
+  <resource name="Sticky">置顶</resource>
+  <resource name="tags">标记</resource>
+  <resource name="TitleItem_Discussions">讨论</resource>
+  <resource name="TitleItem_UnanswerQuestions">未回答的问题</resource>
+  <resource name="Unanswered">未回答的问题和讨论</resource>
+  <resource name="Unanswered_Discussions">未回复的讨论</resource>
+  <resource name="Unanswered_Questions">未回答的问题</resource>
+  <resource name="Unread">未读问题和讨论</resource>
+  <resource name="Unread_Discussions">未读讨论</resource>
+  <resource name="Unread_Questions">未读问题</resource>
+  <resource name="ViewCount_Plural">{0} 次查看</resource>
+  <resource name="ViewCount_Singular">{0} 次查看</resource>
+  <resource name="ViewThreads_FilterByTopic">按标题</resource>
+  <resource name="ViewThreads_NoTopics">没有可显示的文章。这可能是因为此论坛没有文章或筛选器未筛选出任何结果。</resource>
+  <resource name="Your">您已参与的问题和讨论</resource>
+  <resource name="Your_Discussions">您已参与的讨论</resource>
+  <resource name="Your_Questions">您已参与的问题</resource>
+</language>
+<language key="zh-tw">
+  <resource name="AllRecent">所有最近的問題和討論</resource>
+  <resource name="AllRecent_Discussions">所有最近的討論</resource>
+  <resource name="AllRecent_Questions">所有最近的問題</resource>
+  <resource name="Announcement">公告</resource>
+  <resource name="AnsweredNotVerified">已有建議答案的問題</resource>
+  <resource name="AnsweredWithNotVerified">已回答的問題和討論</resource>
+  <resource name="AnsweredWithNotVerified_Discussions">已回答的討論</resource>
+  <resource name="AnsweredWithNotVerified_Questions">已回答的問題</resource>
+  <resource name="Authored">您已開始的問題和討論</resource>
+  <resource name="Authored_Discussions">您已開始的討論</resource>
+  <resource name="Authored_Questions">您已詢問的問題</resource>
+  <resource name="by">由</resource>
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Filter">預設篩選條件</resource>
+  <resource name="CF_Filter_All">無 (全部顯示)</resource>
+  <resource name="CF_Filter_Answered">僅限已回答</resource>
+  <resource name="CF_Filter_AnsweredIncludingNotVerified">僅限已回答 (包含未驗證答案)</resource>
+  <resource name="CF_Filter_AnsweredNotVerified">僅限已回答但未驗證</resource>
+  <resource name="CF_Filter_Authored">存取中使用者已製作</resource>
+  <resource name="CF_Filter_Authored_Contextual">內容相關使用者已製作</resource>
+  <resource name="CF_Filter_MyThreads">存取中使用者已參與</resource>
+  <resource name="CF_Filter_MyThreads_Contextual">內容相關使用者已參與</resource>
+  <resource name="CF_Filter_Unanswered">僅限未回答</resource>
+  <resource name="CF_Filter_Unread">存取中使用者未讀</resource>
+  <resource name="CF_Forum_SelectGroupAndForum">選取要從中提取內容的社群/論壇</resource>
+  <resource name="CF_ForumAdministration">管理論壇</resource>
+  <resource name="CF_ForumLinks_Subscribe">開啟論壇通知</resource>
+  <resource name="CF_ForumLinks_Unsubscribe">關閉論壇通知</resource>
+  <resource name="CF_ForumsModeration_Plural">{0} 個要仲裁的貼文</resource>
+  <resource name="CF_ForumsModeration_Singular">{0} 個要仲裁的貼文</resource>
+  <resource name="CF_ForumThreadList_HideEmpty">如空白則隱藏</resource>
+  <resource name="CF_ForumThreadList_PopularOnly">只顯示熱門對話</resource>
+  <resource name="CF_ForumThreadList_Sort_ContentQuality">使用者品質分數</resource>
+  <resource name="CF_ForumThreadList_Sort_DateTime">依日期</resource>
+  <resource name="CF_ForumThreadList_Sort_Quality">依品質</resource>
+  <resource name="CF_ForumThreadList_Sort_Replies">依回報計數</resource>
+  <resource name="CF_ForumThreadList_Sort_Topic">依名稱</resource>
+  <resource name="CF_ForumThreadList_Sort_Views">依檢視計數</resource>
+  <resource name="CF_ForumThreadList_Sort_Votes">依投票數</resource>
+  <resource name="CF_IncludeDiscussions">包含討論對話</resource>
+  <resource name="CF_IncludeQuestions">包含問題和答案對話</resource>
+  <resource name="CF_SortBy">排序依據</resource>
+  <resource name="CF_SortOrder">排序次序</resource>
+  <resource name="CF_SupportUserFiltering">支援使用者篩選和排序</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Contextual_Authored">這位使用者已開始的問題和討論</resource>
+  <resource name="Contextual_Authored_Discussions">這位使用者已開始的討論</resource>
+  <resource name="Contextual_Authored_Questions">這位使用者已詢問的問題</resource>
+  <resource name="Contextual_Your">這位使用者已參與的問題和討論</resource>
+  <resource name="Contextual_Your_Discussions">這位使用者已參與的討論</resource>
+  <resource name="Contextual_Your_Questions">這位使用者已參與的問題</resource>
+  <resource name="Date">日期</resource>
+  <resource name="Forums_ThreadList_Description">顯示論壇對話的清單。</resource>
+  <resource name="Forums_ThreadList_Name">論壇 - 對話清單</resource>
+  <resource name="FrequentlyAsked">最常詢問</resource>
+  <resource name="LatestReplyFormat">最新&lt;a href="{0}" class="internal-link view-user-profile"&gt;{1}&lt;/a&gt;&lt;br /&gt;，依&lt;a href="{2}" class="internal-link view-user-profile"&gt;{3}&lt;/a&gt;</resource>
+  <resource name="MarkAllRead_Threads_Link">全部標示為已讀取</resource>
+  <resource name="more">更多</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Pagesize">要顯示的項目數</resource>
+  <resource name="plus_more_answer">加上多 {0} 個答案</resource>
+  <resource name="plus_more_answers">加上多 {0} 個答案</resource>
+  <resource name="PreviewAnswer">預覽答案</resource>
+  <resource name="Recent_Questions">最近的問題</resource>
+  <resource name="ReplyCount_None">{0} 個回覆</resource>
+  <resource name="ReplyCount_Plural">{0} 個回覆</resource>
+  <resource name="ReplyCount_Singular">{0} 個回覆</resource>
+  <resource name="SortOrderDropDownList_Asc">遞增</resource>
+  <resource name="SortOrderDropDownList_Desc">遞減</resource>
+  <resource name="StartedFormat">開始 &lt;a href="{0}" class="internal-link view-user-profile"&gt;{1}&lt;/a&gt;&lt;br /&gt;，依 &lt;a href="{2}" class="internal-link view-user-profile"&gt;{3}&lt;/a&gt;</resource>
+  <resource name="Status_Discussion">討論</resource>
+  <resource name="Status_NotAnswered">未回答</resource>
+  <resource name="Status_SuggestedAnswer">已建議答案</resource>
+  <resource name="Status_VerifiedAnswer">已回答</resource>
+  <resource name="Sticky">置頂</resource>
+  <resource name="tags">標記</resource>
+  <resource name="TitleItem_Discussions">討論</resource>
+  <resource name="TitleItem_UnanswerQuestions">未解答的問題</resource>
+  <resource name="Unanswered">未回答的問題和討論</resource>
+  <resource name="Unanswered_Discussions">未回答的討論</resource>
+  <resource name="Unanswered_Questions">未回答的問題</resource>
+  <resource name="Unread">未讀的問題和討論</resource>
+  <resource name="Unread_Discussions">未讀的討論</resource>
+  <resource name="Unread_Questions">未讀的問題</resource>
+  <resource name="ViewCount_Plural">{0} 個檢視</resource>
+  <resource name="ViewCount_Singular">{0} 個檢視</resource>
+  <resource name="ViewThreads_FilterByTopic">依職稱</resource>
+  <resource name="ViewThreads_NoTopics">沒有貼文可顯示。這可能是因為此論壇沒有任何貼文或者篩選的結果。</resource>
+  <resource name="Your">您已參與的問題和討論</resource>
+  <resource name="Your_Discussions">您已參與的討論</resource>
+  <resource name="Your_Questions">您已參與的問題</resource>
+</language></languageResources>
+		<files>
+			<file name="answer.vm">77u/I3NldCAoJHRocmVhZElkID0gZmFsc2UpDQojc2V0ICgkdGhyZWFkSWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgndGhyZWFkSWQnKSkpDQojc2V0ICgkYW5zd2VyVHlwZSA9ICd2ZXJpZmllZC1hbnN3ZXJzJykNCiNzZXQgKCRhbnN3ZXJUeXBlID0gJGNvcmVfdjJfcGFnZS5HZXRRdWVyeVN0cmluZ1ZhbHVlKCdhbnN3ZXJUeXBlJykpDQoNCiMjIHZlcmlmaWVkLWFuc3dlcnMsIG5vbi12ZXJpZmllZC1hbnN3ZXJzDQoNCiNpZiAoISR0aHJlYWRJZCkNCgkkY29yZV92Ml93aWRnZXQuSGlkZSgpDQojZW5kDQoNCiNzZXQoJGFuc3dlcnMgPSAkY29yZV92Ml9mb3J1bVJlcGx5Lkxpc3QoJHRocmVhZElkLCAiJXsgRm9ydW1SZXBseVF1ZXJ5VHlwZSA9ICRhbnN3ZXJUeXBlLCBTb3J0QnkgPSAnUG9zdERhdGUnLCBTb3J0T3JkZXIgPSAnRGVzY2VuZGluZycsIFBhZ2VTaXplID0gMSwgUGFnZUluZGV4ID0gMCwgSW5jbHVkZVRocmVhZFN0YXJ0ZXIgPSAnRmFsc2UnIH0iKSkNCiNmb3JlYWNoKCRhbnN3ZXIgaW4gJGFuc3dlcnMpDQoJPGRpdiBjbGFzcz0iY29udGVudCBpbmxpbmUiPg0KCQkkY29yZV92Ml9sYW5ndWFnZS5UcnVuY2F0ZSgkYW5zd2VyLkJvZHkoJ1dlYicpLCAyNTAsICcuLi4nKQ0KCQkjaWYgKCRhbnN3ZXJzLlRvdGFsQ291bnQgPiAxKQ0KCQkJPHA+DQoJCQkJI3NldCgkYW5zd2VyQ291bnQgPSAkYW5zd2Vycy5Ub3RhbENvdW50IC0gMSkNCgkJCQkjaWYgKCRhbnN3ZXJDb3VudCA9PSAxKQ0KCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5Gb3JtYXRTdHJpbmcoJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ3BsdXNfbW9yZV9hbnN3ZXInKSwgJGFuc3dlckNvdW50LlRvU3RyaW5nKCkpDQoJCQkJI2Vsc2UNCgkJCQkJJGNvcmVfdjJfbGFuZ3VhZ2UuRm9ybWF0U3RyaW5nKCRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdwbHVzX21vcmVfYW5zd2VycycpLCAkYW5zd2VyQ291bnQuVG9TdHJpbmcoKSkNCgkJCQkjZW5kDQoJCQk8L3A+DQoJCSNlbmQNCgk8L2Rpdj4NCiNlbmQ=</file>
+			<file name="list.vm">JGNvcmVfdjJfd2lkZ2V0LkV4ZWN1dGVGaWxlKCdzZXRxdWVyeS52bScpCgojc2V0ICgkdGhyZWFkcyA9ICRjb3JlX3YyX2ZvcnVtVGhyZWFkLkxpc3QoJGZpbHRlciwgJG9wdGlvbnMpKQoKI2lmICgkaGlkZUVtcHR5ICYmICghJHRocmVhZHMgfHwgJHRocmVhZHMuVG90YWxDb3VudCA9PSAwKSkKCSRjb3JlX3YyX3dpZGdldC5IaWRlKCkKI2VuZAoKIyMgUmVuZGVyIHRocmVhZHMKCiNmb3JlYWNoICgkdGhyZWFkIGluICR0aHJlYWRzKQojYmVmb3JlYWxsCgk8dWwgY2xhc3M9ImNvbnRlbnQtbGlzdCBjb250ZW50IG1hcmdpbi1ib3R0b20gdGFidWxhciI+CiNlYWNoCgoJPGxpIGNsYXNzPSJjb250ZW50LWl0ZW0gd2l0aC1ocmVmICNpZigkdGhyZWFkLklzU3RpY2t5ICYmICR0aHJlYWQuU3RpY2t5RGF0ZSA+ICRjb3JlX3YyX3V0aWxpdHkuQ3VycmVudERhdGUpIGhpZ2hsaWdodCNlbmQiIGRhdGEtdGhyZWFkaWQ9IiR0aHJlYWQuSWQiIGRhdGEtaHJlZj0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkdGhyZWFkLlVybCkiPgoKCQk8ZGl2IGNsYXNzPSJpY29uIGNlbGwgYW5zd2VyLXN0YXR1cyI+CgkJCSNpZiAoJHRocmVhZC5UaHJlYWRUeXBlID09ICJRdWVzdGlvbkFuZEFuc3dlciIpCgkJCQkjaWYgKCR0aHJlYWQuVGhyZWFkU3RhdHVzID09ICJBbnN3ZXJlZCIpCgkJCQkJPHNwYW4gY2xhc3M9ImF0dHJpYnV0ZS12YWx1ZSI+PGEgaHJlZj0iIyIgdGl0bGU9IiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdBbnN3ZXJlZF9UaXAnKSIgY2xhc3M9InVpLXRpcCB2ZXJpZmllZCIgZGF0YS10aHJlYWRpZD0iJHRocmVhZC5JZCIgZGF0YS1hbnN3ZXJ0eXBlPSJ2ZXJpZmllZC1hbnN3ZXJzIj4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnU3RhdHVzX1ZlcmlmaWVkQW5zd2VyJyk8L2E+PC9zcGFuPgoJCQkJI2Vsc2VpZiAoJHRocmVhZC5UaHJlYWRTdGF0dXMgPT0gIkFuc3dlcmVkTm90VmVyaWZpZWQiKQoJCQkJCTxzcGFuIGNsYXNzPSJhdHRyaWJ1dGUtdmFsdWUiPjxhIGhyZWY9IiMiIHRpdGxlPSIkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnU3VnZ2VzdGVkQW5zd2VyX1RpcCcpIiBjbGFzcz0idWktdGlwIHN1Z2dlc3RlZCIgZGF0YS10aHJlYWRpZD0iJHRocmVhZC5JZCIgZGF0YS1hbnN3ZXJ0eXBlPSJub24tdmVyaWZpZWQtYW5zd2VycyI+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1N0YXR1c19TdWdnZXN0ZWRBbnN3ZXInKTwvYT48L3NwYW4+CgkJCQkjZWxzZQoJCQkJCTxzcGFuIGNsYXNzPSJhdHRyaWJ1dGUtdmFsdWUgdW5hbnN3ZXJlZCB1aS10aXAiIHRpdGxlPSIkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnTm90QW5zd2VyZWRfVGlwJykiPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdTdGF0dXNfTm90QW5zd2VyZWQnKTwvc3Bhbj4KCQkJCSNlbmQKCQkJI2Vsc2UKCQkJCTxzcGFuIGNsYXNzPSJhdHRyaWJ1dGUtdmFsdWUgZGlzY3Vzc2lvbiB1aS10aXAiIHRpdGxlPSIkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnRGlzY3Vzc2lvbl9UaXAnKSI+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1N0YXR1c19EaXNjdXNzaW9uJyk8L3NwYW4+CgkJCSNlbmQKCQk8L2Rpdj4KCQk8ZGl2IGNsYXNzPSJuYW1lIGNlbGwiPgoJCQk8aDM+CgkJCQk8YSBocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCR0aHJlYWQuVXJsKSIgY2xhc3M9ImludGVybmFsLWxpbmsgdmlldy1wb3N0I2lmKCR0aHJlYWQuSGFzUmVhZCkgcmVhZCAjZWxzZSB1bnJlYWQgI2VuZCI+JHRocmVhZC5TdWJqZWN0PC9hPgoJCQkJJGNvcmVfdjJfdWkuRm9ydW1Wb3RlcygidGhyZWFkcXVhbGl0eSIsICR0aHJlYWQuSWQpCgkJCQkjaWYgKCR0aHJlYWQuVGhyZWFkVHlwZSA9PSAiUXVlc3Rpb25BbmRBbnN3ZXIiKQoJCQkJCSRjb3JlX3YyX3VpLkZvcnVtVm90ZXMoJ3RocmVhZCcsICR0aHJlYWQuSWQpCgkJCQkjZW5kCgkJCTwvaDM+CgkJPC9kaXY+CgkJPGRpdiBjbGFzcz0iY2VsbCBub3dyYXAgc3VwcGxlbWVudGFyeSI+CgkJCTxzcGFuIGNsYXNzPSJ2YWx1ZSI+JHRocmVhZC5WaWV3Q291bnQuVG9TdHJpbmcoKTwvc3Bhbj4KCQkJPHNwYW4gY2xhc3M9ImRlc2NyaXB0aW9uIj4KCQkJCSNpZiAoJHRocmVhZC5WaWV3Q291bnQgPT0gMSkKCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnVmlld0NvdW50X1Npbmd1bGFyJykKCQkJCSNlbHNlCgkJCQkJJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1ZpZXdDb3VudF9QbHVyYWwnKQoJCQkJI2VuZAoJCQk8L3NwYW4+CgkJPC9kaXY+CgkJPGRpdiBjbGFzcz0iY2VsbCBub3dyYXAgc3VwcGxlbWVudGFyeSI+CgkJCTxzcGFuIGNsYXNzPSJ2YWx1ZSI+JHRocmVhZC5SZXBseUNvdW50LlRvU3RyaW5nKCk8L3NwYW4+CgkJCTxzcGFuIGNsYXNzPSJkZXNjcmlwdGlvbiI+CgkJCQkjaWYgKCR0aHJlYWQuUmVwbHlDb3VudCA9PSAxKQoJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdSZXBseUNvdW50X1Npbmd1bGFyJykKCQkJCSNlbHNlCgkJCQkJJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1JlcGx5Q291bnRfUGx1cmFsJykKCQkJCSNlbmQKCQkJPC9zcGFuPgoJCTwvZGl2PgoJCTxkaXYgY2xhc3M9Im1pbmltYWwgY2VsbCBub3dyYXAgbGF0ZXN0Ij4KCQkJI3NldCAoJGxhdGVzdFJlcGx5QXV0aG9ySWQgPSBmYWxzZSkKCQkJI3NldCAoJGxhdGVzdFJlcGx5QXV0aG9ySWQgPSAkdGhyZWFkLkxhdGVzdEZvcnVtUmVwbHlBdXRob3JJZCkKCQkJI3NldCAoJGlzU3RhcnRlciA9IGZhbHNlKQoJCQkjc2V0ICgkbGF0ZXN0VXJsID0gJHRocmVhZC5VcmwpCgkJCSNpZiAoJGxhdGVzdFJlcGx5QXV0aG9ySWQgJiYgJGxhdGVzdFJlcGx5QXV0aG9ySWQgPiAwKQoJCQkJI3NldCAoJGxhdGVzdFVzZXIgPSAkY29yZV92Ml91c2VyLkdldCgiJXtJZCA9ICRsYXRlc3RSZXBseUF1dGhvcklkIH0iKSkKCQkJCSNzZXQgKCRsYXRlc3RVcmwgPSAkY29yZV92Ml9mb3J1bVVybHMuRm9ydW1SZXBseSgkdGhyZWFkLkxhdGVzdEZvcnVtUmVwbHlJZCkpCgkJCSNlbHNlCgkJCQkjc2V0ICgkaXNTdGFydGVyID0gdHJ1ZSkKCQkJCSNzZXQgKCRsYXRlc3RVc2VyID0gJHRocmVhZC5BdXRob3IpCgkJCSNlbmQKCgkJCSNpZiAoJGlzU3RhcnRlcikKCQkJCSNzZXQgKCRsYXRlc3RGb3JtYXQgPSAkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnU3RhcnRlZEZvcm1hdCcpKQoJCQkjZWxzZQoJCQkJI3NldCAoJGxhdGVzdEZvcm1hdCA9ICRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdMYXRlc3RSZXBseUZvcm1hdCcpKQoJCQkjZW5kCgoJCQk8c3BhbiBjbGFzcz0idmFsdWUiPgoJCQkJJGNvcmVfdjJfbGFuZ3VhZ2UuRm9ybWF0U3RyaW5nKCRsYXRlc3RGb3JtYXQsICRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGxhdGVzdFVybCksICRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdEFnb0RhdGUoJHRocmVhZC5MYXRlc3RQb3N0RGF0ZSkpCgkJCTwvc3Bhbj4KCgkJCTxzcGFuIGNsYXNzPSJkZXNjcmlwdGlvbiI+CgkJCQkjaWYgKCRsYXRlc3RVc2VyLlByb2ZpbGVVcmwpCgkJCQkJYnkgPGEgaHJlZj0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkbGF0ZXN0VXNlci5Qcm9maWxlVXJsKSIgcmVsPSJub2ZvbGxvdyIgY2xhc3M9ImludGVybmFsLWxpbmsgdmlldy11c2VyLXByb2ZpbGUiPiRsYXRlc3RVc2VyLkRpc3BsYXlOYW1lPC9hPgoJCQkJI2Vsc2UKCQkJCQlieSAkbGF0ZXN0VXNlci5EaXNwbGF5TmFtZQoJCQkJI2VuZAoJCQk8L3NwYW4+CgkJPC9kaXY+Cgk8L2xpPgoJPGxpIGNsYXNzPSJjb250ZW50LWl0ZW0gcHJldmlldyIgZGF0YS10aHJlYWRpZD0iJHRocmVhZC5JZCI+CgkJPGRpdiBjbGFzcz0iY2VsbCBzdXBwbGVtZW50YXJ5Ij48L2Rpdj4KCQk8ZGl2IGNsYXNzPSJjZWxsIGNvbnRlbnQiPjwvZGl2PgoJCTxkaXYgY2xhc3M9ImNlbGwgc3VwcGxlbWVudGFyeSI+PC9kaXY+CgkJPGRpdiBjbGFzcz0iY2VsbCBzdXBwbGVtZW50YXJ5Ij48L2Rpdj4KCQk8ZGl2IGNsYXNzPSJjZWxsIHN1cHBsZW1lbnRhcnkiPjwvZGl2PgoJPC9saT4KI2FmdGVyYWxsCgk8L3VsPgojbm9kYXRhCgk8ZGl2IGNsYXNzPSJtZXNzYWdlIG5vcmVjb3JkcyI+CgkJI3NldCAoJGFkZFVybCA9ICRjb3JlX3YyX2ZvcnVtVXJscy5BZGRUaHJlYWQoJGN1cnJlbnRGb3J1bS5JZCwgdHJ1ZSkpCgkJI2lmICgkY3VycmVudEZvcnVtICYmICRhZGRVcmwpCgoJCQkjZm9yZWFjaCAoJHRocmVhZFR5cGUgaW4gJGZvcnVtLkFsbG93ZWRUaHJlYWRUeXBlcykKCQkJCSNpZiAoJHRocmVhZFR5cGUgPT0gJ1F1ZXN0aW9uQW5kQW5zd2VyJykKCQkJCQkjc2V0ICgkaGFzUWFGb3J1bXMgPSB0cnVlKQoJCQkJI2Vsc2VpZiAoJHRocmVhZFR5cGUgPT0gJ0Rpc2N1c3Npb24nKQoJCQkJCSNzZXQoJGhhc0Rpc2N1c3Npb25Gb3J1bXMgPSB0cnVlKQoJCQkJI2VuZAoJCQkjZW5kCgkJCSNpZiAoJGhhc1FhRm9ydW1zICYmICRoYXNEaXNjdXNzaW9uRm9ydW1zKQoJCQkJI3NldCgkbWVzc2FnZSA9ICRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdRdWVzdGlvbl9vcl9EaXNjdXNzaW9uJykpCgkJCSNlbHNlaWYoJGhhc1FhRm9ydW1zKQoJCQkJI3NldCgkbWVzc2FnZSA9ICRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdRdWVzdGlvbicpKQoJCQkjZWxzZQoJCQkJI3NldCgkbWVzc2FnZSA9ICRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdEaXNjdXNzaW9uJykpCgkJCSNlbmQKCgkJCSRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdFN0cmluZygkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiVmlld1RocmVhZHNfTm9Ub3BpY3NfTGluayIpLCAkYWRkVXJsLCAkbWVzc2FnZSkKCQkjZWxzZQoJCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiVmlld1RocmVhZHNfTm9Ub3BpY3MiKQoJCSNlbmQKCTwvZGl2PgojZW5kCgoKIyMgUGFnaW5nCgojc2V0ICgkcGFnZXJPcHRpb25zID0gIiV7IFBhZ2VkQ29udGVudEZpbGUgPSAnbGlzdC52bScsIExvYWRpbmdJbmRpY2F0b3IgPSAndHJ1ZScgfSIpCiMjIG9ubHkgcmVsb2FkIG9uIGVhY2ggaGFzaCBjaGFuZ2UgaWYgdGhpcyBzdXBwb3J0cyB1c2VyIGZpbHRlcmluZwojaWYgKCRzdXBwb3J0VXNlckZpbHRlcmluZykKCSRwYWdlck9wdGlvbnMuQWRkKCdMb2FkT25BbnlIYXNoQ2hhbmdlJywgJ3RydWUnKQojZW5kCiRjb3JlX3YyX3VpLlBhZ2VyKCR0aHJlYWRzLlBhZ2VJbmRleCwgJHRocmVhZHMuUGFnZVNpemUsICR0aHJlYWRzLlRvdGFsQ291bnQsICRwYWdlck9wdGlvbnMpCg==</file>
+			<file name="setquery.vm">I3NldCAoJHBvcHVsYXJPbmx5ID0gJGNvcmVfdjJfd2lkZ2V0LkdldEJvb2xWYWx1ZSgncG9wdWxhck9ubHknLCBmYWxzZSkpDQojc2V0ICgkaGlkZUVtcHR5ID0gJGNvcmVfdjJfd2lkZ2V0LkdldEJvb2xWYWx1ZSgnaGlkZUVtcHR5JywgZmFsc2UpKQ0KI3NldCAoJGluY2x1ZGVRdWVzdGlvbnMgPSAkY29yZV92Ml93aWRnZXQuR2V0Qm9vbFZhbHVlKCdpbmNsdWRlUXVlc3Rpb25zJywgdHJ1ZSkpDQojc2V0ICgkc3VwcG9ydFVzZXJGaWx0ZXJpbmcgPSAkY29yZV92Ml93aWRnZXQuR2V0Qm9vbFZhbHVlKCdzdXBwb3J0VXNlckZpbHRlcmluZycsIHRydWUpKQ0KI3NldCAoJGluY2x1ZGVEaXNjdXNzaW9ucyA9ICRjb3JlX3YyX3dpZGdldC5HZXRCb29sVmFsdWUoJ2luY2x1ZGVEaXNjdXNzaW9ucycsIHRydWUpKQ0KI3NldCAoJGZvcnVtT3JHcm91cCA9ICRjb3JlX3YyX3BhZ2UuUGFyc2VRdWVyeVN0cmluZygkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ3NlbGVjdGVkRm9ydW1Pckdyb3VwJywgJycpKSkNCiNzZXQgKCRjdXJyZW50Rm9ydW0gPSAkY29yZV92Ml9mb3J1bS5DdXJyZW50KQ0KI3NldCAoJGZvcnVtSWQgPSBmYWxzZSkNCiNzZXQgKCRncm91cElkID0gIGZhbHNlKQ0KI3NldCAoJGluY2x1ZGVTdWJHcm91cHMgPSBmYWxzZSkNCiNzZXQgKCRpc1JlZ2lzdGVyZWQgPSAkY29yZV92Ml91c2VyLklzUmVnaXN0ZXJlZCgkY29yZV92Ml91c2VyLkFjY2Vzc2luZy5JZCkpDQojc2V0ICgkYXJlU3RpY2t5UG9zdHNPblRvcCA9IGZhbHNlKQ0KI3NldCAoJGNvbnRleHR1YWxVc2VyID0gJGNvcmVfdjJfdXNlci5DdXJyZW50KQ0KI3NldCAoJGFjY2Vzc2luZ1VzZXIgPSAkY29yZV92Ml91c2VyLkFjY2Vzc2luZykNCg0KI3NldCAoJHBhZ2VTaXplID0gJGNvcmVfdjJfd2lkZ2V0LkdldEludFZhbHVlKCdwYWdlU2l6ZScsIDE1KSkNCiNzZXQgKCRwYWdlSW5kZXggPSAkY29yZV92Ml91aS5HZXRDdXJyZW50UGFnZUluZGV4KCkpDQoNCiMjIEdldCBXaWRnZXQtZGVmYXVsdCBmaWx0ZXJzIGFuZCBzb3J0aW5nDQojc2V0ICgkZmlsdGVyID0gJGNvcmVfdjJfd2lkZ2V0LkdldFN0cmluZ1ZhbHVlKCdmaWx0ZXInLCAnYWN0aXZlJykpDQojc2V0ICgkc29ydEJ5ID0gJGNvcmVfdjJfd2lkZ2V0LkdldFN0cmluZ1ZhbHVlKCdzb3J0QnknLCAnZGF0ZVRpbWUnKSkNCiNzZXQgKCRzb3J0T3JkZXIgPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ3NvcnRPcmRlcicsICdkZXNjZW5kaW5nJykpDQoNCiNpZiAoJGZvcnVtT3JHcm91cC5WYWx1ZSgnRm9ydW0nKSkNCgkjc2V0ICgkZm9ydW1JZCA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VJbnQoJGZvcnVtT3JHcm91cC5WYWx1ZSgnRm9ydW0nKSkpDQoJI3NldCAoJGFyZVN0aWNreVBvc3RzT25Ub3AgPSB0cnVlKQ0KI2Vsc2VpZiAoJGZvcnVtT3JHcm91cC5WYWx1ZSgnR3JvdXAnKSkNCgkjc2V0ICgkaW5jbHVkZVN1Ykdyb3VwcyA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VCb29sKCRmb3J1bU9yR3JvdXAuVmFsdWUoJ0luY2x1ZGVTdWJHcm91cHMnKSkpDQoJI3NldCAoJGdyb3VwSWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRmb3J1bU9yR3JvdXAuVmFsdWUoJ0dyb3VwJykpKQ0KI2VuZA0KDQojaWYgKCEkZm9ydW1JZCAmJiAoISRncm91cElkIHx8ICRncm91cElkIDwgMCkpDQoJI2lmICgkY29yZV92Ml9mb3J1bS5DdXJyZW50ICYmICEkaW5jbHVkZVN1Ykdyb3VwcykNCgkJI3NldCAoJGZvcnVtID0gJGNvcmVfdjJfZm9ydW0uQ3VycmVudCkNCgkJI3NldCAoJGZvcnVtSWQgPSAkZm9ydW0uSWQpDQoJCSNzZXQgKCRhcmVTdGlja3lQb3N0c09uVG9wID0gdHJ1ZSkNCgkjZWxzZWlmICgkY29yZV92Ml9ncm91cC5DdXJyZW50KQ0KCQkjc2V0ICgkZ3JvdXBJZCA9ICRjb3JlX3YyX2dyb3VwLkN1cnJlbnQuSWQpDQoJCSNzZXQgKCRhcmVTdGlja3lQb3N0c09uVG9wID0gZmFsc2UpDQoJI2VuZA0KI2VuZA0KDQojc2V0ICgkaGFzUWFGb3J1bXMgPSBmYWxzZSkNCiNzZXQgKCRoYXNEaXNjdXNzaW9uRm9ydW1zID0gZmFsc2UpDQojaWYgKCRmb3J1bUlkKQ0KCSNzZXQoJGZvcnVtID0gJGNvcmVfdjJfZm9ydW0uR2V0KCRmb3J1bUlkKSkNCgkjZm9yZWFjaCAoJHRocmVhZFR5cGUgaW4gJGZvcnVtLkFsbG93ZWRUaHJlYWRUeXBlcykNCgkJI2lmICgkdGhyZWFkVHlwZSA9PSAnUXVlc3Rpb25BbmRBbnN3ZXInKQ0KCQkjc2V0ICgkaGFzUWFGb3J1bXMgPSB0cnVlKQ0KCSNlbHNlaWYgKCR0aHJlYWRUeXBlID09ICdEaXNjdXNzaW9uJykNCgkJI3NldCgkaGFzRGlzY3Vzc2lvbkZvcnVtcyA9IHRydWUpDQoJCSNlbmQNCgkjZW5kDQojZWxzZWlmKCRncm91cElkID4gMCkNCgkjc2V0ICgkaGFzUWFGb3J1bXMgPSB0cnVlKQ0KCSNzZXQgKCRoYXNEaXNjdXNzaW9uRm9ydW1zID0gdHJ1ZSkNCiNlbmQNCg0KIyMgT25seSBob25vciBjb29raWVzIG9yIHF1ZXJ5IHN0cmluZ3MgaWYgdXNlciBmaWx0ZXJpbmcgaXMgc3VwcG9ydGVkDQojaWYgKCRzdXBwb3J0VXNlckZpbHRlcmluZykNCgkjIyBDb29raWUtc3RvcmVkIGZpbHRlcnMgb3ZlcnJpZGUgd2lkZ2V0IGRlZmF1bHRzDQoJIyMgQnV0IHRoZXkgY291bGQgdXNlIHRoZWlyIG93biwgbGVnYWN5LCBub24tc3RhbmRhcmQgbmFtZXMgd2hpY2ggbmVlZCB0byBiZSBtYXBwZWQgdG8gbm9ybWFsaXplZCBBUEkgb3B0aW9ucw0KCSNzZXQgKCRjb29raWVGaWx0ZXIgPSAkY29yZV92Ml9wYWdlLkdldENvb2tpZVZhbHVlKCJUaHJlYWRGaWx0ZXIiKSkNCgkjaWYgKCRjb29raWVGaWx0ZXIpDQoJCSNzZXQgKCRjb29raWVGaWx0ZXIgPSAkY29va2llRmlsdGVyLlRvTG93ZXIoKSkNCgkJI2lmICgkY29va2llRmlsdGVyID09ICd1bnJlYWRvbmx5JykNCgkJCSNzZXQgKCRmaWx0ZXIgPSAnVW5yZWFkJykNCgkJI2Vsc2VpZiAoJGNvb2tpZUZpbHRlciA9PSAndW5hbnN3ZXJlZG9ubHknKQ0KCQkJI3NldCAoJGZpbHRlciA9ICdVbmFuc3dlcmVkJykNCgkJI2Vsc2VpZiAoJGNvb2tpZUZpbHRlciA9PSAndXNlcmZpbHRlcicpDQoJCQkjc2V0ICgkZmlsdGVyID0gJ015VGhyZWFkcycpDQoJCSNlbHNlDQoJCQkjIyBvdGhlciBsZWdhY3kgb3B0aW9ucyBpbmNsdWRlZDogYWN0aXZlDQoJCQkjIyB3aGljaCBpcyBzdGlsbCB2YWxpZCBhbG9uZ3NpZGUgYW55IG5ldyBvcHRpb25zDQoJCQkjc2V0ICgkZmlsdGVyID0gJGNvb2tpZUZpbHRlcikNCgkJI2VuZA0KCSNlbmQNCg0KCSMjIEN1cnJlbnQgUXVlcnlTdHJpbmdzIG92ZXJyaWRlIGJvdGggd2lkZ2V0IGRlZmF1bHRzIGFuZCBjb29raWVzDQoJIyMgQnV0IHRoZXkgY291bGQgYWxzbyB1c2VyIHRoZWlyIG93biwgbGVnYWN5LCBub24tc3RhbmRhcmQgbmFtZXMgd2hpY2ggbmVlZCB0byBiZSBtYXBwZWQgdG8gbm9ybWFsaXplZCBBUEkgb3B0aW9ucw0KCSNzZXQgKCRxdWVyeVN0cmluZ0ZpbHRlciA9ICRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgiU29ydCIpKQ0KCSNpZiAoJHF1ZXJ5U3RyaW5nRmlsdGVyKQ0KCQkjc2V0ICgkcXVlcnlTdHJpbmdGaWx0ZXIgPSAkcXVlcnlTdHJpbmdGaWx0ZXIuVG9Mb3dlcigpKQ0KCQkjaWYgKCRxdWVyeVN0cmluZ0ZpbHRlciA9PSAndW5yZWFkb25seScpDQoJCQkjc2V0ICgkZmlsdGVyID0gJ1VucmVhZCcpDQoJCSNlbHNlDQoJCQkjIyBvdGhlciBsZWdhY3kgb3B0aW9ucyBpbmNsdWRlZDogYWN0aXZlLCB1bmFuc3dlcmVkLCBhbmQgeW91ciwNCgkJCSMjIGVhY2ggb2Ygd2hpY2ggaXMgc3RpbGwgdmFsaWQgYWxvbmdzaWRlIGFueSBuZXcgb3B0aW9ucw0KCQkJI3NldCAoJGZpbHRlciA9ICRxdWVyeVN0cmluZ0ZpbHRlcikNCgkJI2VuZA0KDQoJCSMjIHJlLWFwcGx5IHRoZSBjdXJyZW50IGZpbHRlciBiYWNrIHRvIHRoZSBjb29raWUNCgkJJGNvcmVfdjJfcGFnZS5TZXRDb29raWVWYWx1ZSgiVGhyZWFkRmlsdGVyIiwgJGZpbHRlcikNCgkjZW5kDQoNCgkjc2V0KCRjb29raWVTb3J0T3JkZXIgPSAkY29yZV92Ml9wYWdlLkdldENvb2tpZVZhbHVlKCJUaHJlYWRTb3J0T3JkZXIiKSkNCgkjaWYgKCRjb29raWVTb3J0T3JkZXIpDQoJI3NldCgkc29ydE9yZGVyID0gJGNvb2tpZVNvcnRPcmRlcikNCgkjZW5kDQoJI3NldCAoJHF1ZXJ5U3RyaW5nU29ydE9yZGVyID0gJGNvcmVfdjJfcGFnZS5HZXRRdWVyeVN0cmluZ1ZhbHVlKCJTb3J0T3JkZXIiKSkNCgkjaWYgKCRxdWVyeVN0cmluZ1NvcnRPcmRlcikNCgkjc2V0ICgkc29ydE9yZGVyID0gJHF1ZXJ5U3RyaW5nU29ydE9yZGVyKQ0KCSRjb3JlX3YyX3BhZ2UuU2V0Q29va2llVmFsdWUoIlRocmVhZFNvcnRPcmRlciIsICRzb3J0T3JkZXIpDQoJI2VuZA0KCSNzZXQoJGNvb2tpZVNvcnRCeSA9ICRjb3JlX3YyX3BhZ2UuR2V0Q29va2llVmFsdWUoIlRocmVhZFNvcnRCeSIpKQ0KCSNpZiAoJGNvb2tpZVNvcnRCeSkNCgkjc2V0KCRzb3J0QnkgPSAkY29va2llU29ydEJ5KQ0KCSNlbmQNCgkjc2V0ICgkcXVlcnlTdHJpbmdTb3J0QnkgPSAkY29yZV92Ml9wYWdlLkdldFF1ZXJ5U3RyaW5nVmFsdWUoIlRocmVhZFNvcnRCeSIpKQ0KCSNpZiAoJHF1ZXJ5U3RyaW5nU29ydEJ5KQ0KCQkjc2V0ICgkc29ydEJ5ID0gJHF1ZXJ5U3RyaW5nU29ydEJ5KQ0KCSRjb3JlX3YyX3BhZ2UuU2V0Q29va2llVmFsdWUoIlRocmVhZFNvcnRCeSIsICRzb3J0QnkpDQoJI2VuZA0KDQoJI2lmICgkc29ydEJ5LlRvTG93ZXIoKSA9PSAnZGF0ZXRpbWUnKQ0KCQkjc2V0ICgkc29ydEJ5ID0gJ0xhc3RQb3N0JykNCgkjZW5kDQoNCgk8ZGl2IGNsYXNzPSJzb3J0Ij4NCgkJPHNwYW4gY2xhc3M9ImJ5Ij4NCgkJCTxzZWxlY3QgY2xhc3M9InVpLXNlbGVjdCIgaWQ9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdzb3J0QnknKSkiIGRhdGEtcXVlcnlrZXk9IlRocmVhZFNvcnRCeSI+DQoJCQkJI3NldCAoJHNvcnRCeSA9ICRzb3J0QnkuVG9Mb3dlcigpKQ0KCQkJCTxvcHRpb24gdmFsdWU9IlRvcGljIiAjaWYoJHNvcnRCeSA9PSAidG9waWMiKSBzZWxlY3RlZCAjZW5kPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdWaWV3VGhyZWFkc19GaWx0ZXJCeVRvcGljJyk8L29wdGlvbj4NCgkJCQk8b3B0aW9uIHZhbHVlPSJMYXN0UG9zdCIgI2lmKCRzb3J0QnkgPT0gImxhc3Rwb3N0Iikgc2VsZWN0ZWQgI2VuZD4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnQ0ZfRm9ydW1UaHJlYWRMaXN0X1NvcnRfRGF0ZVRpbWUnKTwvb3B0aW9uPg0KCQkJCTxvcHRpb24gdmFsdWU9IlJlcGxpZXMiICNpZigkc29ydEJ5ID09ICJyZXBsaWVzIikgc2VsZWN0ZWQgI2VuZD4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnQ0ZfRm9ydW1UaHJlYWRMaXN0X1NvcnRfUmVwbGllcycpPC9vcHRpb24+DQoJCQkJPG9wdGlvbiB2YWx1ZT0iVmlld3MiICNpZigkc29ydEJ5ID09ICJ2aWV3cyIpIHNlbGVjdGVkICNlbmQ+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ0NGX0ZvcnVtVGhyZWFkTGlzdF9Tb3J0X1ZpZXdzJyk8L29wdGlvbj4NCgkJCQk8b3B0aW9uIHZhbHVlPSJWb3RlcyIgI2lmKCRzb3J0QnkgPT0gInZvdGVzIikgc2VsZWN0ZWQgI2VuZD4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnQ0ZfRm9ydW1UaHJlYWRMaXN0X1NvcnRfVm90ZXMnKTwvb3B0aW9uPg0KCQkJCTxvcHRpb24gdmFsdWU9IlRvdGFsUXVhbGl0eVZvdGVzIiAjaWYoJHNvcnRCeSA9PSAidG90YWxxdWFsaXR5dm90ZXMiKSBzZWxlY3RlZCAjZW5kPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdDRl9Gb3J1bVRocmVhZExpc3RfU29ydF9RdWFsaXR5Vm90ZXMnKTwvb3B0aW9uPg0KCQkJCTxvcHRpb24gdmFsdWU9IlF1YWxpdHlTY29yZSIgI2lmKCRzb3J0QnkgPT0gInF1YWxpdHlzY29yZSIpIHNlbGVjdGVkICNlbmQ+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ0NGX0ZvcnVtVGhyZWFkTGlzdF9Tb3J0X1F1YWxpdHknKTwvb3B0aW9uPg0KCQkJPC9zZWxlY3Q+DQoJCTwvc3Bhbj4NCgkJPHNwYW4gY2xhc3M9Im9yZGVyIj4NCgkJCTxzZWxlY3QgY2xhc3M9InVpLXNlbGVjdCIgaWQ9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdzb3J0T3JkZXInKSkiIGRhdGEtcXVlcnlrZXk9IlNvcnRPcmRlciI+DQoJCQkJI3NldCAoJHNvcnRPcmRlciA9ICRzb3J0T3JkZXIuVG9Mb3dlcigpKQ0KCQkJCTxvcHRpb24gdmFsdWU9IkRlc2NlbmRpbmciICNpZigkc29ydE9yZGVyID09ICJkZXNjZW5kaW5nIikgc2VsZWN0ZWQgI2VuZD4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnU29ydE9yZGVyRHJvcERvd25MaXN0X0Rlc2MnKTwvb3B0aW9uPg0KCQkJCTxvcHRpb24gdmFsdWU9IkFzY2VuZGluZyIgI2lmKCRzb3J0T3JkZXIgPT0gImFzY2VuZGluZyIpIHNlbGVjdGVkICNlbmQ+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1NvcnRPcmRlckRyb3BEb3duTGlzdF9Bc2MnKTwvb3B0aW9uPg0KCQkJPC9zZWxlY3Q+DQoJCTwvc3Bhbj4NCgk8L2Rpdj4NCg0KCTxkaXYgY2xhc3M9InZpZXciPg0KCQk8ZGl2Pg0KCQkJPHNlbGVjdCBjbGFzcz0idWktc2VsZWN0IiBpZD0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkY29yZV92Ml93aWRnZXQuVW5pcXVlSWQoJ2ZpbHRlcicpKSIgZGF0YS1xdWVyeWtleT0iU29ydCI+DQoJCQkJI3NldCAoJGZpbHRlciA9ICRmaWx0ZXIuVG9Mb3dlcigpKQ0KCQkJCTxvcHRpb24gdmFsdWU9IkFjdGl2ZSIgI2lmICgkZmlsdGVyID09ICJhY3RpdmUiKSBzZWxlY3RlZCAjZW5kPg0KCQkJCQkjaWYgKCRoYXNEaXNjdXNzaW9uRm9ydW1zICYmICRoYXNRYUZvcnVtcykNCgkJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdBbGxSZWNlbnQnKQ0KCQkJCQkjZWxzZWlmICgkaGFzUWFGb3J1bXMpDQoJCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnQWxsUmVjZW50X1F1ZXN0aW9ucycpDQoJCQkJCSNlbHNlDQoJCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnQWxsUmVjZW50X0Rpc2N1c3Npb25zJykNCgkJCQkJI2VuZA0KCQkJCTwvb3B0aW9uPg0KCQkJCTxvcHRpb24gdmFsdWU9IlVucmVhZCIgI2lmICgkZmlsdGVyID09ICJ1bnJlYWQiKSBzZWxlY3RlZCAjZW5kPg0KCQkJCQkjaWYgKCRoYXNEaXNjdXNzaW9uRm9ydW1zICYmICRoYXNRYUZvcnVtcykNCgkJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdVbnJlYWQnKQ0KCQkJCQkjZWxzZWlmICgkaGFzUWFGb3J1bXMpDQoJCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnVW5yZWFkX1F1ZXN0aW9ucycpDQoJCQkJCSNlbHNlDQoJCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnVW5yZWFkX0Rpc2N1c3Npb25zJykNCgkJCQkJI2VuZA0KCQkJCTwvb3B0aW9uPg0KCQkJCTxvcHRpb24gdmFsdWU9Ik15VGhyZWFkcyIgI2lmICgkZmlsdGVyID09ICJteXRocmVhZHMiKSBzZWxlY3RlZCAjZW5kPg0KCQkJCQkjaWYgKCRoYXNEaXNjdXNzaW9uRm9ydW1zICYmICRoYXNRYUZvcnVtcykNCgkJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdZb3VyJykNCgkJCQkJI2Vsc2VpZiAoJGhhc1FhRm9ydW1zKQ0KCQkJCQkJJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1lvdXJfUXVlc3Rpb25zJykNCgkJCQkJI2Vsc2UNCgkJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdZb3VyX0Rpc2N1c3Npb25zJykNCgkJCQkJI2VuZA0KCQkJCTwvb3B0aW9uPg0KCQkJCTxvcHRpb24gdmFsdWU9IkF1dGhvcmVkIiAjaWYgKCRmaWx0ZXIgPT0gImF1dGhvcmVkIikgc2VsZWN0ZWQgI2VuZD4NCgkJCQkJI2lmICgkaGFzRGlzY3Vzc2lvbkZvcnVtcyAmJiAkaGFzUWFGb3J1bXMpDQoJCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnQXV0aG9yZWQnKQ0KCQkJCQkjZWxzZWlmICgkaGFzUWFGb3J1bXMpDQoJCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnQXV0aG9yZWRfUXVlc3Rpb25zJykNCgkJCQkJI2Vsc2UNCgkJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdBdXRob3JlZF9EaXNjdXNzaW9ucycpDQoJCQkJCSNlbmQNCgkJCQk8L29wdGlvbj4NCg0KCQkJCSNpZiAoJGNvbnRleHR1YWxVc2VyICYmICRjb250ZXh0dWFsVXNlci5JZCAhPSAkYWNjZXNzaW5nVXNlci5JZCkNCgkJCQkJPG9wdGlvbiB2YWx1ZT0iQ29udGV4dHVhbE15VGhyZWFkcyIgI2lmICgkZmlsdGVyID09ICJjb250ZXh0dWFsbXl0aHJlYWRzIikgc2VsZWN0ZWQgI2VuZD4NCgkJCQkJCSNpZiAoJGhhc0Rpc2N1c3Npb25Gb3J1bXMgJiYgJGhhc1FhRm9ydW1zKQ0KCQkJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdDb250ZXh0dWFsX1lvdXInKQ0KCQkJCQkJI2Vsc2VpZiAoJGhhc1FhRm9ydW1zKQ0KCQkJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdDb250ZXh0dWFsX1lvdXJfUXVlc3Rpb25zJykNCgkJCQkJCSNlbHNlDQoJCQkJCQkJJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ0NvbnRleHR1YWxfWW91cl9EaXNjdXNzaW9ucycpDQoJCQkJCQkjZW5kDQoJCQkJCTwvb3B0aW9uPg0KCQkJCQk8b3B0aW9uIHZhbHVlPSJDb250ZXh0dWFsQXV0aG9yZWQiICNpZiAoJGZpbHRlciA9PSAiY29udGV4dHVhbGF1dGhvcmVkIikgc2VsZWN0ZWQgI2VuZD4NCgkJCQkJCSNpZiAoJGhhc0Rpc2N1c3Npb25Gb3J1bXMgJiYgJGhhc1FhRm9ydW1zKQ0KCQkJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdDb250ZXh0dWFsX0F1dGhvcmVkJykNCgkJCQkJCSNlbHNlaWYgKCRoYXNRYUZvcnVtcykNCgkJCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnQ29udGV4dHVhbF9BdXRob3JlZF9RdWVzdGlvbnMnKQ0KCQkJCQkJI2Vsc2UNCgkJCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnQ29udGV4dHVhbF9BdXRob3JlZF9EaXNjdXNzaW9ucycpDQoJCQkJCQkjZW5kDQoJCQkJCTwvb3B0aW9uPg0KCQkJCSNlbmQNCg0KCQkJCTxvcHRpb24gdmFsdWU9IlVuYW5zd2VyZWQiICNpZiAoJGZpbHRlciA9PSAidW5hbnN3ZXJlZCIpIHNlbGVjdGVkICNlbmQ+DQoJCQkJCSNpZiAoJGhhc0Rpc2N1c3Npb25Gb3J1bXMgJiYgJGhhc1FhRm9ydW1zKQ0KCQkJCQkJJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1VuYW5zd2VyZWQnKQ0KCQkJCQkjZWxzZWlmICgkaGFzUWFGb3J1bXMpDQoJCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnVW5hbnN3ZXJlZF9RdWVzdGlvbnMnKQ0KCQkJCQkjZWxzZQ0KCQkJCQkJJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1VuYW5zd2VyZWRfRGlzY3Vzc2lvbnMnKQ0KCQkJCQkjZW5kDQoJCQkJPC9vcHRpb24+DQoJCQkJPG9wdGlvbiB2YWx1ZT0iQW5zd2VyZWRXaXRoTm90VmVyaWZpZWQiICNpZiAoJGZpbHRlciA9PSAiYW5zd2VyZWR3aXRobm90dmVyaWZpZWQiIHx8ICRmaWx0ZXIgPT0gImFuc3dlcmVkIikgc2VsZWN0ZWQgI2VuZD4NCgkJCQkJI2lmICgkaGFzRGlzY3Vzc2lvbkZvcnVtcyAmJiAkaGFzUWFGb3J1bXMpDQoJCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnQW5zd2VyZWRXaXRoTm90VmVyaWZpZWQnKQ0KCQkJCQkjZWxzZWlmICgkaGFzUWFGb3J1bXMpDQoJCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnQW5zd2VyZWRXaXRoTm90VmVyaWZpZWRfUXVlc3Rpb25zJykNCgkJCQkJI2Vsc2UNCgkJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdBbnN3ZXJlZFdpdGhOb3RWZXJpZmllZF9EaXNjdXNzaW9ucycpDQoJCQkJCSNlbmQNCgkJCQk8L29wdGlvbj4NCgkJCQkjaWYgKCRpbmNsdWRlUXVlc3Rpb25zICYmICRoYXNRYUZvcnVtcykNCgkJCQkJPG9wdGlvbiB2YWx1ZT0iQW5zd2VyZWROb3RWZXJpZmllZCIgI2lmICgkZmlsdGVyID09ICJhbnN3ZXJlZG5vdHZlcmlmaWVkIikgc2VsZWN0ZWQgI2VuZD4NCgkJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdBbnN3ZXJlZE5vdFZlcmlmaWVkJykNCgkJCQkJPC9vcHRpb24+DQoJCQkJI2VuZA0KCQkJPC9zZWxlY3Q+DQoJCTwvZGl2Pg0KCTwvZGl2Pg0KDQoJI3JlZ2lzdGVyRW5kT2ZQYWdlSHRtbCgpDQoJCTxzY3JpcHQgdHlwZT0idGV4dC9qYXZhc2NyaXB0Ij4NCgkJalF1ZXJ5KGZ1bmN0aW9uKGopew0KCQkJdmFyIGZpbHRlclNlbGVjdCA9IGooJyMkY29yZV92Ml9lbmNvZGluZy5KYXZhc2NyaXB0RW5jb2RlKCRjb3JlX3YyX3dpZGdldC5VbmlxdWVJZCgnZmlsdGVyJykpJyksDQoJCQkJc29ydEJ5U2VsZWN0ID0gaignIyRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdzb3J0QnknKSknKSwNCgkJCQlzb3J0T3JkZXJTZWxlY3QgPSBqKCcjJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkY29yZV92Ml93aWRnZXQuVW5pcXVlSWQoJ3NvcnRPcmRlcicpKScpOw0KDQoJCQlmdW5jdGlvbiBhZGp1c3RIYXNoKCkgew0KCQkJCXZhciBzZWxlY3QgPSBqKHRoaXMpOw0KCQkJCXZhciBoYXNoQWRqdXN0bWVudCA9IHt9Ow0KCQkJCWhhc2hBZGp1c3RtZW50W3NlbGVjdC5kYXRhKCdxdWVyeWtleScpXSA9IHNlbGVjdC52YWwoKTsNCgkJCQlqLnRlbGxpZ2VudC5ldm9sdXRpb24udXJsLmhhc2hEYXRhKGhhc2hBZGp1c3RtZW50LCB7DQoJCQkJCXByZWZpeDogJyRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJGNvcmVfdjJfdWkuUGFnZUluZGV4UXVlcnlTdHJpbmdLZXkpJw0KCQkJCX0pOw0KCQkJfQ0KDQoJCQlmaWx0ZXJTZWxlY3Qub24oJ2NoYW5nZScsIGFkanVzdEhhc2gpOw0KCQkJc29ydEJ5U2VsZWN0Lm9uKCdjaGFuZ2UnLCBhZGp1c3RIYXNoKTsNCgkJCXNvcnRPcmRlclNlbGVjdC5vbignY2hhbmdlJywgYWRqdXN0SGFzaCk7DQoJCX0pOw0KCQk8L3NjcmlwdD4NCgkjZW5kDQoNCiNlbmQNCg0KDQojIyBBbnkgcmVxdWVzdCBmb3IgY29udGVudCBxdWFsaXR5IHNvcnRpbmcgc2hvdWxkIGJlIHRyYW5zbGF0ZWQgdG8gdGhlIEFQSS1yZWFkeSBTY29yZTpJRCBmb3JtYXQNCiNpZiAoJHNvcnRCeS5Ub0xvd2VyKCkgPT0gJ2NvbnRlbnRxdWFsaXR5JykNCgkjc2V0ICgkc29ydEJ5ID0gIlNjb3JlOiR7Y29yZV92Ml9jb250ZW50UXVhbGl0eVNjb3JlLlNjb3JlSWR9IikNCiNlbmQNCg0KDQojIyBRdWVyeSBmb3IgdGhyZWFkcw0KDQojaWYgKCRncm91cElkID4gMCkNCgkjc2V0ICgkb3B0aW9ucyA9ICIle0dyb3VwSWQgPSAnJGdyb3VwSWQnLCBTb3J0QnkgPSAnJHNvcnRCeScsIFNvcnRPcmRlciA9ICckc29ydE9yZGVyJywgUG9wdWxhck9ubHkgPSAkcG9wdWxhck9ubHksIEluY2x1ZGVTdWJHcm91cHMgPSAkaW5jbHVkZVN1Ykdyb3VwcywgUGFnZVNpemUgPSAkcGFnZVNpemUsIFBhZ2VJbmRleCA9ICRwYWdlSW5kZXgsIEluY2x1ZGVEaXNjdXNzaW9ucyA9ICRpbmNsdWRlRGlzY3Vzc2lvbnMsIEluY2x1ZGVRdWVzdGlvbnMgPSAkaW5jbHVkZVF1ZXN0aW9ucywgQXJlU3RpY2t5UG9zdHNPblRvcCA9ICRhcmVTdGlja3lQb3N0c09uVG9wIH0iKQ0KI2Vsc2UNCgkjc2V0ICgkb3B0aW9ucyA9ICIle0ZvcnVtSWQgPSAnJGZvcnVtSWQnLCBHcm91cElkID0gJyRncm91cElkJywgU29ydEJ5ID0gJyRzb3J0QnknLCBTb3J0T3JkZXIgPSAnJHNvcnRPcmRlcicsIFBvcHVsYXJPbmx5ID0gJHBvcHVsYXJPbmx5LCBJbmNsdWRlU3ViR3JvdXBzID0gJGluY2x1ZGVTdWJHcm91cHMsIFBhZ2VTaXplID0gJHBhZ2VTaXplLCBQYWdlSW5kZXggPSAkcGFnZUluZGV4LCBJbmNsdWRlRGlzY3Vzc2lvbnMgPSAkaW5jbHVkZURpc2N1c3Npb25zLCBJbmNsdWRlUXVlc3Rpb25zID0gJGluY2x1ZGVRdWVzdGlvbnMsIEFyZVN0aWNreVBvc3RzT25Ub3AgPSAkYXJlU3RpY2t5UG9zdHNPblRvcCB9IikNCiNlbmQNCg0KI2lmICgkZmlsdGVyLlRvTG93ZXIoKSA9PSAnY29udGV4dHVhbG15dGhyZWFkcycgfHwgJGZpbHRlci5Ub0xvd2VyKCkgPT0gJ2NvbnRleHR1YWxhdXRob3JlZCcpDQoJI3NldCAoJGN1cnJlbnRVc2VyID0gJGNvcmVfdjJfdXNlci5DdXJyZW50KQ0KCSNpZiAoJGN1cnJlbnRVc2VyKQ0KCQkkb3B0aW9ucy5BZGQoJ0F1dGhvcklkJywgJGN1cnJlbnRVc2VyLklkKQ0KCQkjaWYgKCRmaWx0ZXIuVG9Mb3dlcigpID09ICdjb250ZXh0dWFsbXl0aHJlYWRzJykNCgkJCSNzZXQgKCRmaWx0ZXIgPSAnTXlUaHJlYWRzJykNCgkJI2Vsc2VpZigkZmlsdGVyLlRvTG93ZXIoKSA9PSAnY29udGV4dHVhbGF1dGhvcmVkJykNCgkJCSNzZXQgKCRmaWx0ZXIgPSAnQXV0aG9yZWQnKQ0KCQkjZW5kDQoJI2VuZA0KI2VuZA==</file>
+			<file name="sidebar.vm">JGNvcmVfdjJfd2lkZ2V0LkV4ZWN1dGVGaWxlKCdzZXRxdWVyeS52bScpDQoNCiNzZXQgKCR0aHJlYWRzID0gJGNvcmVfdjJfZm9ydW1UaHJlYWQuTGlzdCgkZmlsdGVyLCAkb3B0aW9ucykpDQoNCiNmb3JlYWNoICgkdGhyZWFkIGluICR0aHJlYWRzKQ0KI2JlZm9yZWFsbA0KCTxkaXYgY2xhc3M9ImF2YXRhci1saXN0Ij4NCgk8dWwgY2xhc3M9ImNvbnRlbnQtbGlzdCI+DQojZWFjaA0KCSNzZXQoJGF1dGhvciA9ICR0aHJlYWQuQXV0aG9yKQ0KDQoJPGxpIGNsYXNzPSJjb250ZW50LWl0ZW0iIGRhdGEtaHJlZj0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkdGhyZWFkLlVybCkiPg0KCQk8ZGl2IGNsYXNzPSJhdXRob3IiPg0KCQkJPGRpdiBjbGFzcz0iYXZhdGFyIj4NCgkJCQkkY29yZV92Ml91aS5HZXRSZXNpemVkSW1hZ2VIdG1sKCRhdXRob3IuQXZhdGFyVXJsLCAzNSwgMzUsICIle2JvcmRlcj0nMHB4JywgYWx0PSRhdXRob3IuRGlzcGxheU5hbWUsIFJlc2l6ZU1ldGhvZD0nWm9vbUFuZENyb3AnfSIpDQoJCQk8L2Rpdj4NCgkJCTxhIGhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJHRocmVhZC5VcmwpIiBjbGFzcz0iaW50ZXJuYWwtbGluayB2aWV3LWZ1bGwtcG9zdCBuYXZpZ2FibGUgdWktdGlwIiBkYXRhLXRpcD0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnVmlldycpKSI+DQoJCQkJPGRpdiBjbGFzcz0iY29udGVudCI+JGNvcmVfdjJfbGFuZ3VhZ2UuVHJ1bmNhdGUoJHRocmVhZC5TdWJqZWN0LCAyMDAsICIuLi4iKTwvZGl2Pg0KCQkJPC9hPg0KCQkJPGRpdiBjbGFzcz0ibWV0YSI+DQoJCQkJI2lmICgkdGhyZWFkLlRocmVhZFR5cGUgPT0gIlF1ZXN0aW9uQW5kQW5zd2VyIikNCgkJCQkJPHNwYW4gY2xhc3M9IiR0aHJlYWQuVGhyZWFkU3RhdHVzIj4NCgkJCQkJCSNpZiAoJHRocmVhZC5UaHJlYWRTdGF0dXMgPT0gJ0Fuc3dlcmVkJykNCgkJCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnU3RhdHVzX1ZlcmlmaWVkQW5zd2VyJykNCgkJCQkJCSNlbHNlaWYgKCR0aHJlYWQuVGhyZWFkU3RhdHVzID09ICdOb3RBbnN3ZXJlZCcpDQoJCQkJCQkJJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1N0YXR1c19Ob3RBbnN3ZXJlZCcpDQoJCQkJCQkjZWxzZWlmICgkdGhyZWFkLlRocmVhZFN0YXR1cyA9PSAnQW5zd2VyZWROb3RWZXJpZmllZCcpDQoJCQkJCQkJJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1N0YXR1c19TdWdnZXN0ZWRBbnN3ZXInKQ0KCQkJCQkJI2VuZA0KCQkJCQk8L3NwYW4+DQoJCQkJI2VuZA0KCQkJCTxhIGhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJHRocmVhZC5VcmwpIiBjbGFzcz0iaW50ZXJuYWwtbGluayB2aWV3LXBvc3QgbmF2aWdhYmxlIj4NCgkJCQkJJGNvcmVfdjJfdWkuQWdvRGF0ZSgkdGhyZWFkLkNyZWF0ZWREYXRlKQ0KCQkJCTwvYT4NCgkJCTwvZGl2Pg0KCQk8L2Rpdj4NCgk8L2xpPg0KI2FmdGVyYWxsDQoJPC91bD4NCgk8L2Rpdj4NCiNub2RhdGENCgkkY29yZV92Ml93aWRnZXQuSGlkZSgpDQojZW5kDQo=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

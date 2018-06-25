@@ -1,0 +1,84 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:User_Badges_Name}" version="10.1.8.10498" description="${resource:User_Badges_Description}" instanceIdentifier="cff782541ff74ebaa98d2c0f8b3f1c8d" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="user-badges">
+		<contentScript><![CDATA[
+#set ($user = false)
+#set ($user = $core_v2_user.Current)
+#if (!$user)
+	$core_v2_widget.Hide()
+#end
+
+#set($roleAvatars = $core_v2_role.List("%{IncludeWithAvatarOnly='True',Include='user',UserId=$user.Id}"))
+#if (!$roleAvatars || $roleAvatars.Count == 0)
+	$core_v2_widget.Hide()
+#end
+
+#foreach ($roleAvatar in $roleAvatars)
+#beforeall
+	<div class="content-list thumbnail ui-masonry margin-top" data-columnclass="thumbnail-column">
+#each
+	<div class="content-item content thumbnail">
+		<div class="avatar">
+		    $core_v2_ui.GetResizedImageHtml($roleAvatar.AvatarUrl, 140, 140, "%{alt=$achievement.Title,border='0',ResizeMethod = 'ZoomAndCrop'}")
+        </div>
+        <h3 class="name">
+            $roleAvatar.Name
+        </h3>
+	</div>
+#afterall
+	</div>
+#end
+]]></contentScript>
+		<headerScript><![CDATA[
+#set ($defaultTitle = $core_v2_language.GetResource('User_Badges_Name'))
+#set ($title = $core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:User_Badges_Name}')))
+## only attempt to set an automatic user-specific title if a default title is being used
+#if ($title == $defaultTitle)
+	#set ($currentUser = $core_v2_user.Current)
+	#set ($accessingUser = $core_v2_user.Accessing)
+	#if ($currentUser)
+		#if ($accessingUser && $accessingUser.Id == $currentUser.Id)
+			## My Badges
+			#set ($title = $core_v2_language.GetResource('My_Badges'))
+		#else
+			## {Current User}'s Badges
+			#set ($title = $core_v2_language.FormatString($core_v2_language.GetResource('Users_Badges'), $currentUser.DisplayName))
+		#end
+	#end
+#end
+$title
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:User_Badges_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Badges">Badges</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="My_Badges">My Badges</resource>
+  <resource name="Options">Options</resource>
+  <resource name="User_Badges_Description">Displays a user's role and rank badges</resource>
+  <resource name="User_Badges_Name">User - Badges</resource>
+  <resource name="Users_Badges">{0}'s Badges</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="My_Badges">我的徽章</resource>
+  <resource name="Options">选项</resource>
+  <resource name="User_Badges_Description">显示用户的角色和等级徽章</resource>
+  <resource name="User_Badges_Name">用户 - 徽章</resource>
+  <resource name="Users_Badges">{0} 的徽章</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="My_Badges">我的徽章</resource>
+  <resource name="Options">選項</resource>
+  <resource name="User_Badges_Description">顯示使用者的角色和等級徽章</resource>
+  <resource name="User_Badges_Name">使用者 - 徽章</resource>
+  <resource name="Users_Badges">{0} 的徽章</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="0233cbb383784e11a1e5e541f3b0a795" />
+		</requiredContext>
+	</scriptedContentFragment>
+</scriptedContentFragments>

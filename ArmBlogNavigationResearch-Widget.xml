@@ -1,0 +1,40 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Blog_Nav_Title_Name} - Research" version="10.1.8.10498" description="Provides navigation between custom blog curation pages" instanceIdentifier="5acbc28f72f84b03bc3d6a7f4dbe61ee" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="">
+		<contentScript><![CDATA[<style>
+## must remain in widget##
+.slider-container { margin-top:-30px; }
+.blognav-wrapper { border-bottom: none; }
+.content-fragment.title.no-wrapper, .content-fragment.blog-title.no-wrapper { margin-top: 10px; }
+</style>
+
+<div class="blognav-wrapper">
+<div class="blognav" id="ablognav">
+        <a class="home" href="/arm-research/b/articles"><i class="fa fa-2x fa-home" title="Home"></i></a>
+        <a title="Computer Architecture" href="/arm-research/b/articles/p/computer-architecture" rel="noopener noreferrer">Computer Architecture</a>
+        <a title="Devices, circuits & materials" href="/arm-research/b/articles/p/devices-circuits-materials" rel="noopener noreferrer">Devices, Circuits & Materials</a>
+        <a title="High Performance Compute" href="/arm-research/b/articles/p/high-performance-compute" rel="noopener noreferrer">HPC</a>
+        <a title="Internet of Things" href="/arm-research/b/articles/p/iot" rel="noopener noreferrer">IoT</a>
+        <a title="Machine Learning" href="/arm-research/b/articles/p/machine-learning" rel="noopener noreferrer">Machine Learning</a>
+        <a title="Research Collaboration" href="/arm-research/b/articles/p/research-collaboration" rel="noopener noreferrer">Collaboration</a>
+        <a title="Security" href="/arm-research/b/articles/p/security" rel="noopener noreferrer">Security</a>
+        <a title="Software & Services" href="/arm-research/b/articles/p/software-services" rel="noopener noreferrer">Software & Services</a>
+  <a href="javascript:void(0);" style="border-bottom: none !important;" class="icon" onclick="blogNavExpand()"><span style="font-size: 15px;">More articles</span><i style="padding-left: 15px;" class="fa fa-2x fa-navicon"></i></a>
+</div>
+
+<script>
+function blogNavExpand() {
+    var x = document.getElementById("ablognav");
+    if (x.className === "blognav") {
+        x.className += " responsive";
+    } else {
+        x.className = "blognav";
+    }
+}
+</script>]]></contentScript>
+		<headerScript><![CDATA[$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Blog_Nav_Title_Name}'))]]></headerScript>
+		<configuration><![CDATA[<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Blog_Nav_Title_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>]]></configuration>
+		<languageResources><language key="en-us"><resource name="Blog_Nav_Title_Name">Arm - Blog Navigation</resource><resource name="CF_Title">Widget title</resource></language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

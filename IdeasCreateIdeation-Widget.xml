@@ -1,0 +1,172 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Ideas_AddEditChallenge_Name}" version="10.1.8.10498" description="${resource:Ideas_AddEditChallenge_Description}" instanceIdentifier="75540e8339c3498185fb0e5bc9320b57" theme="" isCacheable="false" varyCacheByUser="false" showHeaderByDefault="true" cssClass="add-edit-challenge">
+		<contentScript><![CDATA[
+#set ($userId = $core_v2_user.Accessing.Id)
+#set($group = false)
+#set($group = $core_v2_group.Current)
+
+#if(!$group)
+  $core_v2_widget.Hide()
+#end
+
+#set($challenge = false)
+#set($challenge = $telligentIdeas_v1_challenges.Current)
+
+#if (!$telligentIdeas_v1_ideaPermissions.CanManageChallenges($group.Id))
+    <div id="$core_v2_widget.UniqueId('errorMessage')" class="message error">$core_v2_language.GetResource("ManageChallengePermissionDenied")</div>
+#else
+
+  <div id="$core_v2_widget.UniqueId('successMessage')" class="message success" style="display:none">$core_v2_language.GetResource("challenge_Saved")</div>
+  <div id="$core_v2_widget.UniqueId('errorMessage')" class="message error" style="display:none">$core_v2_language.GetResource("challenge_GenericError")</div>
+
+  <div id="$core_v2_widget.UniqueId('form')">
+    <div class="field-list-header"></div>
+    <fieldset class="field-list">
+        #if($challenge)
+          <h1>$challenge.Name</h1>
+        #else
+          <h1>$core_v2_language.GetResource('CreateChallengeTitle')</h1>
+        #end
+
+      <ul class="field-list">
+        <li class="field-item challenge-name">
+          <label class="field-item-header" for="$core_v2_widget.UniqueId('name')">$core_v2_language.GetResource("Name")</label>
+          <span class="field-item-input">
+            <textarea rows="1" class="scaled" maxlength="256" id="$core_v2_widget.UniqueId('name')" name="$core_v2_widget.UniqueId('name')">$!challenge.Name</textarea>
+          </span>
+          <span class="field-item-validation" style="display: none;"></span>
+        </li>
+
+        <li class="field-item challenge-body">
+          <label for="$core_v2_widget.UniqueId('body')" class="field-item-header">$core_v2_language.GetResource('Description')</label>
+          <span class="field-item-input">
+            <textarea rows="4" maxlength="1024" id="$core_v2_widget.UniqueId('body')" name="$core_v2_widget.UniqueId('body')">$!challenge.Description('raw')</textarea>
+          </span>
+
+          <span class="field-item-validation" style="display:none;"></span>
+        </li>
+
+        <li class="field-item post-submit">
+          <span class="field-item-input">
+              <a href="javascript:void(0);" class="internal-link save-post disabled submit-button button" id="$core_v2_widget.UniqueId('save')">
+                <span></span>$core_v2_language.GetResource('Submit')
+              </a>
+              <span class="processing" style="visibility: hidden;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+          </span>
+        </li>
+      </ul>
+    </fieldset>
+    <div class="field-list-footer"></div>
+  </div>
+
+  #registerEndOfPageHtml('telligent.evolution.Ideation.widgets.addEditChallenge')
+    <script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+  #end
+
+  #registerEndOfPageHtml()
+    <script type="text/javascript">
+    //<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+    jQuery(document).ready(function(j)
+    {
+      j.telligent.evolution.Ideation.widgets.addEditChallenge.register({
+        wrapperId:'$core_v2_widget.WrapperElementId',
+        save:j('#$core_v2_widget.UniqueId('save')'),
+        nameId:'$core_v2_widget.UniqueId('name')',
+        bodyId:'$core_v2_widget.UniqueId('body')',
+        appId:#if($challenge)'$challenge.Id'#else'00000000-0000-0000-0000-000000000000'#end,
+        groupId:$group.Id,
+        creator:$userId,
+        nameRequiredMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('challenge_validator_nameRequired'))',
+        duplicateNameMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('challenge_validator_DuplicateName'))',
+        descLengthMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('challenge_validator_descriptionLength'))',
+        processingMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('challengeSaving'))',
+        successMessage:j('#$core_v2_widget.UniqueId('successMessage')'),
+        errorMessage:j('#$core_v2_widget.UniqueId('errorMessage')'),
+        saveUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('save.vm'))'
+      });
+    });
+    //<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+    </script>
+  #end
+#end
+]]></contentScript>
+		<headerScript><![CDATA[
+      #set($header = $core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '')))
+
+      #if($header != '')
+        $header
+      #else
+        #set($challenge = false)
+        #set($challenge = $telligentIdeas_v1_challenges.Current)
+        #if($challenge)
+          $core_v2_language.GetResource('EditChallengeTitle')
+        #else
+          $core_v2_language.GetResource('CreateChallengeTitle')
+        #end
+      #end
+    ]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+  <property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+      ]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="challenge_GenericError">There was an error with the last request.</resource>
+  <resource name="challenge_Saved">Ideation was saved successfully</resource>
+  <resource name="challenge_validator_descriptionLength">Please shorten the description</resource>
+  <resource name="challenge_validator_DuplicateName">An ideation with this name already exists.</resource>
+  <resource name="challenge_validator_nameRequired">Name is required</resource>
+  <resource name="challengeSaving">Saving...</resource>
+  <resource name="CreateChallengeTitle">Create a new ideation to capture ideas</resource>
+  <resource name="Description">Description:</resource>
+  <resource name="EditChallengeTitle">Edit ideation</resource>
+  <resource name="Ideas_AddEditChallenge_Description">Displays a form for creating a new Ideation or editing an existing Ideation</resource>
+  <resource name="Ideas_AddEditChallenge_Name">Ideas - Create Ideation</resource>
+  <resource name="ManageChallengePermissionDenied">You do not have permission to manage ideations in this group.</resource>
+  <resource name="Name">Name:</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Submit">Save</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="challenge_GenericError">最后一个请求出错。</resource>
+  <resource name="challenge_Saved">构思已成功保存</resource>
+  <resource name="challenge_validator_descriptionLength">请缩短描述</resource>
+  <resource name="challenge_validator_DuplicateName">已存在具有此名称的构思。</resource>
+  <resource name="challenge_validator_nameRequired">名称是必需的</resource>
+  <resource name="challengeSaving">正在保存...</resource>
+  <resource name="CreateChallengeTitle">创建新构思以捕捉创意</resource>
+  <resource name="Description">描述:</resource>
+  <resource name="EditChallengeTitle">编辑构思</resource>
+  <resource name="Ideas_AddEditChallenge_Description">显示用于创建新构思或编辑现有构思的窗体</resource>
+  <resource name="Ideas_AddEditChallenge_Name">创意 - 创建构思</resource>
+  <resource name="ManageChallengePermissionDenied">您无权管理此社区中的构思。</resource>
+  <resource name="Name">名称:</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Submit">保存</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="challenge_GenericError">上一個要求發生錯誤。</resource>
+  <resource name="challenge_Saved">已成功儲存構思</resource>
+  <resource name="challenge_validator_descriptionLength">請縮減描述內容</resource>
+  <resource name="challenge_validator_DuplicateName">已經存在具有相同名稱的構思。</resource>
+  <resource name="challenge_validator_nameRequired">需要名稱</resource>
+  <resource name="challengeSaving">儲存中...</resource>
+  <resource name="CreateChallengeTitle">建立新構思以擷取構想</resource>
+  <resource name="Description">描述:</resource>
+  <resource name="EditChallengeTitle">編輯構思</resource>
+  <resource name="Ideas_AddEditChallenge_Description">顯示用於建立新構思或編輯現有構思的表單</resource>
+  <resource name="Ideas_AddEditChallenge_Name">構想 - 建立構思</resource>
+  <resource name="ManageChallengePermissionDenied">您沒有在此社群中管理構思的權限。</resource>
+  <resource name="Name">名稱:</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Submit">儲存</resource>
+</language></languageResources>
+		<files>
+			<file name="save.vm">77u/JGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoNCiNzZXQoJGNoYWxsZW5nZUlkID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUd1aWQoJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0FwcElkJykpKQ0KDQojc2V0KCRncm91cElkID0gZmFsc2UpDQojc2V0KCRncm91cElkID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUludCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnR3JvdXBJZCcpKSkNCiNzZXQoJG5hbWUgPSBmYWxzZSkNCiNzZXQoJG5hbWUgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnTmFtZScpKQ0KI3NldCgkZGVzYyA9IGZhbHNlKQ0KI3NldCgkZGVzYyA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdEZXNjcmlwdGlvbicpKQ0KDQojaWYoJGNoYWxsZW5nZUlkICYmICRjaGFsbGVuZ2VJZCAhPSAnMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwJykNCiAgICAjaWYoJG5hbWUpDQoJCSNzZXQoJG9wdGlvbnMgPSAiJXtOYW1lPSRuYW1lfSIpDQoJI2VuZA0KCSNpZigkZGVzYykNCgkJJG9wdGlvbnMuQWRkKCdEZXNjcmlwdGlvbicsICRkZXNjKQ0KCSNlbmQNCg0KICAgICNzZXQoJGNoYWxsZW5nZSA9ICR0ZWxsaWdlbnRJZGVhc192MV9jaGFsbGVuZ2VzLlVwZGF0ZSgkY2hhbGxlbmdlSWQsICRvcHRpb25zKSkNCiNlbHNlDQoJI3NldCgkdXNlcklkID0gJGNvcmVfdjJfdXNlci5BY2Nlc3NpbmcuSWQpDQogICAgI3NldCgkb3B0aW9ucyA9ICIle0Rlc2NyaXB0aW9uPSckZGVzYyd9IikNCgkkb3B0aW9ucy5BZGQoJ0FwcGxpY2F0aW9uS2V5JywgJG5hbWUpDQogICAgI3NldCgkY2hhbGxlbmdlID0gJHRlbGxpZ2VudElkZWFzX3YxX2NoYWxsZW5nZXMuQ3JlYXRlKCRncm91cElkLCAkbmFtZSwgJG9wdGlvbnMpKQ0KI2VuZA0KDQojaWYgKCRjaGFsbGVuZ2UpDQogICAgI2lmKCRjaGFsbGVuZ2UuRXJyb3JzLkNvdW50ID4gMCkNCgkJJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCRjaGFsbGVuZ2UuRXJyb3JzKQ0KCSNlbHNlDQoJCXsicmVkaXJlY3RVcmwiOiIkY29yZV92Ml9lbmNvZGluZy5KYXZhc2NyaXB0RW5jb2RlKCR0ZWxsaWdlbnRJZGVhc192MV91cmxzLklkZWFzKCRjaGFsbGVuZ2UuSWQpKSJ9DQoJI2VuZA0KI2Vsc2UJCQ0KCSRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcignVW5leHBlY3RlZCBlcnJvci4gVGhlIElkZWF0aW9uIGhhcyBub3QgYmVlbiBjcmVhdGVkL3VwZGF0ZWQnKQ0KI2VuZA==</file>
+			<file name="ui.js">KGZ1bmN0aW9uICgkLCBnbG9iYWwpIHsNCiAgICBpZiAodHlwZW9mICQudGVsbGlnZW50ID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudCA9IHt9OyB9DQogICAgaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbiA9IHt9OyB9DQogICAgaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPSB7fTsgfQ0KICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLklkZWF0aW9uID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24uSWRlYXRpb24gPSB7fTsgfQ0KICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLklkZWF0aW9uLndpZGdldHMgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi5JZGVhdGlvbi53aWRnZXRzID0ge307IH0NCg0KICAgIHZhciBfaXNEdXBsaWNhdGVOYW1lID0gZnVuY3Rpb24gKGNvbnRleHQpIHsNCiAgICAgICAgaWYgKCQoJyMnICsgY29udGV4dC5uYW1lSWQpLnZhbCgpID09ICcnKQ0KICAgICAgICAgICAgcmV0dXJuIGZhbHNlOw0KDQogICAgICAgIHZhciBpc0R1cGxpY2F0ZSA9IHRydWU7DQogICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5nZXQoew0KICAgICAgICAgICAgdXJsOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvaWRlYXMvY2hhbGxlbmdlcy5qc29uJywNCiAgICAgICAgICAgIGFzeW5jOiBmYWxzZSwNCiAgICAgICAgICAgIGRhdGE6IHsNCiAgICAgICAgICAgICAgICBHcm91cElkOiBjb250ZXh0Lmdyb3VwSWQsDQogICAgICAgICAgICAgICAgTmFtZTogJCgnIycgKyBjb250ZXh0Lm5hbWVJZCkudmFsKCkNCiAgICAgICAgICAgIH0sDQogICAgICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsNCiAgICAgICAgICAgICAgICBpZiAocmVzcG9uc2UuQ2hhbGxlbmdlcy5sZW5ndGggPT0gMCkNCiAgICAgICAgICAgICAgICAgICAgaXNEdXBsaWNhdGUgPSBmYWxzZTsNCiAgICAgICAgICAgICAgICBlbHNlIGlmIChyZXNwb25zZS5DaGFsbGVuZ2VzWzBdLklkID09IGNvbnRleHQuYXBwSWQpDQogICAgICAgICAgICAgICAgICAgIGlzRHVwbGljYXRlID0gZmFsc2U7DQogICAgICAgICAgICAgICAgZWxzZQ0KICAgICAgICAgICAgICAgICAgICBpc0R1cGxpY2F0ZSA9IHRydWU7DQogICAgICAgICAgICB9DQogICAgICAgIH0pOw0KDQogICAgICAgIHJldHVybiBpc0R1cGxpY2F0ZTsNCiAgICB9LA0KICAgIF9zYXZlID0gZnVuY3Rpb24gKGNvbnRleHQpIHsNCiAgICAgICAgdmFyIGRhdGEgPSB7DQogICAgICAgICAgICBBcHBJZDogY29udGV4dC5hcHBJZA0KICAgICAgICAgICAgICAgICAgICAsIE5hbWU6ICQoJyMnICsgY29udGV4dC5uYW1lSWQpLnZhbCgpDQogICAgICAgICAgICAgICAgICAgICwgRGVzY3JpcHRpb246ICQoJyMnICsgY29udGV4dC5ib2R5SWQpLnZhbCgpDQogICAgICAgICAgICAgICAgICAgICwgR3JvdXBJZDogY29udGV4dC5ncm91cElkDQogICAgICAgIH07DQoNCiAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KICAgICAgICAgICAgdXJsOiBjb250ZXh0LnNhdmVVcmwsDQogICAgICAgICAgICBkYXRhOiBkYXRhLA0KICAgICAgICAgICAgc3VjY2VzczogZnVuY3Rpb24gKHJlc3BvbnNlKSB7DQogICAgICAgICAgICAgICAgaWYgKHJlc3BvbnNlLkVycm9ycyAmJiByZXNwb25zZS5FcnJvcnMubGVuZ3RoID4gMCkgew0KICAgICAgICAgICAgICAgICAgICBhbGVydChyZXNwb25zZS5FcnJvcnNbMF0pOw0KICAgICAgICAgICAgICAgIH0gZWxzZSB7DQogICAgICAgICAgICAgICAgICAgIHdpbmRvdy5sb2NhdGlvbiA9IHJlc3BvbnNlLnJlZGlyZWN0VXJsOw0KICAgICAgICAgICAgICAgIH0NCiAgICAgICAgICAgIH0sDQogICAgICAgICAgICBlcnJvcjogZnVuY3Rpb24gKHhociwgZGVzYywgZXgpIHsNCiAgICAgICAgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ubm90aWZpY2F0aW9ucy5zaG93KGRlc2MsIHsgdHlwZTogJ2Vycm9yJyB9KTsNCiAgICAgICAgICAgICAgICBjb250ZXh0LnNhdmUucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQogICAgICAgICAgICB9DQogICAgICAgIH0pOw0KICAgIH07DQoNCg0KICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5JZGVhdGlvbi53aWRnZXRzLmFkZEVkaXRDaGFsbGVuZ2UgPSB7DQogICAgICAgIHJlZ2lzdGVyOiBmdW5jdGlvbiAoY29udGV4dCkgew0KDQogICAgICAgICAgICBjb250ZXh0LnNhdmUuZXZvbHV0aW9uVmFsaWRhdGlvbih7DQogICAgICAgICAgICAgICAgdmFsaWRhdGVPbkxvYWQ6IGNvbnRleHQuYXBwSWQgPT0gJzAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCcgPyBmYWxzZSA6IG51bGwsDQogICAgICAgICAgICAgICAgb25WYWxpZGF0ZWQ6IGZ1bmN0aW9uIChpc1ZhbGlkLCBidXR0b25DbGlja2VkLCBjKSB7DQogICAgICAgICAgICAgICAgICAgIGlmIChpc1ZhbGlkKSB7DQogICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0LnNhdmUucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQogICAgICAgICAgICAgICAgICAgIH0gZWxzZSB7DQogICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0LnNhdmUuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7DQogICAgICAgICAgICAgICAgICAgIH0NCiAgICAgICAgICAgICAgICB9LA0KICAgICAgICAgICAgICAgIG9uU3VjY2Vzc2Z1bENsaWNrOiBmdW5jdGlvbiAoZSkgew0KICAgICAgICAgICAgICAgICAgICBlLnByZXZlbnREZWZhdWx0KCk7DQogICAgICAgICAgICAgICAgICAgICQoJy5wcm9jZXNzaW5nJywgY29udGV4dC5zYXZlLnBhcmVudCgpKS5jc3MoInZpc2liaWxpdHkiLCAidmlzaWJsZSIpOw0KICAgICAgICAgICAgICAgICAgICBjb250ZXh0LnNhdmUuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7DQogICAgICAgICAgICAgICAgICAgIF9zYXZlKGNvbnRleHQpOw0KICAgICAgICAgICAgICAgIH0NCiAgICAgICAgICAgIH0pDQogICAgICAgICAgICAuZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkRmllbGQnDQogICAgICAgICAgICAgICAgLCAnIycgKyBjb250ZXh0Lm5hbWVJZA0KICAgICAgICAgICAgICAgICwgeyByZXF1aXJlZDogdHJ1ZSwgbWVzc2FnZXM6IHsgcmVxdWlyZWQ6IGNvbnRleHQubmFtZVJlcXVpcmVkTWVzc2FnZSB9IH0NCiAgICAgICAgICAgICAgICAsICcjJyArIGNvbnRleHQud3JhcHBlcklkICsgJyAuZmllbGQtaXRlbS5jaGFsbGVuZ2UtbmFtZSAuZmllbGQtaXRlbS12YWxpZGF0aW9uJywgbnVsbCkNCiAgICAgICAgICAgIC5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRDdXN0b21WYWxpZGF0aW9uJw0KICAgICAgICAgICAgICAgICwgJyMnICsgY29udGV4dC5uYW1lSWQsIGZ1bmN0aW9uICgpIHsNCiAgICAgICAgICAgICAgICAgICAgcmV0dXJuICFfaXNEdXBsaWNhdGVOYW1lKGNvbnRleHQpOw0KICAgICAgICAgICAgICAgIH0NCiAgICAgICAgICAgICAgICAsIGNvbnRleHQuZHVwbGljYXRlTmFtZU1lc3NhZ2UNCiAgICAgICAgICAgICAgICAsICcjJyArIGNvbnRleHQud3JhcHBlcklkICsgJyAuZmllbGQtaXRlbS5jaGFsbGVuZ2UtbmFtZSAuZmllbGQtaXRlbS12YWxpZGF0aW9uJywgbnVsbCk7DQogICAgICAgIH0NCiAgICB9Ow0KfSkoalF1ZXJ5LCB3aW5kb3cpOw0K</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

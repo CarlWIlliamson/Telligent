@@ -1,0 +1,129 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Blogs_BlogPost_Name}" version="10.1.8.10498" description="${resource:Blogs_BlogPost_Description}" instanceIdentifier="e65a4dae629e4c0fbf16a5e79923f0ed" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="blog-post">
+		<contentScript><![CDATA[
+#set($post = false)
+#set($post = $core_v2_blogPost.Current)
+#if(!$post)
+	$core_v2_widget.Hide()
+#end
+#set ($accessingUserIsRegistered = $core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+$core_v2_blogPost.IncrementViewCount($post.Id)
+
+#set ($hasAttachment = false)
+#set ($hasAttachment = $post.File && $post.File.FileUrl)
+#set ($mediaType = false)
+#set ($mediaRendered = false)
+#if ($hasAttachment)
+	#set ($mediaType = $core_v2_ui.GetMediaType($post.File.FileUrl, "%{ ViewType = 'View' }"))
+#end
+
+#if(!$post.IsApproved)
+	<div class="message warning">
+		$core_v2_language.GetResource('DraftPost')
+	</div>
+#elseif($post.PublishedDate > $core_v2_utility.CurrentUserDate())
+	<div class="message warning">
+		$core_v2_language.FormatString($core_v2_language.GetResource('FuturePost'), $core_v2_language.FormatDateAndTime($post.PublishedDate))
+	</div>
+#end
+
+<div class="content full text">
+	## audio/video
+	#if ($hasAttachment && ($mediaType == 'Video' || $mediaType == 'Audio'))
+		<div class="attachment">
+			<div class="viewer">
+				$core_v2_ui.GetViewHtml($post.File.FileUrl, "%{ AdjustToContainer = 'true' }")
+			</div>
+			<a href="$core_v2_encoding.HtmlAttributeEncode($post.File.FileUrl)">$post.File.FileName</a>
+		</div>
+		#set ($mediaRendered = true)
+	#end
+	<div class="content">$post.Body("Web")</div>
+	## viewable non audio/video
+	#if (!$mediaRendered && $hasAttachment && $mediaType && $mediaType != 'Empty')
+		<div class="attachment">
+			<ul class="navigation-list">
+				<li class="navigation-list-item">
+					<a href="$core_v2_encoding.HtmlAttributeEncode($post.File.FileUrl)">$post.File.FileName</a>
+				</li>
+				<li class="navigation-list-item view-attachment">
+					<a href="#">$core_v2_language.GetResource('view')</a>
+				</li>
+				<li class="navigation-list-item hide-attachment hidden">
+					<a href="#">$core_v2_language.GetResource('hide')</a>
+				</li>
+			</ul>
+			<div class="viewer hidden">
+				$core_v2_ui.GetViewHtml($post.File.FileUrl, "%{ AdjustToContainer = 'true' }")
+			</div>
+		</div>
+		#registerEndOfPageHtml()
+		<script>
+			jQuery(function(){
+				var widget = jQuery('#$core_v2_widget.WrapperElementId'),
+					viewer = widget.find('.viewer'),
+					viewLink = widget.find('.view-attachment'),
+					hideLink = widget.find('.hide-attachment');
+
+				widget.on('click', '.attachment .view-attachment a', function(e){
+					e.preventDefault();
+					viewLink.addClass('hidden').hide();
+					hideLink.removeClass('hidden').show();
+					viewer.removeClass('hidden').show();
+				});
+				widget.on('click', '.attachment .hide-attachment a', function(e){
+					e.preventDefault();
+					viewLink.removeClass('hidden').show();
+					hideLink.addClass('hidden').hide();
+					viewer.addClass('hidden').hide();
+				});
+			});
+		</script>
+		#end
+		#set ($mediaRendered = true)
+	#end
+	## non-viewable
+	#if (!$mediaRendered && $hasAttachment && !$mediaType || $mediaType == 'Empty')
+		<a href="$core_v2_encoding.HtmlAttributeEncode($post.File.FileUrl)">$post.File.FileName</a>
+		#set ($mediaRendered = true)
+	#end
+</div>
+		]]></contentScript>
+		<headerScript><![CDATA[
+#set($blog = false)
+#set($blog = $core_v2_blog.Current)
+#if ($blog)
+	<a class="internal-link view-application weblog" href="$core_v2_encoding.HtmlAttributeEncode($blog.Url)"><span></span>$blog.Name</a>
+#else
+	$core_v2_language.GetResource('Blogs_BlogPost_Name')
+#end
+		]]></headerScript>
+		<languageResources><language key="en-us">
+  <resource name="Blogs_BlogPost_Description">Displays a blog post's content.</resource>
+  <resource name="Blogs_BlogPost_Name">Blog - Post Content</resource>
+  <resource name="DraftPost">This post is not published. </resource>
+  <resource name="FuturePost">This post is scheduled to be published on {0}. </resource>
+  <resource name="hide">Hide</resource>
+  <resource name="view">View</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Blogs_BlogPost_Description">显示博客文章。</resource>
+  <resource name="Blogs_BlogPost_Name">博客 - 文章</resource>
+  <resource name="DraftPost">未发布此文章。</resource>
+  <resource name="FuturePost">此文章计划在 {0} 发布。</resource>
+  <resource name="hide">隐藏</resource>
+  <resource name="view">查看</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Blogs_BlogPost_Description">顯示部落格貼文。</resource>
+  <resource name="Blogs_BlogPost_Name">部落格 - 貼文</resource>
+  <resource name="DraftPost">這則貼文尚未發佈。</resource>
+  <resource name="FuturePost">這則貼文已排定在 {0} 發佈。</resource>
+  <resource name="hide">隱藏</resource>
+  <resource name="view">檢視</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="24fa6951ab1244f5be3df20cc46b361b" />
+		</requiredContext>
+	</scriptedContentFragment>
+</scriptedContentFragments>

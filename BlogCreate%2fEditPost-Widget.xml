@@ -1,0 +1,451 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Blog_CreateEditPost_Name}" version="10.1.8.10498" description="${resource:Blog_CreateEditPost_Description}" instanceIdentifier="aa303e620a9b43c6b9b12c81651a08cc" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="blog-create-edit-post">
+		<contentScript><![CDATA[#set($post = false)
+#set($post = $core_v2_blogPost.Current)
+#set($blog = false)
+#set($blog = $core_v2_blog.Current)
+#if($post)
+	#if (!$core_v2_nodePermission.Get("blogsposts", $post.Id, $core_v2_blogPermissions.ModifyPost).IsAllowed)
+		$core_v2_widget.Hide()
+	#end
+#elseif(!$core_v2_nodePermission.Get('blogs', $blog.Id, $core_v2_blogPermissions.CreatePost).IsAllowed)
+	$core_v2_widget.Hide()
+#end
+
+#set ($tabsContainerId = $core_v2_widget.UniqueId('tabsContainer'))
+#set ($writeTabId = $core_v2_widget.UniqueId('writeTab'))
+#set ($optionsTabId = $core_v2_widget.UniqueId('optionsTab'))
+#set ($seoOptionsId = $core_v2_widget.UniqueId('seoTab'))
+#set ($customSummaryFieldSetId = $core_v2_widget.UniqueId('customSummaryFields'))
+
+#set($canUpload = $core_v2_nodePermission.Get('blogs',$blog.Id,$core_v2_blogPermissions.AttachFileLocal).IsAllowed)
+#set($canLink = $core_v2_nodePermission.Get('blogs',$blog.Id,$core_v2_blogPermissions.AttachFileRemote).IsAllowed)
+#set($attachmentContextId = $core_v2_uploadedFile.CreateContextId())
+
+#set($attachmentFileName = false)
+#set($attachmentUrl = false)
+#set($attachmentIsRemote = false)
+#set($attachmentIsNew = false)
+
+#if ($post)
+	#set($attachmentFileName = $post.File.FileName)
+	#set($attachmentUrl = $post.File.FileUrl)
+	#set($attachmentIsRemote = $post.File.IsRemoteAttachment)
+#end
+
+#set($postimageattachmentContextId = $core_v2_uploadedFile.CreateContextId())
+
+#set($postImageAttachmentFileName = false)
+#set($postImageAttachmentUrl = false)
+#set($postImageAttachmentIsRemote = false)
+#set($postImageattachmentIsNew = false)
+
+#if ($post)
+	#set($postImageAttachmentFileName = $post.PostImageFile.FileName)
+	#set($postImageAttachmentUrl = $post.PostImageFile.FileUrl)
+	#set($postImageAttachmentIsRemote = $post.PostImageFile.IsRemoteAttachment)
+#end
+
+#set($tempData = false)
+#if ($core_v2_page.GetQueryStringValue('tsid'))
+	#set($tempDataString = false)
+	#set($tempDataString = $core_v2_utility.GetTemporaryData($core_v2_page.GetQueryStringValue('tsid')))
+	#if($tempDataString)
+		#set($tempData = $core_v2_page.ParseQueryString($tempDataString))
+	#end
+#end
+
+<div class="message warning" id="$core_v2_widget.UniqueId('warning')" style="display: none;"></div>
+<fieldset>
+	#if ($post)
+		#set ($heading = $post.Title)
+	#else
+		#set ($heading = $core_v2_language.FormatString($core_v2_language.GetResource('NewPost'), $blog.Name))
+	#end
+	<h1>$heading</h1>
+
+	<div id="$core_v2_encoding.HtmlAttributeEncode($tabsContainerId)">
+		<div id="$core_v2_encoding.HtmlAttributeEncode($writeTabId)">
+
+			<ul class="field-list">
+				<li class="field-item required post-name">
+					<label for="$core_v2_widget.UniqueId('title')" class="field-item-name">$core_v2_language.GetResource('Title')</label>
+					<span class="field-item-input">
+						<textarea maxlength="256" rows="1" id="$core_v2_widget.UniqueId('title')" class="scaled" name="$core_v2_widget.UniqueId('title')" size="90">$!core_v2_encoding.HtmlEncode($post.Title)</textarea>
+					</span>
+					<span class="field-item-validation" style="display: none;"></span>
+				</li>
+				<li class="field-item required post-body">
+					#set($postBody = '')
+					#if($post)
+						#set($postBody = $post.Body('raw'))
+					#elseif($tempData)
+						#set($postBody = $tempData.Value('body'))
+					#end
+					<label for="$core_v2_widget.UniqueId('body')" class="field-item-name">$core_v2_language.GetResource('Body')</label>
+					<span class="field-item-input">$core_v2_editor.Render('body',"%{Width='100%', Value='$!postBody', ContentTypeId=$core_v2_blogPost.ContentTypeId}")</span>
+					<span class="field-item-validation" style="display:none;"></span>
+				</li>
+				<li class="field-item required post-attachment upload-with-preview" id="$core_v2_widget.UniqueId('attachment')" data-upload="$canUpload" data-link="$canLink">
+					#if ($canUpload && $canLink)
+						<label for="$core_v2_widget.UniqueId('attachment_input')" class="field-item-name">$core_v2_language.GetResource('Attachment_FileOrUrl')</label>
+					#elseif ($canUpload)
+						<label for="$core_v2_widget.UniqueId('attachment_input')" class="field-item-name">$core_v2_language.GetResource('Attachment_File')</label>
+					#elseif ($canLink)
+						<label for="$core_v2_widget.UniqueId('attachment_input')" class="field-item-name">$core_v2_language.GetResource('Attachment_Url')</label>
+					#end
+					#if ($canUpload || $canLink)
+						<span class="field-item-input file">
+							<input type="text" columns="90" id="$core_v2_widget.UniqueId('attachment_input')" #if($attachmentUrl && $attachmentIsRemote)value="$core_v2_encoding.HtmlAttributeEncode($attachmentUrl)"#elseif($attachmentFileName)value="$core_v2_encoding.HtmlAttributeEncode($attachmentFileName)"#end />
+						</span>
+						<span class="field-item-input preview">
+						</span>
+					#end
+					#if ($canUpload)
+						<span class="field-item-input upload">
+							<a href="#" class="upload add" id="$core_v2_widget.UniqueId('upload')">$core_v2_language.GetResource('UploadFile')</a>
+							<a href="#" class="remove" style="margin-left: 1em;">$core_v2_language.GetResource('RemoveFile')</a>
+						</span>
+					#end
+					<span class="field-item-validation" style="display: none;"></span>
+				</li>
+				<li class="field-item post-tags">
+					<label for="$core_v2_widget.UniqueId('tags')" class="field-item-name">$core_v2_language.GetResource('CreateEditPost_Tags')</label>
+					<span class="field-item-input">
+						<input type="text" id="$core_v2_widget.UniqueId('tags')" value="$core_v2_utility.Join(', ', $post.Tags)" size="60" />
+					</span>
+				</li>
+			</ul>
+
+		</div>
+		<div id="$core_v2_encoding.HtmlAttributeEncode($optionsTabId)">
+
+			<ul class="field-list">
+				<li class="field-item">
+					<label for="$core_v2_widget.UniqueId('slug')" class="field-item-name">$core_v2_language.GetResource('slug_name')</label>
+					<span class="field-item-description">$core_v2_language.GetResource('slug_description')</span>
+					<span class="field-item-input">
+						<input type="text" maxlength="256" id="$core_v2_widget.UniqueId('slug')" name="$core_v2_widget.UniqueId('slug')" value="$!core_v2_encoding.HtmlAttributeEncode($!post.Slug)"></input>
+					</span>
+				</li>
+				<li class="field-item required post-image upload-with-preview" id="$core_v2_widget.UniqueId('postImage')" data-upload="$canUpload" data-link="False">
+					#if ($canUpload)
+						<label for="$core_v2_widget.UniqueId('postimageattachment_input')" class="field-item-name">$core_v2_language.GetResource('PostImage_File')</label>
+						<span class="field-item-description">$core_v2_language.GetResource('PostImage_Description')</span>
+
+						<span class="field-item-input file">
+							<input type="text" columns="90" id="$core_v2_widget.UniqueId('postimageattachment_input')" #if($postImageAttachmentUrl && $postImageAttachmentIsRemote)value="$core_v2_encoding.HtmlAttributeEncode($postImageAttachmentUrl)"#elseif($postImageAttachmentFileName)value="$core_v2_encoding.HtmlAttributeEncode($postImageAttachmentFileName)"#end />
+						</span>
+						<span class="field-item-input preview">
+						</span>
+						<span class="field-item-input upload">
+							<a href="#" class="upload add" id="$core_v2_widget.UniqueId('postImageUpload')">$core_v2_language.GetResource('UploadFile')</a>
+							<a href="#" class="remove" style="margin-left: 1em;">$core_v2_language.GetResource('RemoveFile')</a>
+						</span>
+					#end
+					<span class="field-item-validation" style="display: none;"></span>
+				</li>
+
+				<li class="field-item">
+					<label class="field-item-name" for="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.UniqueId('PublicationDate'))">$core_v2_language.GetResource('PublicationDate')</label>
+					<span class="field-item-input">
+						#if ($post)
+							#set ($date = $post.PublishedDate)
+						#else
+							#set ($date = $core_v2_utility.CurrentUserDate)
+						#end
+						#set ($formattedDate = $core_v2_encoding.JavascriptEncode($date))
+						<input type="text" id="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.UniqueId('PublicationDate'))" value="$core_v2_encoding.HtmlAttributeEncode($formattedDate)" />
+					</span>
+				</li>
+
+				<li class="field-item">
+					<label class="field-item-name" for="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.UniqueId('summary'))">$core_v2_language.GetResource('Summary_Name')</label>
+					<span class="field-item-description">$core_v2_language.GetResource("Post_Summary_Description")</span>
+					<span class="field-item-input">
+						<select class="ui-select" id="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.UniqueId('summary'))">
+							<option value="none">$core_v2_language.GetResource('Summary_None')</option>
+							<option value="automatic" #if (($post && $post.UsePostSummary && $post.GeneratePostSummary) || $blog.PostSummaryDefault) selected #end>$core_v2_language.GetResource('Summary_Automatic')</option>
+							<option value="custom" #if ($post && $post.UsePostSummary && !$post.GeneratePostSummary) selected #end>$core_v2_language.GetResource('Summary_Custom')</option>
+						</select>
+					</span>
+					<ul class="field-list" id="$core_v2_encoding.HtmlAttributeEncode($customSummaryFieldSetId)" #if (!$post || !$post.UsePostSummary || $post.GeneratePostSummary) style="display:none" #end>
+						<li class="field-item">
+							<label class="field-item-name">$core_v2_language.GetResource('Summary_Custom')</label>
+							<span class="field-item-input">
+								<textarea type="text" id="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.UniqueId('CustomSummary'))">$!post.Excerpt</textarea>
+							</span>
+						</li>
+					</ul>
+				</li>
+				#if ($core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+					<li class="field-item post-subscribe">
+						<span class="field-item-input">
+							<input type="checkbox" id="$core_v2_widget.UniqueId('subscribe')"#if(!$post || $core_v2_blogPost.IsSubscribed($post.Id)) checked="checked"#end />
+							<label for="$core_v2_widget.UniqueId('subscribe')">$core_v2_language.GetResource('Post_Subscribe')</label>
+						</span>
+					</li>
+					#if ($core_v2_blogConfiguration.IsCrossPostingEnabled && $blog.EnableCrossPostingDefault)
+						<li class="field-item post-crossposting">
+							<span class="field-item-input">
+								<input type="checkbox" id="$core_v2_widget.UniqueId('isCrossPostingEnabled')"#if(!$post || $post.EnableCrossPosting) checked="checked"#end />
+								<label for="$core_v2_widget.UniqueId('isCrossPostingEnabled')">$core_v2_language.GetResource('Post_CrossPosting')</label>
+							</span>
+						</li>
+					#end
+				#end
+			</ul>
+			 <h3>$core_v2_language.GetResource('Meta_Heading')</h3>
+			<ul class="field-list">
+				<li class="field-item meta-title">
+					<label for="$core_v2_widget.UniqueId('metaTitle')" class="field-item-name">$core_v2_language.GetResource('Meta_Title')</label>
+					   <span class="field-item-description">$core_v2_language.GetResource('Meta_TitleDescription')</span>
+					   <span class="field-item-input">
+						  <textarea maxlength="128" rows="1" id="$core_v2_widget.UniqueId('metaTitle')" class="scaled" name="$core_v2_widget.UniqueId('metaTitle')" size="90">$!post.MetaTitle</textarea>
+					   </span>
+					   <span class="field-item-description character-count"></span>
+				 </li>
+				<li class="field-item meta-keywords">
+					   <label for="$core_v2_widget.UniqueId('metaKeywords')" class="field-item-name">$core_v2_language.GetResource('Meta_Keywords')</label>
+					  <span class="field-item-description">$core_v2_language.GetResource('Meta_KeywordsDescription')</span>
+					   <span class="field-item-input">
+						  <textarea maxlength="512" rows="1" id="$core_v2_widget.UniqueId('metaKeywords')" class="scaled" name="$core_v2_widget.UniqueId('metaKeywords')" size="90">$!post.MetaKeywords</textarea>
+					   </span>
+				 </li>
+			</ul>
+		</div>
+
+	</div>
+
+	<ul class="field-list">
+		<li class="field-item submit-button">
+			<span class="field-item-input">
+				<a id="$core_v2_widget.UniqueId('save')" href="javascript:void(0);" class="internal-link save-post disabled button">$core_v2_language.GetResource('Publish')</a>
+				<a id="$core_v2_widget.UniqueId('savedraft')" href="javascript:void(0);" class="internal-link save-post disabled button">$core_v2_language.GetResource('SaveDraft')</a>
+				#if ($post)
+					<a id="$core_v2_widget.UniqueId('delete')" href="javascript:void(0);" class="internal-link delete-post button">$core_v2_language.GetResource('Delete')</a>
+				#end
+				<span class="processing" style="visibility: hidden;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+			</span>
+		</li>
+	</ul>
+
+</fieldset>
+
+
+#registerEndOfPageHtml('telligent.evolution.widgets.blogCreateEditPost')
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+#end
+#registerEndOfPageHtml()
+	<script type="text/javascript">
+	jQuery(document).ready(function() {
+		jQuery.telligent.evolution.widgets.blogCreateEditPost.register({
+			applicationId: '$blog.ApplicationId',
+			tags: jQuery('#$core_v2_widget.UniqueId('tags')'),
+			subscribe: jQuery('#$core_v2_widget.UniqueId('subscribe')'),
+			IsCrossPostingEnabled: jQuery('#$core_v2_widget.UniqueId('isCrossPostingEnabled')'),
+			save: jQuery('#$core_v2_widget.UniqueId('save')'),
+			saveDraft: jQuery('#$core_v2_widget.UniqueId('savedraft')'),
+			title: jQuery('#$core_v2_widget.UniqueId('title')'),
+			getBody: function() { return $core_v2_editor.GetContentScript('body'); },
+			blogId: $blog.Id,
+			postId: #if($post) $post.Id #else null #end,
+			blogUrl: #if($blog) '$core_v2_encoding.JavascriptEncode($blog.Url)' #else null #end,
+			subscribed: #if($post && $core_v2_blogPost.IsSubscribed($post.Id)) true #else false #end,
+			metaTitle:jQuery('#$core_v2_widget.UniqueId('metaTitle')'),
+			metaKeywords:jQuery('#$core_v2_widget.UniqueId('metaKeywords')'),
+			wrapperId: '$core_v2_widget.WrapperElementId',
+			titleSelector: '#$core_v2_widget.UniqueId('title')',
+			titleRequiredText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('RequiredField'))',
+			bodyRequiredText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('PageEdit_PleaseEnterContent'))',
+			attachBodyChangeHandler: function(h) { $core_v2_editor.GetAttachOnChangeScript('body', 'h') },
+			deleteLink: jQuery('#$core_v2_widget.UniqueId('delete')'),
+			deleteConfirmationText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('DeleteConfirmation'))',
+			tabsSelector: '#$core_v2_encoding.JavascriptEncode($tabsContainerId)',
+			writeTabId: '$core_v2_encoding.JavascriptEncode($writeTabId)',
+			writeTabLabel: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Write'))',
+			optionsTabId: '$core_v2_encoding.JavascriptEncode($optionsTabId)',
+			optionsTabLabel: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Options'))',
+			slug: jQuery('#$core_v2_widget.UniqueId('slug')'),
+			summary: jQuery('#$core_v2_widget.UniqueId('summary')'),
+			customSummaryFields: jQuery('#$customSummaryFieldSetId'),
+			customSummary: jQuery('#$core_v2_widget.UniqueId('CustomSummary')'),
+			publicationDate: jQuery('#$core_v2_widget.UniqueId('PublicationDate')'),
+			file: {
+				fileName: '#if($attachmentFileName)$core_v2_encoding.JavascriptEncode($attachmentFileName)#end',
+				url: '#if($attachmentUrl)$core_v2_encoding.JavascriptEncode($attachmentUrl)#end',
+				isRemote:#if($attachmentIsRemote) true#else false#end,
+				isNew:#if($attachmentIsNew) true#else false#end
+			},
+			attachmentId: '$core_v2_widget.UniqueId('attachment')',
+			attachmentProgressText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('UploadProgress'))',
+			attachmentChangeText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('ChangeFile'))',
+			attachmentAddText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('UploadFile'))',
+			previewAttachmentUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('preview-attachment.vm'))',
+			uploadFileUrl : '$core_v2_encoding.JavascriptEncode($core_v2_uploadedFile.GetUploadUrl($attachmentContextId))',
+			uploadContextId: '$core_v2_encoding.JavascriptEncode($attachmentContextId)',
+			draftSavedText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('DraftSaved'))',
+			charactersRemain: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Characters_Remain'))',
+			charactersOver: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Characters_Over'))',
+			postimageId: '$core_v2_widget.UniqueId('postImage')',
+			postimagefile: {
+				fileName: '#if($postImageAttachmentFileName)$core_v2_encoding.JavascriptEncode($postImageAttachmentFileName)#end',
+				url: '#if($postImageAttachmentUrl)$core_v2_encoding.JavascriptEncode($postImageAttachmentUrl)#end',
+				isRemote:#if($postImageAttachmentIsRemote) true#else false#end,
+				isNew:#if($postImageattachmentIsNew) true#else false#end
+			},
+			postimageuploadFileUrl : '$core_v2_encoding.JavascriptEncode($core_v2_uploadedFile.GetUploadUrl($postimageattachmentContextId))',
+			postimageuploadContextId: '$core_v2_encoding.JavascriptEncode($postimageattachmentContextId)',
+			blogPostContentTypeId: '$core_v2_blogPost.ContentTypeId.ToString()'
+
+		});
+	});
+	</script>
+#end
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Blog_CreateEditPost_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Blog_CreateEditPost_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Attachment_File">Attach a file</resource>
+  <resource name="Attachment_FileOrUrl">Attach a file or URL</resource>
+  <resource name="Attachment_Url">Attach a URL</resource>
+  <resource name="Blog_CreateEditPost_Description">Creates or edits a blog post.</resource>
+  <resource name="Blog_CreateEditPost_Name">Blog - Create/Edit Post</resource>
+  <resource name="Body">Body</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="ChangeFile">Change file</resource>
+  <resource name="Characters_Over">character(s) over the recomended length.  For best results this should shortened.</resource>
+  <resource name="Characters_Remain">character(s)</resource>
+  <resource name="CreateEditPost_Tags">Tags</resource>
+  <resource name="Delete">Delete</resource>
+  <resource name="DeleteConfirmation">Are you sure you want to delete this post?</resource>
+  <resource name="DraftSaved">Your draft has been saved. To edit or publish it later, manage the blog and find the post in the posts list.</resource>
+  <resource name="Meta_Heading">Search Engine Optimization</resource>
+  <resource name="Meta_Keywords">Keywords</resource>
+  <resource name="Meta_KeywordsDescription">Comma-separated list of words that uniquely relate to this content. These can be used by search engines to improve search results.</resource>
+  <resource name="Meta_Title">Title</resource>
+  <resource name="Meta_TitleDescription">Adjust the title used by search engines when referencing this content. If not set, the blog post’s name will be used.  For best results custom titles should be 55 characters or less.</resource>
+  <resource name="NewPost">New Post to {0}</resource>
+  <resource name="Options">Options</resource>
+  <resource name="PageEdit_PleaseEnterContent">This field is required.</resource>
+  <resource name="Post_CrossPosting">Post this entry on my other blogs</resource>
+  <resource name="Post_Subscribe">Notify me when someone comments on this post</resource>
+  <resource name="Post_Summary_Description">Post summaries are used when displaying posts in lists or RSS feeds.  Additionally this summary is exposed to search engines and facebook. For best results, custom summaries should be 155 characters or less.</resource>
+  <resource name="PostImage_Description">This image will be used as a thumbnail in blog post list view and as the image exposed to Open Graph. </resource>
+  <resource name="PostImage_File">Post Image</resource>
+  <resource name="PublicationDate">Publication Date</resource>
+  <resource name="Publish">Post</resource>
+  <resource name="RemoveFile">Remove file</resource>
+  <resource name="RequiredField">This field is required.</resource>
+  <resource name="SaveDraft">Save as Draft</resource>
+  <resource name="slug_description">The title of your post is used to create the URL. If you want to use different keywords in the URL enter it below.</resource>
+  <resource name="slug_name">Post URL</resource>
+  <resource name="Summary_Automatic">Automatic Summary</resource>
+  <resource name="Summary_Custom">Custom Summary</resource>
+  <resource name="Summary_Name">Post Summary</resource>
+  <resource name="Summary_None">No Post Summary</resource>
+  <resource name="Title">Title</resource>
+  <resource name="UploadFile">Upload file</resource>
+  <resource name="UploadProgress">Uploading ({0}%)...</resource>
+  <resource name="Write">Write</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Attachment_File">附加文件</resource>
+  <resource name="Attachment_FileOrUrl">附加文件或 URL</resource>
+  <resource name="Attachment_Url">附加 URL</resource>
+  <resource name="Blog_CreateEditPost_Description">创建或编辑博客文章。</resource>
+  <resource name="Blog_CreateEditPost_Name">博客 - 创建/编辑文章</resource>
+  <resource name="Body">正文</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="ChangeFile">更改文件</resource>
+  <resource name="Characters_Over">超过建议的长度的字符数。为获得最佳结果，应缩短字符长度。</resource>
+  <resource name="Characters_Remain">字符</resource>
+  <resource name="CreateEditPost_Tags">标记</resource>
+  <resource name="Delete">删除</resource>
+  <resource name="DeleteConfirmation">是否确定要删除此文章?</resource>
+  <resource name="DraftSaved">您的草稿已保存。要在稍后编辑或发布草稿，请管理博客并在文章列表中找到此文章。</resource>
+  <resource name="Meta_Heading">搜索引擎优化</resource>
+  <resource name="Meta_Keywords">关键字</resource>
+  <resource name="Meta_KeywordsDescription">与此内容唯一相关的逗号分隔词语列表。这些内容可供搜索引擎用于改进搜索结果。</resource>
+  <resource name="Meta_Title">标题</resource>
+  <resource name="Meta_TitleDescription">在引用此内容时，调整搜索引擎使用的标题。如果未设置，则将使用博客文章的名称。为获得最佳结果，自定义标题将为 55 个字符或更少。</resource>
+  <resource name="NewPost">向 {0} 发布新文章</resource>
+  <resource name="Options">选项</resource>
+  <resource name="PageEdit_PleaseEnterContent">此字段是必需的。</resource>
+  <resource name="Post_CrossPosting">将此条目发布到我的其他博客</resource>
+  <resource name="Post_Subscribe">有人评论此文章时通知我</resource>
+  <resource name="Post_Summary_Description">在列表或 RSS 源中显示文章时使用文章摘要。此外，将向搜索引擎和 Facebook 公开此摘要。为获得最佳结果，自定义摘要应为 155 个字符或更少。</resource>
+  <resource name="PostImage_Description">此图像将用作博客文章列表视图中的缩略图，并用作向开发图形公开的图像。</resource>
+  <resource name="PostImage_File">文章图像</resource>
+  <resource name="PublicationDate">出版日期</resource>
+  <resource name="Publish">发布</resource>
+  <resource name="RemoveFile">移除文件</resource>
+  <resource name="RequiredField">此字段是必需的。</resource>
+  <resource name="SaveDraft">保存为草稿</resource>
+  <resource name="slug_description">文章的标题用于创建 URL。如果要在 URL 中使用不同关键字，请在下面输入。</resource>
+  <resource name="slug_name">文章 URL</resource>
+  <resource name="Summary_Automatic">自动摘要</resource>
+  <resource name="Summary_Custom">自定义摘要</resource>
+  <resource name="Summary_Name">文章摘要</resource>
+  <resource name="Summary_None">无文章摘要</resource>
+  <resource name="Title">标题</resource>
+  <resource name="UploadFile">上传文件</resource>
+  <resource name="UploadProgress">正在上传({0}%)...</resource>
+  <resource name="Write">写</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Attachment_File">附加檔案</resource>
+  <resource name="Attachment_FileOrUrl">附加檔案或 URL</resource>
+  <resource name="Attachment_Url">附加 URL</resource>
+  <resource name="Blog_CreateEditPost_Description">建立或編輯部落格貼文。</resource>
+  <resource name="Blog_CreateEditPost_Name">部落格 - 建立/編輯貼文</resource>
+  <resource name="Body">本文</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="ChangeFile">變更檔案</resource>
+  <resource name="Characters_Over">字元數超過建議的長度。請將期縮短以取得最佳結果。</resource>
+  <resource name="Characters_Remain">字元</resource>
+  <resource name="CreateEditPost_Tags">標記</resource>
+  <resource name="Delete">刪除</resource>
+  <resource name="DeleteConfirmation">您確定要刪除這則貼文嗎?</resource>
+  <resource name="DraftSaved">已儲存您的草稿。若要稍後編輯或發佈，請管理部落格並在貼文清單中尋找貼文。</resource>
+  <resource name="Meta_Heading">搜尋引擎最佳化</resource>
+  <resource name="Meta_Keywords">關鍵字</resource>
+  <resource name="Meta_KeywordsDescription">與此內容唯一相關的字詞逗號分隔清單。搜尋引擎會使用這些字詞改善搜尋結果。</resource>
+  <resource name="Meta_Title">標題</resource>
+  <resource name="Meta_TitleDescription">當參照此內容時調整搜尋引擎使用的標題。如果沒有設定，就會使用部落格貼文的名稱。為了取得最佳結果，自訂標題的長度不可超過 55 個字元。</resource>
+  <resource name="NewPost">新增貼文至 {0}</resource>
+  <resource name="Options">選項</resource>
+  <resource name="PageEdit_PleaseEnterContent">這是必填欄位。</resource>
+  <resource name="Post_CrossPosting">在我的其他部落格上張貼此項目</resource>
+  <resource name="Post_Subscribe">有人在此貼文中留言時通知我</resource>
+  <resource name="Post_Summary_Description">在清單或 RSS 摘要中顯示貼文時會使用貼文摘要。此外，此摘要也會公開至搜尋引擎和 Facebook。為了取得最佳結果，自訂摘要的長度不可超過 155 個字元。</resource>
+  <resource name="PostImage_Description">此影像將做為部落格貼文清單檢視中的縮圖以及公開至開放式圖形的影像。</resource>
+  <resource name="PostImage_File">貼文影像</resource>
+  <resource name="PublicationDate">發佈日期</resource>
+  <resource name="Publish">貼文</resource>
+  <resource name="RemoveFile">移除檔案</resource>
+  <resource name="RequiredField">這是必填欄位。</resource>
+  <resource name="SaveDraft">儲存為草稿</resource>
+  <resource name="slug_description">您的貼文標題會用來建立 URL。如果您想要在 URL 中使用不同的關鍵字，請在下面輸入。</resource>
+  <resource name="slug_name">貼文 URL</resource>
+  <resource name="Summary_Automatic">自動摘要</resource>
+  <resource name="Summary_Custom">自訂摘要</resource>
+  <resource name="Summary_Name">貼文摘要</resource>
+  <resource name="Summary_None">無貼文摘要</resource>
+  <resource name="Title">標題</resource>
+  <resource name="UploadFile">上傳檔案</resource>
+  <resource name="UploadProgress">上傳中 ({0}%)...</resource>
+  <resource name="Write">撰寫</resource>
+</language></languageResources>
+		<files>
+			<file name="preview-attachment.vm">77u/IyMgTG9hZHMgQXR0YWNobWVudCBQcmV2aWV3DQoNCiNzZXQoJHVybCA9IGZhbHNlKQ0KI3NldCAoJHVybCA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCd3X3VybCcpKQ0KI2lmICghJHVybCkNCgkjc2V0ICgkZmlsZU5hbWUgPSBmYWxzZSkNCgkjc2V0ICgkZmlsZU5hbWUgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnd19maWxlbmFtZScpKQ0KCSNzZXQgKCR1cGxvYWRDb250ZXh0SWQgPSBmYWxzZSkNCgkjc2V0ICgkdXBsb2FkQ29udGV4dElkID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ3dfdXBsb2FkQ29udGV4dElkJykpDQoJI2lmICgkZmlsZU5hbWUgJiYgJHVwbG9hZENvbnRleHRJZCkNCgkJI3NldCAoJGZpbGUgPSBmYWxzZSkNCgkJI3NldCAoJGZpbGUgPSAkY29yZV92Ml91cGxvYWRlZEZpbGUuR2V0KCR1cGxvYWRDb250ZXh0SWQsICRmaWxlTmFtZSkpDQoJCSNpZiAoJGZpbGUpDQoJCSAgICNzZXQgKCR1cmwgPSAkZmlsZS5VcmwpDQoJCSNlbmQNCgkjZW5kDQojZW5kDQoNCiNpZiAoJHVybCkNCgkkIWNvcmVfdjJfdWkuR2V0UHJldmlld0h0bWwoJHVybCwgIiV7V2lkdGg9MzIwLCBIZWlnaHQ9MjQwLCBPdXRwdXRJc1BlcnNpc3RlZD0nRmFsc2UnfSIpDQojZW5k</file>
+			<file name="ui.js">KGZ1bmN0aW9uICgkKSB7DQoNCgkJaWYgKCEkLnRlbGxpZ2VudCkgJC50ZWxsaWdlbnQgPSB7fTsNCgkJaWYgKCEkLnRlbGxpZ2VudC5ldm9sdXRpb24pICQudGVsbGlnZW50LmV2b2x1dGlvbiA9IHt9Ow0KCQlpZiAoISQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzKSAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9IHt9Ow0KDQoJCXZhciBtb2RlbCA9IHsNCgkJCQlzdWJzY3JpYmU6IGZ1bmN0aW9uIChibG9nSWQsIHBvc3RJZCkgew0KCQkJCQkJcmV0dXJuICQudGVsbGlnZW50LmV2b2x1dGlvbi5wb3N0KHsNCgkJCQkJCQkJdXJsOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvYmxvZ3Mve0Jsb2dJZH0vcG9zdHMve0lkfS9zdWJzY3JpcHRpb25zLmpzb24nLA0KCQkJCQkJCQlkYXRhOiB7DQoJCQkJCQkJCQkJQmxvZ0lkOiBibG9nSWQsDQoJCQkJCQkJCQkJSWQ6IHBvc3RJZA0KCQkJCQkJCQl9DQoJCQkJCQl9KTsNCgkJCQl9LA0KCQkJCXVuc3Vic2NyaWJlOiBmdW5jdGlvbiAoYmxvZ0lkLCBwb3N0SWQpIHsNCgkJCQkJCXJldHVybiAkLnRlbGxpZ2VudC5ldm9sdXRpb24ucHV0KHsNCgkJCQkJCQkJdXJsOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvYmxvZ3Mve0Jsb2dJZH0vcG9zdHMve0lkfS9zdWJzY3JpcHRpb25zLmpzb24nLA0KCQkJCQkJCQlkYXRhOiB7DQoJCQkJCQkJCQkJQmxvZ0lkOiBibG9nSWQsDQoJCQkJCQkJCQkJSWQ6IHBvc3RJZCwNCgkJCQkJCQkJCQlJc1N1YnNjcmliZWQ6IGZhbHNlDQoJCQkJCQkJCX0NCgkJCQkJCX0pOw0KCQkJCX0sDQoJCQkJZGVsZXRlUG9zdDogZnVuY3Rpb24gKGJsb2dJZCwgcG9zdElkKSB7DQoJCQkJCQlyZXR1cm4gJC50ZWxsaWdlbnQuZXZvbHV0aW9uLmRlbCh7DQoJCQkJCQkJCXVybDogalF1ZXJ5LnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvYmxvZ3Mve0Jsb2dJZH0vcG9zdHMve0lkfS5qc29uJywNCgkJCQkJCQkJZGF0YTogew0KCQkJCQkJCQkJCUJsb2dJZDogYmxvZ0lkLA0KCQkJCQkJCQkJCUlkOiBwb3N0SWQNCgkJCQkJCQkJfQ0KCQkJCQkJfSk7DQoJCQkJfSwNCgkJCQljcmVhdE9yVXBkYXRlUG9zdDogZnVuY3Rpb24gKGJsb2dJZCwgcG9zdElkLCBzaG91bGRTdWJzY3JpYmUsIGlzU3Vic2NyaWJlZCwgZGF0YSkgew0KCQkJCQkJcmV0dXJuICQuRGVmZXJyZWQoZnVuY3Rpb24gKGQpIHsNCgkJCQkJCQkJLy8gdXBkYXRlIHBvc3QNCgkJCQkJCQkJaWYgKHBvc3RJZCA+IDApIHsNCgkJCQkJCQkJCQlkYXRhLlBvc3RJZCA9IHBvc3RJZDsNCgkJCQkJCQkJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ucHV0KHsNCgkJCQkJCQkJCQkJCXVybDogJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnNpdGUuZ2V0QmFzZVVybCgpICsgJ2FwaS5hc2h4L3YyL2Jsb2dzL3tCbG9nSWR9L3Bvc3RzL3tQb3N0SWR9Lmpzb24/SW5jbHVkZUZpZWxkcz1CbG9nUG9zdC5JZCxCbG9nUG9zdC5VcmwsQmxvZ1Bvc3QuSXNQb3N0RW5hYmxlZCcsDQoJCQkJCQkJCQkJCQlkYXRhOiBkYXRhDQoJCQkJCQkJCQkJCSxzdWNjZXNzOmZ1bmN0aW9uIChyZXNwb25zZSkgew0KCQkJCQkJCQkJCQkJCS8vIGNyZWF0ZSBvciB1cGRhdGUgc3Vic2NyaXB0aW9uDQoJCQkJCQkJCQkJCQkJaWYgKCFzaG91bGRTdWJzY3JpYmUgJiYgaXNTdWJzY3JpYmVkKSB7DQoJCQkJCQkJCQkJCQkJCQltb2RlbC51bnN1YnNjcmliZShibG9nSWQsIHBvc3RJZCkudGhlbihmdW5jdGlvbiAoKSB7DQoJCQkJCQkJCQkJCQkJCQkJCWQucmVzb2x2ZShyZXNwb25zZS5CbG9nUG9zdCk7DQoJCQkJCQkJCQkJCQkJCQl9KTsNCgkJCQkJCQkJCQkJCQl9IGVsc2UgaWYgKHNob3VsZFN1YnNjcmliZSAmJiAhaXNTdWJzY3JpYmVkKSB7DQoJCQkJCQkJCQkJCQkJCQltb2RlbC5zdWJzY3JpYmUoYmxvZ0lkLCBwb3N0SWQpLnRoZW4oZnVuY3Rpb24gKCkgew0KCQkJCQkJCQkJCQkJCQkJCQlkLnJlc29sdmUocmVzcG9uc2UuQmxvZ1Bvc3QpOw0KCQkJCQkJCQkJCQkJCQkJfSk7DQoJCQkJCQkJCQkJCQkJfSBlbHNlIHsNCgkJCQkJCQkJCQkJCQkJCWQucmVzb2x2ZShyZXNwb25zZS5CbG9nUG9zdCk7DQoJCQkJCQkJCQkJCQkJfQ0KCQkJCQkJCQkJCQl9DQoJCQkJCQkJCQkJCSwNCgkJCQkJCQkJCQkJZXJyb3I6IGZ1bmN0aW9uICh4aHIsIGRlc2MsIGV4KSB7DQoJCQkJCQkJCQkJCQkJZC5yZWplY3QoeGhyKTsNCgkJCQkJCQkJCQkJCQlpZih4aHIucmVzcG9uc2VKU09OLkVycm9ycyAhPSBudWxsICYmIHhoci5yZXNwb25zZUpTT04uRXJyb3JzLmxlbmd0aCA+IDApDQoJCQkJCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coeGhyLnJlc3BvbnNlSlNPTi5FcnJvcnNbMF0se3R5cGU6J2Vycm9yJ30pOw0KCQkJCQkJCWVsc2UNCgkJCQkJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyhkZXNjLHt0eXBlOidlcnJvcid9KTsNCgkJCQkJCQkJCQkJfQ0KCQkJCQkJCQkJCX0pOw0KCQkJCQkJCQkJCS8vIGNyZWF0ZSBwb3N0DQoJCQkJCQkJCX0gZWxzZSB7DQoJCQkJCQkJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KCQkJCQkJCQkJCQkJdXJsOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvYmxvZ3Mve0Jsb2dJZH0vcG9zdHMuanNvbj9JbmNsdWRlRmllbGRzPUJsb2dQb3N0LklkLEJsb2dQb3N0LlVybCxCbG9nUG9zdC5Jc1Bvc3RFbmFibGVkJywNCgkJCQkJCQkJCQkJCWRhdGE6IGRhdGENCgkJCQkJCQkJCQkJLHN1Y2Nlc3M6ZnVuY3Rpb24gKHJlc3BvbnNlKSB7DQoJCQkJCQkJCQkJCQkJLy8gY3JlYXRlIHN1YnNjcmlwdGlvbg0KCQkJCQkJCQkJCQkJCWlmIChzaG91bGRTdWJzY3JpYmUpIHsNCgkJCQkJCQkJCQkJCQkJCW1vZGVsLnN1YnNjcmliZShibG9nSWQsIHJlc3BvbnNlLkJsb2dQb3N0LklkKS50aGVuKGZ1bmN0aW9uICgpIHsNCgkJCQkJCQkJCQkJCQkJCQkJZC5yZXNvbHZlKHJlc3BvbnNlLkJsb2dQb3N0KTsNCgkJCQkJCQkJCQkJCQkJCX0pOw0KCQkJCQkJCQkJCQkJCX0gZWxzZSB7DQoJCQkJCQkJCQkJCQkJCQlkLnJlc29sdmUocmVzcG9uc2UuQmxvZ1Bvc3QpOw0KCQkJCQkJCQkJCQkJCX0NCgkJCQkJCQkJCQkJfQ0KCQkJCQkJCQkJCQksZXJyb3I6IGZ1bmN0aW9uICh4aHIsIGRlc2MsIGV4KSB7DQoJCQkJCQkJCQkJCQkJZC5yZWplY3QoeGhyKTsNCgkJCQkJCQkJCQkJCQlpZih4aHIucmVzcG9uc2VKU09OLkVycm9ycyAhPSBudWxsICYmIHhoci5yZXNwb25zZUpTT04uRXJyb3JzLmxlbmd0aCA+IDApDQoJCQkJCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coeGhyLnJlc3BvbnNlSlNPTi5FcnJvcnNbMF0se3R5cGU6J2Vycm9yJ30pOw0KCQkJCQkJCWVsc2UNCgkJCQkJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyhkZXNjLHt0eXBlOidlcnJvcid9KTsNCgkJCQkJCQkJCQkJfQ0KCQkJCQkJCQkJCX0pOw0KCQkJCQkJCQl9DQoJCQkJCQl9KS5wcm9taXNlKCk7DQoJCQkJfQ0KCQl9DQoNCgkJZnVuY3Rpb24gZGVsZXRlQ2xpY2soY29udGV4dCkgew0KCQkJCW1vZGVsLmRlbGV0ZVBvc3QoY29udGV4dC5ibG9nSWQsIGNvbnRleHQucG9zdElkKS50aGVuKGZ1bmN0aW9uICgpIHsNCgkJCQkJCXdpbmRvdy5sb2NhdGlvbiA9IGNvbnRleHQuYmxvZ1VybDsNCgkJCQl9KTsNCgkJfQ0KCQlmdW5jdGlvbiB0cmFja0NoYXJzKGNvbnRleHQsIGZpZWxkLCBtYXhMZW5ndGgpIHsNCgkJCQl2YXIgY3VyTGVuID0gZmllbGQudmFsKCkubGVuZ3RoOw0KCQkJCXZhciB0b2dvID0gbWF4TGVuZ3RoIC0gY3VyTGVuOw0KCQkJCXZhciBsYWJlbCA9IGZpZWxkLnBhcmVudCgpLm5leHQoJ3NwYW4uY2hhcmFjdGVyLWNvdW50Jyk7DQoNCgkJCQlpZiAodG9nbyA+PSAwKSB7DQoJCQkJCQlsYWJlbC5odG1sKGN1ckxlbiArICcgJyArIGNvbnRleHQuY2hhcmFjdGVyc1JlbWFpbik7DQoJCQkJCQlsYWJlbC5yZW1vdmVDbGFzcygnZmllbGQtaXRlbS12YWxpZGF0aW9uJyk7DQoJCQkJfQ0KCQkJCWVsc2Ugew0KCQkJCQkJbGFiZWwuaHRtbCgodG9nbyAqIC0xKSArICcgJyArIGNvbnRleHQuY2hhcmFjdGVyc092ZXIpOw0KCQkJCQkJbGFiZWwuYWRkQ2xhc3MoJ2ZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpOw0KCQkJCX0NCgkJfQ0KCQlmdW5jdGlvbiBzdWJtaXRDbGljayhjb250ZXh0LCBlbmFibGUpIHsNCg0KCQkJCS8vIGJ1aWxkIGRhdGENCgkJCQl2YXIgZGF0YSA9IHsNCgkJCQkJCVRpdGxlOiBjb250ZXh0LnRpdGxlLmV2b2x1dGlvbkNvbXBvc2VyKCd2YWwnKSwNCgkJCQkJCUJvZHk6IGNvbnRleHQuZ2V0Qm9keSgpLA0KCQkJCQkJQmxvZ0lkOiBjb250ZXh0LmJsb2dJZCwNCgkJCQkJCVNsdWc6IGNvbnRleHQuc2x1Zy52YWwoKSwNCgkJCQkJCVB1Ymxpc2hlZERhdGU6ICQudGVsbGlnZW50LmV2b2x1dGlvbi5mb3JtYXREYXRlKGNvbnRleHQucHVibGljYXRpb25EYXRlLmdsb3dEYXRlVGltZVNlbGVjdG9yKCd2YWwnKSksDQoJCQkJCQlJc0FwcHJvdmVkOiBlbmFibGUNCgkJCQl9Ow0KDQoJCQkJLy8gcGFyc2UgdGFncw0KCQkJCXZhciBpblRhZ3MgPSBjb250ZXh0LnRhZ3MudmFsKCkuc3BsaXQoL1ssO10vZyk7DQoJCQkJdmFyIHRhZ3MgPSBbXTsNCgkJCQlmb3IgKHZhciBpID0gMDsgaSA8IGluVGFncy5sZW5ndGg7IGkrKykgew0KCQkJCQkJdmFyIHRhZyA9ICQudHJpbShpblRhZ3NbaV0pOw0KCQkJCQkJaWYgKHRhZykNCgkJCQkJCQkJdGFnc1t0YWdzLmxlbmd0aF0gPSB0YWc7DQoJCQkJfQ0KCQkJCWRhdGEuVGFncyA9IHRhZ3Muam9pbignLCcpOw0KDQoJCQkJaWYgKGNvbnRleHQubWV0YVRpdGxlICYmIGNvbnRleHQubWV0YVRpdGxlLmxlbmd0aCA+IDApDQoJCQkJCQlkYXRhLk1ldGFUaXRsZSA9IGNvbnRleHQubWV0YVRpdGxlLnZhbCgpOw0KCQkJCWlmIChjb250ZXh0Lm1ldGFLZXl3b3JkcyAmJiBjb250ZXh0Lm1ldGFLZXl3b3Jkcy5sZW5ndGggPiAwKQ0KCQkJCQkJZGF0YS5NZXRhS2V5d29yZHMgPSBjb250ZXh0Lm1ldGFLZXl3b3Jkcy52YWwoKTsNCg0KDQoJCQkJLy8gcG9zdCBzdW1tYXJpZXMNCgkJCQlzd2l0Y2ggKGNvbnRleHQuc3VtbWFyeS52YWwoKSkgew0KCQkJCQkJY2FzZSAnbm9uZSc6DQoJCQkJCQkJCWRhdGEuVXNlUG9zdFN1bW1hcnkgPSBmYWxzZTsNCgkJCQkJCQkJZGF0YS5HZW5lcmF0ZVBvc3RTdW1tYXJ5ID0gZmFsc2U7DQoJCQkJCQkJCWRhdGEuRXhjZXJwdCA9ICcnOw0KCQkJCQkJCQlicmVhazsNCgkJCQkJCWNhc2UgJ2F1dG9tYXRpYyc6DQoJCQkJCQkJCWRhdGEuVXNlUG9zdFN1bW1hcnkgPSB0cnVlOw0KCQkJCQkJCQlkYXRhLkdlbmVyYXRlUG9zdFN1bW1hcnkgPSB0cnVlOw0KCQkJCQkJCQlkYXRhLkV4Y2VycHQgPSAnJzsNCgkJCQkJCQkJYnJlYWs7DQoJCQkJCQljYXNlICdjdXN0b20nOg0KCQkJCQkJCQlkYXRhLlVzZVBvc3RTdW1tYXJ5ID0gdHJ1ZTsNCgkJCQkJCQkJZGF0YS5HZW5lcmF0ZVBvc3RTdW1tYXJ5ID0gZmFsc2U7DQoJCQkJCQkJCWRhdGEuRXhjZXJwdCA9IGNvbnRleHQuY3VzdG9tU3VtbWFyeS52YWwoKTsNCgkJCQkJCQkJYnJlYWs7DQoJCQkJfQ0KDQoJCQkJZGF0YS5Jc0Nyb3NzUG9zdGluZ0VuYWJsZWQgPSAkKGNvbnRleHQuSXNDcm9zc1Bvc3RpbmdFbmFibGVkKS5pcygnOmNoZWNrZWQnKTsNCg0KCQkJCS8vIGF0dGFjaG1lbnQNCgkJCQlpZiAoY29udGV4dC5maWxlKSB7DQoJCQkJCQlpZiAoY29udGV4dC5maWxlLmlzTmV3KSB7DQoJCQkJCQkJCWlmIChjb250ZXh0LmZpbGUuaXNSZW1vdGUpIHsNCgkJCQkJCQkJCQlkYXRhLkZpbGVVcmwgPSBjb250ZXh0LmZpbGUudXJsOw0KCQkJCQkJCQl9IGVsc2Ugew0KCQkJCQkJCQkJCWRhdGEuRmlsZVVwbG9hZENvbnRleHQgPSBjb250ZXh0LnVwbG9hZENvbnRleHRJZDsNCgkJCQkJCQkJCQlkYXRhLkZpbGVOYW1lID0gY29udGV4dC5maWxlLmZpbGVOYW1lOw0KCQkJCQkJCQl9DQoJCQkJCQl9DQoJCQkJfSBlbHNlIHsNCgkJCQkJCWRhdGEuUmVtb3ZlQXR0YWNobWVudCA9ICdUcnVlJw0KCQkJCX0NCg0KCQkJCWlmIChjb250ZXh0LnBvc3RpbWFnZWZpbGUpIHsNCgkJCQkJCWlmIChjb250ZXh0LnBvc3RpbWFnZWZpbGUuaXNOZXcpIHsNCgkJCQkJCQkJaWYgKGNvbnRleHQucG9zdGltYWdlZmlsZS5pc1JlbW90ZSkgew0KCQkJCQkJCQkJCWRhdGEuUG9zdEltYWdlVXJsID0gY29udGV4dC5wb3N0aW1hZ2VmaWxlLnVybDsNCgkJCQkJCQkJfSBlbHNlIHsNCgkJCQkJCQkJCQlkYXRhLlBvc3RJbWFnZUZpbGVVcGxvYWRDb250ZXh0ID0gY29udGV4dC5wb3N0aW1hZ2V1cGxvYWRDb250ZXh0SWQ7DQoJCQkJCQkJCQkJZGF0YS5Qb3N0SW1hZ2VGaWxlTmFtZSA9IGNvbnRleHQucG9zdGltYWdlZmlsZS5maWxlTmFtZTsNCgkJCQkJCQkJfQ0KCQkJCQkJfQ0KCQkJCX0gZWxzZSB7DQoJCQkJCQlkYXRhLlJlbW92ZVBvc3RJbWFnZSA9ICdUcnVlJw0KCQkJCX0NCg0KCQkJCS8vIGNyZWF0ZSBvciB1cGRhdGUgcG9zdCwgcHJvY2VzcyBzdWJzY3JpcHRpb25zLCBhbmQgcmVkaXJlY3QgdG8gbmV3L3VwZGF0ZWQgcG9zdCB1cmwNCgkJCQltb2RlbC5jcmVhdE9yVXBkYXRlUG9zdChjb250ZXh0LmJsb2dJZCwgY29udGV4dC5wb3N0SWQsICQoY29udGV4dC5zdWJzY3JpYmUpLmlzKCc6Y2hlY2tlZCcpLCBjb250ZXh0LnN1YnNjcmliZWQsIGRhdGEpDQoJCQkudGhlbihmdW5jdGlvbiAoYmxvZ1Bvc3QpIHsNCgkJCQkJaWYgKCFlbmFibGUpIHsNCgkJCQkJCQljb250ZXh0LnBvc3RJZCA9IGJsb2dQb3N0LklkOw0KCQkJCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coY29udGV4dC5kcmFmdFNhdmVkVGV4dCwgeyB0eXBlOiAnc3VjY2VzcycgfSk7DQoJCQkJCQkJJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LnNhdmUucGFyZW50KCkpLmNzcygidmlzaWJpbGl0eSIsICJoaWRkZW4iKTsNCgkJCQkJCQljb250ZXh0LnNhdmUucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCQkJCQkJY29udGV4dC5zYXZlRHJhZnQucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCQkJCQkJY29udGV4dC5pc1NhdmluZyA9IGZhbHNlOw0KCQkJCQl9IGVsc2Ugew0KCQkJCQkJCXdpbmRvdy5sb2NhdGlvbiA9IGJsb2dQb3N0LklzUG9zdEVuYWJsZWQgPyBibG9nUG9zdC5VcmwgOiBjb250ZXh0LmJsb2dVcmw7DQoJCQkJCX0NCgkJCX0sIGZ1bmN0aW9uICgpIHsNCgkJCQkJY29udGV4dC5pc1NhdmluZyA9IGZhbHNlOw0KCQkJCQkkKCcucHJvY2Vzc2luZycsIGNvbnRleHQuc2F2ZS5wYXJlbnQoKSkuY3NzKCJ2aXNpYmlsaXR5IiwgImhpZGRlbiIpOw0KCQkJCQljb250ZXh0LnNhdmUucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCQkJCWNvbnRleHQuc2F2ZURyYWZ0LnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCQkJfSk7DQoJCX0NCg0KCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cy5ibG9nQ3JlYXRlRWRpdFBvc3QgPSB7DQoJCQkJcmVnaXN0ZXI6IGZ1bmN0aW9uIChjb250ZXh0KSB7DQoJCQkJCQkvLyBlbmFibGUgYmxvZyB0YWdzDQoJCQkJCQlpZiAoY29udGV4dC50YWdzKSB7DQoJCQkJCQkJCWNvbnRleHQudGFncy5ldm9sdXRpb25UYWdUZXh0Qm94KHsgYXBwbGljYXRpb25JZDogY29udGV4dC5hcHBsaWNhdGlvbklkIH0pOw0KCQkJCQkJfQ0KDQoJCQkJCQkvLyBzZXQgdXAgaGFzaHRhZ3MgaW4gdGhlIHRpdGxlDQoJCQkJCQljb250ZXh0LnRpdGxlLmV2b2x1dGlvbkNvbXBvc2VyKHsNCgkJCQkJCQkJcGx1Z2luczogWydoYXNodGFncyddLA0KCQkJCQkJCQljb250ZW50VHlwZUlkOiBjb250ZXh0LmJsb2dQb3N0Q29udGVudFR5cGVJZA0KCQkJCQkJfSkuZXZvbHV0aW9uQ29tcG9zZXIoJ29ua2V5ZG93bicsIGZ1bmN0aW9uIChlKSB7DQoJCQkJCQkJCWlmIChlLndoaWNoID09PSAxMykgew0KCQkJCQkJCQkJCXJldHVybiBmYWxzZTsNCgkJCQkJCQkJfSBlbHNlIHsNCgkJCQkJCQkJCQlyZXR1cm4gdHJ1ZTsNCgkJCQkJCQkJfQ0KCQkJCQkJfSk7DQoNCgkJCQkJCXRyYWNrQ2hhcnMoY29udGV4dCwgY29udGV4dC5tZXRhVGl0bGUsIDU1KTsNCgkJCQkJCWNvbnRleHQubWV0YVRpdGxlLm9uKCdrZXl1cCcsIGZ1bmN0aW9uICgpIHsNCgkJCQkJCQkJdHJhY2tDaGFycyhjb250ZXh0LCAkKHRoaXMpLCA1NSk7DQoJCQkJCQl9KTsNCg0KCQkJCQkJLy8gc2F2aW5nIHBvc3QNCgkJCQkJCWNvbnRleHQuc2F2ZURyYWZ0LmNsaWNrKGZ1bmN0aW9uICgpIHsNCgkJCQkJCQkJY29udGV4dC5zYXZlLnRyaWdnZXIoeyB0eXBlOiAiY2xpY2siLCBpc0RyYWZ0OiB0cnVlIH0pOw0KCQkJCQkJCQlyZXR1cm4gZmFsc2U7DQoJCQkJCQl9KTsNCg0KCQkJCQkJLy8gbmF2aWdhdGlvbiBjb25maXJtYXRpb24NCgkJCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5uYXZpZ2F0aW9uQ29uZmlybWF0aW9uLmVuYWJsZSgpOw0KCQkJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5hdmlnYXRpb25Db25maXJtYXRpb24ucmVnaXN0ZXIoY29udGV4dC5zYXZlLmFkZChjb250ZXh0LmRlbGV0ZUxpbmspLmFkZChjb250ZXh0LnNhdmVEcmFmdCkpOw0KDQoJCQkJCQkvLyB2YWxpZGF0aW9uIHN1cHBvcnQNCg0KCQkJCQkJdmFyIHRhYmJlZFBhbmVzID0gJChjb250ZXh0LnRhYnNTZWxlY3Rvcik7DQoJCQkJCQljb250ZXh0LnNhdmUuZXZvbHV0aW9uVmFsaWRhdGlvbih7DQoJCQkJCQkJCXZhbGlkYXRlT25Mb2FkOiBjb250ZXh0LnBhZ2VJZCA8PSAwID8gZmFsc2UgOiBudWxsLA0KCQkJCQkJCQlvblZhbGlkYXRlZDogZnVuY3Rpb24gKGlzVmFsaWQsIGJ1dHRvbkNsaWNrZWQsIGMpIHsNCgkJCQkJCQkJCQlpZiAoaXNWYWxpZCAmJiAhY29udGV4dC5pc1NhdmluZykgew0KCQkJCQkJCQkJCQkJY29udGV4dC5zYXZlLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCQkJCQkJCQkJCQkJY29udGV4dC5zYXZlRHJhZnQucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCQkJCQkJCQkJfSBlbHNlIHsNCgkJCQkJCQkJCQkJCWNvbnRleHQuc2F2ZS5hZGRDbGFzcygnZGlzYWJsZWQnKTsNCgkJCQkJCQkJCQkJCWNvbnRleHQuc2F2ZURyYWZ0LmFkZENsYXNzKCdkaXNhYmxlZCcpOw0KDQoJCQkJCQkJCQkJCQlpZiAoYykgew0KCQkJCQkJCQkJCQkJCQl2YXIgdGFiYmVkUGFuZSA9IHRhYmJlZFBhbmVzLmdsb3dUYWJiZWRQYW5lcygnZ2V0QnlJbmRleCcsIGMudGFiKTsNCgkJCQkJCQkJCQkJCQkJaWYgKHRhYmJlZFBhbmUpDQoJCQkJCQkJCQkJCQkJCQkJdGFiYmVkUGFuZXMuZ2xvd1RhYmJlZFBhbmVzKCdzZWxlY3RlZCcsIHRhYmJlZFBhbmUpOw0KCQkJCQkJCQkJCQkJfQ0KCQkJCQkJCQkJCX0NCgkJCQkJCQkJfSwNCgkJCQkJCQkJb25TdWNjZXNzZnVsQ2xpY2s6IGZ1bmN0aW9uIChlKSB7DQoJCQkJCQkJCQkJaWYgKCFjb250ZXh0LmlzU2F2aW5nKSB7DQoJCQkJCQkJCQkJCQljb250ZXh0LmlzU2F2aW5nID0gdHJ1ZTsNCgkJCQkJCQkJCQkJCSQoJy5wcm9jZXNzaW5nJywgY29udGV4dC5zYXZlLnBhcmVudCgpKS5jc3MoInZpc2liaWxpdHkiLCAidmlzaWJsZSIpOw0KCQkJCQkJCQkJCQkJY29udGV4dC5zYXZlLmFkZENsYXNzKCdkaXNhYmxlZCcpOw0KCQkJCQkJCQkJCQkJY29udGV4dC5zYXZlRHJhZnQuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCQkJCQkJCQkJCQlzdWJtaXRDbGljayhjb250ZXh0LCAhZS5pc0RyYWZ0KTsNCgkJCQkJCQkJCQl9DQoJCQkJCQkJCX0NCgkJCQkJCX0pOw0KDQoJCQkJCQljb250ZXh0LnNhdmUuZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkRmllbGQnLCBjb250ZXh0LnRpdGxlU2VsZWN0b3IsIHsNCgkJCQkJCQkJcmVxdWlyZWQ6IHRydWUsDQoJCQkJCQkJCW1lc3NhZ2VzOiB7DQoJCQkJCQkJCQkJcmVxdWlyZWQ6IGNvbnRleHQudGl0bGVSZXF1aXJlZFRleHQNCgkJCQkJCQkJfQ0KCQkJCQkJfSwgJyMnICsgY29udGV4dC53cmFwcGVySWQgKyAnIC5maWVsZC1pdGVtLnBvc3QtbmFtZSAuZmllbGQtaXRlbS12YWxpZGF0aW9uJywgeyB0YWI6IDAgfSk7DQoNCgkJCQkJCWNvbnRleHQuc2F2ZS5ldm9sdXRpb25WYWxpZGF0aW9uKCd2YWxpZGF0ZScpOw0KDQoJCQkJCQl2YXIgZiA9IGNvbnRleHQuc2F2ZS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRDdXN0b21WYWxpZGF0aW9uJywgJ3BhZ2V0ZXh0JywNCgkJCQlmdW5jdGlvbiAoKSB7IHJldHVybiBjb250ZXh0LmdldEJvZHkoKS5sZW5ndGggPiAwOyB9LA0KCQkJCWNvbnRleHQuYm9keVJlcXVpcmVkVGV4dCwNCgkJCQknIycgKyBjb250ZXh0LndyYXBwZXJJZCArICcgLmZpZWxkLWl0ZW0ucG9zdC1ib2R5IC5maWVsZC1pdGVtLXZhbGlkYXRpb24nLA0KCQkJCXsgdGFiOiAwIH0pOw0KDQoJCQkJCQljb250ZXh0LmF0dGFjaEJvZHlDaGFuZ2VIYW5kbGVyKGYpOw0KDQoJCQkJCQkvLyBkZWxldGUgc3VwcG9ydA0KCQkJCQkJJChjb250ZXh0LmRlbGV0ZUxpbmspLm9uKCdjbGljaycsIGZ1bmN0aW9uICgpIHsNCgkJCQkJCQkJaWYgKGNvbmZpcm0oY29udGV4dC5kZWxldGVDb25maXJtYXRpb25UZXh0KSkgew0KCQkJCQkJCQkJCWRlbGV0ZUNsaWNrKGNvbnRleHQpOw0KCQkJCQkJCQl9DQoJCQkJCQl9KTsNCg0KCQkJCQkJLy8gc3VtbWFyeSB0eXBlIHNlbGVjdGlvbg0KCQkJCQkJJChjb250ZXh0LnN1bW1hcnkpLm9uKCdjaGFuZ2UnLCBmdW5jdGlvbiAoKSB7DQoJCQkJCQkJCWlmICgkKHRoaXMpLnZhbCgpID09ICdjdXN0b20nKSB7DQoJCQkJCQkJCQkJJChjb250ZXh0LmN1c3RvbVN1bW1hcnlGaWVsZHMpLnNob3coKTsNCgkJCQkJCQkJfSBlbHNlIHsNCgkJCQkJCQkJCQkkKGNvbnRleHQuY3VzdG9tU3VtbWFyeUZpZWxkcykuaGlkZSgpOw0KCQkJCQkJCQl9DQoJCQkJCQl9KTsNCg0KCQkJCQkJLy8gcHVibGljYXRpb24gZGF0ZSBzZXR1cA0KCQkJCQkJY29udGV4dC5wdWJsaWNhdGlvbkRhdGUuZ2xvd0RhdGVUaW1lU2VsZWN0b3IoDQoJCQkJCQkJCSQuZXh0ZW5kKA0KCQkJCQkJCQkJCXt9LA0KCQkJCQkJCQkJCSQuZm4uZ2xvd0RhdGVUaW1lU2VsZWN0b3IuZGF0ZVRpbWVEZWZhdWx0cywgew0KCQkJCQkJCQkJCQkJc2hvd1BvcHVwOiB0cnVlLA0KCQkJCQkJCQkJCQkJYWxsb3dCbGFua3ZhbHVlOiBmYWxzZSwNCgkJCQkJCQkJCQl9KQ0KCQkJCQkJKTsNCg0KCQkJCQkJLy8gYXR0YWNobWVudCB1cGxvYWRpbmcNCgkJCQkJCWNvbnRleHQuYXR0YWNobWVudCA9ICQoJyMnICsgY29udGV4dC5hdHRhY2htZW50SWQpOw0KCQkJCQkJY29udGV4dC5hdHRhY2htZW50VXBsb2FkID0gY29udGV4dC5hdHRhY2htZW50LmZpbmQoJ2EudXBsb2FkJyk7DQoJCQkJCQljb250ZXh0LmF0dGFjaG1lbnRSZW1vdmUgPSBjb250ZXh0LmF0dGFjaG1lbnQuZmluZCgnYS5yZW1vdmUnKTsNCgkJCQkJCWNvbnRleHQuYXR0YWNobWVudE5hbWUgPSBjb250ZXh0LmF0dGFjaG1lbnQuZmluZCgnaW5wdXQnKTsNCgkJCQkJCWNvbnRleHQuYXR0YWNobWVudFByZXZpZXcgPSBjb250ZXh0LmF0dGFjaG1lbnQuZmluZCgnLnByZXZpZXcnKTsNCg0KCQkJCQkJZnVuY3Rpb24gbG9hZFByZXZpZXcoKSB7DQoJCQkJCQkJCWlmIChjb250ZXh0LmZpbGUgJiYgKGNvbnRleHQuZmlsZS5maWxlTmFtZSB8fCBjb250ZXh0LmZpbGUudXJsKSkgew0KCQkJCQkJCQkJCWNsZWFyVGltZW91dChjb250ZXh0LmF0dGFjaG1lbnRQcmV2aWV3VGltZW91dCk7DQoJCQkJCQkJCQkJY29udGV4dC5hdHRhY2htZW50UHJldmlld1RpbWVvdXQgPSBzZXRUaW1lb3V0KGZ1bmN0aW9uICgpIHsNCgkJCQkJCQkJCQkJCXZhciBkYXRhID0gew0KCQkJCQkJCQkJCQkJCQl3X3VwbG9hZENvbnRleHRJZDogY29udGV4dC51cGxvYWRDb250ZXh0SWQNCgkJCQkJCQkJCQkJCX07DQoJCQkJCQkJCQkJCQlpZiAoY29udGV4dC5maWxlLnVybCkgew0KCQkJCQkJCQkJCQkJCQlkYXRhLndfdXJsID0gY29udGV4dC5maWxlLnVybDsNCgkJCQkJCQkJCQkJCX0NCgkJCQkJCQkJCQkJCWlmIChjb250ZXh0LmZpbGUuZmlsZU5hbWUpIHsNCgkJCQkJCQkJCQkJCQkJZGF0YS53X2ZpbGVuYW1lID0gY29udGV4dC5maWxlLmZpbGVOYW1lOw0KCQkJCQkJCQkJCQkJfQ0KCQkJCQkJCQkJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KCQkJCQkJCQkJCQkJCQl1cmw6IGNvbnRleHQucHJldmlld0F0dGFjaG1lbnRVcmwsDQoJCQkJCQkJCQkJCQkJCWRhdGE6IGRhdGEsDQoJCQkJCQkJCQkJCQkJCXN1Y2Nlc3M6IGZ1bmN0aW9uIChyZXNwb25zZSkgew0KCQkJCQkJCQkJCQkJCQkJCXJlc3BvbnNlID0gJC50cmltKHJlc3BvbnNlKTsNCgkJCQkJCQkJCQkJCQkJCQlpZiAocmVzcG9uc2UgJiYgcmVzcG9uc2UubGVuZ3RoID4gMCAmJiByZXNwb25zZSAhPT0gY29udGV4dC5hdHRhY2htZW50UHJldmlld0NvbnRlbnQpIHsNCgkJCQkJCQkJCQkJCQkJCQkJCWNvbnRleHQuYXR0YWNobWVudFByZXZpZXdDb250ZW50ID0gcmVzcG9uc2U7DQoJCQkJCQkJCQkJCQkJCQkJCQljb250ZXh0LmF0dGFjaG1lbnRQcmV2aWV3Lmh0bWwoY29udGV4dC5hdHRhY2htZW50UHJldmlld0NvbnRlbnQpLnJlbW92ZUNsYXNzKCdlbXB0eScpOw0KCQkJCQkJCQkJCQkJCQkJCX0NCgkJCQkJCQkJCQkJCQkJfQ0KCQkJCQkJCQkJCQkJfSk7DQoJCQkJCQkJCQkJfSwgMTUwKTsNCgkJCQkJCQkJfSBlbHNlIHsNCgkJCQkJCQkJCQljb250ZXh0LmF0dGFjaG1lbnRQcmV2aWV3Q29udGVudCA9ICcnOw0KCQkJCQkJCQkJCWNvbnRleHQuYXR0YWNobWVudFByZXZpZXcuaHRtbCgnJykuYWRkQ2xhc3MoJ2VtcHR5Jyk7DQoJCQkJCQkJCX0NCgkJCQkJCX0NCg0KDQoJCQkJCQljb250ZXh0LmF0dGFjaG1lbnRSZW1vdmUuaGlkZSgpOw0KCQkJCQkJaWYgKGNvbnRleHQuZmlsZSAmJiBjb250ZXh0LmZpbGUudXJsICYmIGNvbnRleHQuZmlsZS5pc1JlbW90ZSkgew0KCQkJCQkJCQljb250ZXh0LmF0dGFjaG1lbnRSZW1vdmUuaGlkZSgpOw0KCQkJCQkJfSBlbHNlIGlmIChjb250ZXh0LmZpbGUgJiYgY29udGV4dC5maWxlLmZpbGVOYW1lICYmICFjb250ZXh0LmZpbGUuaXNSZW1vdGUpIHsNCgkJCQkJCQkJY29udGV4dC5hdHRhY2htZW50TmFtZS5hdHRyKCdyZWFkb25seScsICdyZWFkb25seScpOw0KCQkJCQkJCQljb250ZXh0LmF0dGFjaG1lbnRVcGxvYWQuaHRtbChjb250ZXh0LmF0dGFjaG1lbnRDaGFuZ2VUZXh0KS5yZW1vdmVDbGFzcygnYWRkJykuYWRkQ2xhc3MoJ2NoYW5nZScpOw0KCQkJCQkJCQljb250ZXh0LmF0dGFjaG1lbnRSZW1vdmUuc2hvdygpOw0KCQkJCQkJfSBlbHNlIGlmIChjb250ZXh0LmF0dGFjaG1lbnQuZGF0YSgnbGluaycpICE9ICdUcnVlJykgew0KCQkJCQkJCQljb250ZXh0LmF0dGFjaG1lbnROYW1lLmF0dHIoJ3JlYWRvbmx5JywgJ3JlYWRvbmx5Jyk7DQoJCQkJCQl9DQoNCgkJCQkJCWxvYWRQcmV2aWV3KCk7DQoJCQkJCQljb250ZXh0LmF0dGFjaG1lbnROYW1lLm9uKCdrZXl1cCBjaGFuZ2UnLCBmdW5jdGlvbiAoKSB7DQoJCQkJCQkJCWlmICghY29udGV4dC5hdHRhY2htZW50TmFtZS5hdHRyKCdyZWFkb25seScpKSB7DQoJCQkJCQkJCQkJY29udGV4dC5maWxlID0gew0KCQkJCQkJCQkJCQkJdXJsOiAkKHRoaXMpLnZhbCgpLA0KCQkJCQkJCQkJCQkJaXNSZW1vdGU6IHRydWUsDQoJCQkJCQkJCQkJCQlpc05ldzogdHJ1ZQ0KCQkJCQkJCQkJCX0NCgkJCQkJCQkJCQlsb2FkUHJldmlldygpOw0KCQkJCQkJCQl9DQoJCQkJCQl9KTsNCg0KCQkJCQkJY29udGV4dC5hdHRhY2htZW50UmVtb3ZlLmNsaWNrKGZ1bmN0aW9uICgpIHsNCgkJCQkJCQkJY29udGV4dC5maWxlID0gbnVsbDsNCgkJCQkJCQkJY29udGV4dC5hdHRhY2htZW50TmFtZS52YWwoJycpOw0KCQkJCQkJCQljb250ZXh0LmF0dGFjaG1lbnRVcGxvYWQuaHRtbChjb250ZXh0LmF0dGFjaG1lbnRBZGRUZXh0KS5yZW1vdmVDbGFzcygnY2hhbmdlJykuYWRkQ2xhc3MoJ2FkZCcpDQoJCQkJCQkJCWlmIChjb250ZXh0LmF0dGFjaG1lbnQuZGF0YSgnbGluaycpID09ICdUcnVlJykgew0KCQkJCQkJCQkJCWNvbnRleHQuYXR0YWNobWVudE5hbWUucmVtb3ZlQXR0cigncmVhZG9ubHknKTsNCgkJCQkJCQkJfQ0KCQkJCQkJCQljb250ZXh0LmF0dGFjaG1lbnRSZW1vdmUuaGlkZSgpOw0KCQkJCQkJCQlsb2FkUHJldmlldygpOw0KCQkJCQkJCQlyZXR1cm4gZmFsc2U7DQoJCQkJCQl9KTsNCg0KCQkJCQkJY29udGV4dC5hdHRhY2htZW50VXBsb2FkLmdsb3dVcGxvYWQoew0KCQkJCQkJCQlmaWxlRmlsdGVyOiBudWxsLA0KCQkJCQkJCQl1cGxvYWRVcmw6IGNvbnRleHQudXBsb2FkRmlsZVVybCwNCgkJCQkJCQkJcmVuZGVyTW9kZTogJ2xpbmsnDQoJCQkJCQl9KQ0KCQkJLmJpbmQoJ2dsb3dVcGxvYWRCZWd1bicsIGZ1bmN0aW9uIChlKSB7DQoJCQkJCWNvbnRleHQudXBsb2FkaW5nID0gdHJ1ZTsNCgkJCQkJY29udGV4dC5hdHRhY2htZW50VXBsb2FkLmh0bWwoY29udGV4dC5hdHRhY2htZW50UHJvZ3Jlc3NUZXh0LnJlcGxhY2UoJ3swfScsIDApKTsNCgkJCX0pDQoJCQkJCS5iaW5kKCdnbG93VXBsb2FkQ29tcGxldGUnLCBmdW5jdGlvbiAoZSwgZmlsZSkgew0KCQkJCQkJCWlmIChmaWxlICYmIGZpbGUubmFtZS5sZW5ndGggPiAwKSB7DQoJCQkJCQkJCQljb250ZXh0LmZpbGUgPSB7DQoJCQkJCQkJCQkJCWZpbGVOYW1lOiBmaWxlLm5hbWUsDQoJCQkJCQkJCQkJCWlzUmVtb3RlOiBmYWxzZSwNCgkJCQkJCQkJCQkJaXNOZXc6IHRydWUNCgkJCQkJCQkJCX0NCgkJCQkJCQkJCWNvbnRleHQuYXR0YWNobWVudE5hbWUudmFsKGNvbnRleHQuZmlsZS5maWxlTmFtZSkuYXR0cigncmVhZG9ubHknLCAncmVhZG9ubHknKTsNCgkJCQkJCQkJCWxvYWRQcmV2aWV3KCk7DQoJCQkJCQkJCQljb250ZXh0LnVwbG9hZGluZyA9IGZhbHNlOw0KCQkJCQkJCQkJY29udGV4dC5hdHRhY2htZW50VXBsb2FkLmh0bWwoY29udGV4dC5hdHRhY2htZW50Q2hhbmdlVGV4dCkucmVtb3ZlQ2xhc3MoJ2FkZCcpLmFkZENsYXNzKCdjaGFuZ2UnKTsNCgkJCQkJCQkJCWNvbnRleHQuYXR0YWNobWVudFJlbW92ZS5zaG93KCk7DQoJCQkJCQkJfQ0KCQkJCQl9KQ0KCQkJCQkuYmluZCgnZ2xvd1VwbG9hZEZpbGVQcm9ncmVzcycsIGZ1bmN0aW9uIChlLCBkZXRhaWxzKSB7DQoJCQkJCQkJY29udGV4dC5hdHRhY2htZW50VXBsb2FkLmh0bWwoY29udGV4dC5hdHRhY2htZW50UHJvZ3Jlc3NUZXh0LnJlcGxhY2UoJ3swfScsIGRldGFpbHMucGVyY2VudCkpOw0KCQkJCQl9KQ0KCQkJCQkuYmluZCgnZ2xvd1VwbG9hZEVycm9yJywgZnVuY3Rpb24oZSkgew0KCQkJCQkJbG9hZFByZXZpZXcoKTsNCgkJCQkJCWNvbnRleHQudXBsb2FkaW5nID0gZmFsc2U7DQoJCQkJCQljb250ZXh0LmF0dGFjaG1lbnRVcGxvYWQuaHRtbChjb250ZXh0LmF0dGFjaG1lbnRDaGFuZ2VUZXh0KS5yZW1vdmVDbGFzcygnY2hhbmdlJykuYWRkQ2xhc3MoJ2FkZCcpOw0KCQkJCQl9KTsNCg0KCQkJCQkJLy8gcG9zdGltYWdlIHVwbG9hZGluZw0KCQkJCQkJY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50ID0gJCgnIycgKyBjb250ZXh0LnBvc3RpbWFnZUlkKTsNCgkJCQkJCWNvbnRleHQucG9zdGltYWdlYXR0YWNobWVudFVwbG9hZCA9IGNvbnRleHQucG9zdGltYWdlYXR0YWNobWVudC5maW5kKCdhLnVwbG9hZCcpOw0KCQkJCQkJY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50UmVtb3ZlID0gY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50LmZpbmQoJ2EucmVtb3ZlJyk7DQoJCQkJCQljb250ZXh0LnBvc3RpbWFnZWF0dGFjaG1lbnROYW1lID0gY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50LmZpbmQoJ2lucHV0Jyk7DQoJCQkJCQljb250ZXh0LnBvc3RpbWFnZWF0dGFjaG1lbnRQcmV2aWV3ID0gY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50LmZpbmQoJy5wcmV2aWV3Jyk7DQoNCgkJCQkJCWZ1bmN0aW9uIGxvYWRQb3N0SW1hZ2VQcmV2aWV3KCkgew0KCQkJCQkJCQlpZiAoY29udGV4dC5wb3N0aW1hZ2VmaWxlICYmIChjb250ZXh0LnBvc3RpbWFnZWZpbGUuZmlsZU5hbWUgfHwgY29udGV4dC5wb3N0aW1hZ2VmaWxlLnVybCkpIHsNCgkJCQkJCQkJCQljbGVhclRpbWVvdXQoY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50UHJldmlld1RpbWVvdXQpOw0KCQkJCQkJCQkJCWNvbnRleHQucG9zdGltYWdlYXR0YWNobWVudFByZXZpZXdUaW1lb3V0ID0gc2V0VGltZW91dChmdW5jdGlvbiAoKSB7DQoJCQkJCQkJCQkJCQl2YXIgZGF0YSA9IHsNCgkJCQkJCQkJCQkJCQkJd191cGxvYWRDb250ZXh0SWQ6IGNvbnRleHQucG9zdGltYWdldXBsb2FkQ29udGV4dElkDQoJCQkJCQkJCQkJCQl9Ow0KCQkJCQkJCQkJCQkJaWYgKGNvbnRleHQucG9zdGltYWdlZmlsZS51cmwpIHsNCgkJCQkJCQkJCQkJCQkJZGF0YS53X3VybCA9IGNvbnRleHQucG9zdGltYWdlZmlsZS51cmw7DQoJCQkJCQkJCQkJCQl9DQoJCQkJCQkJCQkJCQlpZiAoY29udGV4dC5wb3N0aW1hZ2VmaWxlLmZpbGVOYW1lKSB7DQoJCQkJCQkJCQkJCQkJCWRhdGEud19maWxlbmFtZSA9IGNvbnRleHQucG9zdGltYWdlZmlsZS5maWxlTmFtZTsNCgkJCQkJCQkJCQkJCX0NCg0KCQkJCQkJCQkJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KCQkJCQkJCQkJCQkJCQl1cmw6IGNvbnRleHQucHJldmlld0F0dGFjaG1lbnRVcmwsDQoJCQkJCQkJCQkJCQkJCWRhdGE6IGRhdGEsDQoJCQkJCQkJCQkJCQkJCXN1Y2Nlc3M6IGZ1bmN0aW9uIChyZXNwb25zZSkgew0KCQkJCQkJCQkJCQkJCQkJCXJlc3BvbnNlID0gJC50cmltKHJlc3BvbnNlKTsNCgkJCQkJCQkJCQkJCQkJCQlpZiAocmVzcG9uc2UgJiYgcmVzcG9uc2UubGVuZ3RoID4gMCAmJiByZXNwb25zZSAhPT0gY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50UHJldmlld0NvbnRlbnQpIHsNCgkJCQkJCQkJCQkJCQkJCQkJCWNvbnRleHQucG9zdGltYWdlYXR0YWNobWVudFByZXZpZXdDb250ZW50ID0gcmVzcG9uc2U7DQoJCQkJCQkJCQkJCQkJCQkJCQljb250ZXh0LnBvc3RpbWFnZWF0dGFjaG1lbnRQcmV2aWV3Lmh0bWwoY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50UHJldmlld0NvbnRlbnQpLnJlbW92ZUNsYXNzKCdlbXB0eScpOw0KCQkJCQkJCQkJCQkJCQkJCX0NCgkJCQkJCQkJCQkJCQkJfQ0KCQkJCQkJCQkJCQkJfSk7DQoJCQkJCQkJCQkJfSwgMTUwKTsNCgkJCQkJCQkJfSBlbHNlIHsNCgkJCQkJCQkJCQljb250ZXh0LnBvc3RpbWFnZWF0dGFjaG1lbnRQcmV2aWV3Q29udGVudCA9ICcnOw0KCQkJCQkJCQkJCWNvbnRleHQucG9zdGltYWdlYXR0YWNobWVudFByZXZpZXcuaHRtbCgnJykuYWRkQ2xhc3MoJ2VtcHR5Jyk7DQoJCQkJCQkJCX0NCgkJCQkJCX0NCg0KCQkJCQkJY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50UmVtb3ZlLmhpZGUoKTsNCgkJCQkJCWlmIChjb250ZXh0LnBvc3RpbWFnZWZpbGUgJiYgY29udGV4dC5wb3N0aW1hZ2VmaWxlLnVybCAmJiBjb250ZXh0LnBvc3RpbWFnZWZpbGUuaXNSZW1vdGUpIHsNCgkJCQkJCQkJY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50UmVtb3ZlLmhpZGUoKTsNCgkJCQkJCX0gZWxzZSBpZiAoY29udGV4dC5wb3N0aW1hZ2VmaWxlICYmIGNvbnRleHQucG9zdGltYWdlZmlsZS5maWxlTmFtZSAmJiAhY29udGV4dC5wb3N0aW1hZ2VmaWxlLmlzUmVtb3RlKSB7DQoJCQkJCQkJCWNvbnRleHQucG9zdGltYWdlYXR0YWNobWVudE5hbWUuYXR0cigncmVhZG9ubHknLCAncmVhZG9ubHknKTsNCgkJCQkJCQkJY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50VXBsb2FkLmh0bWwoY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50Q2hhbmdlVGV4dCkucmVtb3ZlQ2xhc3MoJ2FkZCcpLmFkZENsYXNzKCdjaGFuZ2UnKTsNCgkJCQkJCQkJY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50UmVtb3ZlLnNob3coKTsNCgkJCQkJCX0gZWxzZSBpZiAoY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50LmRhdGEoJ2xpbmsnKSAhPSAnVHJ1ZScpIHsNCgkJCQkJCQkJY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50TmFtZS5hdHRyKCdyZWFkb25seScsICdyZWFkb25seScpOw0KCQkJCQkJfQ0KDQoJCQkJCQlsb2FkUG9zdEltYWdlUHJldmlldygpOw0KCQkJCQkJLy8gY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50TmFtZS5vbigna2V5dXAgY2hhbmdlJywgZnVuY3Rpb24gKCkgew0KCQkJCQkJLy8gICAgIGlmICghY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50TmFtZS5hdHRyKCdyZWFkb25seScpKSB7DQoJCQkJCQkvLyAgICAgICAgIGNvbnRleHQucG9zdGltYWdlZmlsZSA9IHsNCgkJCQkJCS8vICAgICAgICAgICAgIHVybDogJCh0aGlzKS52YWwoKSwNCgkJCQkJCS8vICAgICAgICAgICAgIGlzUmVtb3RlOiB0cnVlLA0KCQkJCQkJLy8gICAgICAgICAgICAgaXNOZXc6IHRydWUNCgkJCQkJCS8vICAgICAgICAgfQ0KCQkJCQkJLy8gICAgICAgICBsb2FkUG9zdEltYWdlUHJldmlldygpOw0KCQkJCQkJLy8gICAgIH0NCgkJCQkJCS8vIH0pOw0KDQoJCQkJCQljb250ZXh0LnBvc3RpbWFnZWF0dGFjaG1lbnRSZW1vdmUuY2xpY2soZnVuY3Rpb24gKCkgew0KCQkJCQkJCQljb250ZXh0LnBvc3RpbWFnZWZpbGUgPSBudWxsOw0KCQkJCQkJCQljb250ZXh0LnBvc3RpbWFnZWF0dGFjaG1lbnROYW1lLnZhbCgnJyk7DQoJCQkJCQkJCWNvbnRleHQucG9zdGltYWdlYXR0YWNobWVudFVwbG9hZC5odG1sKGNvbnRleHQuYXR0YWNobWVudEFkZFRleHQpLnJlbW92ZUNsYXNzKCdjaGFuZ2UnKS5hZGRDbGFzcygnYWRkJykNCgkJCQkJCQkJaWYgKGNvbnRleHQucG9zdGltYWdlYXR0YWNobWVudC5kYXRhKCdsaW5rJykgPT0gJ1RydWUnKSB7DQoJCQkJCQkJCQkJY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50TmFtZS5yZW1vdmVBdHRyKCdyZWFkb25seScpOw0KCQkJCQkJCQl9DQoJCQkJCQkJCWNvbnRleHQucG9zdGltYWdlYXR0YWNobWVudFJlbW92ZS5oaWRlKCk7DQoJCQkJCQkJCWxvYWRQb3N0SW1hZ2VQcmV2aWV3KCk7DQoJCQkJCQkJCXJldHVybiBmYWxzZTsNCgkJCQkJCX0pOw0KDQoJCQkJCQljb250ZXh0LnBvc3RpbWFnZWF0dGFjaG1lbnRVcGxvYWQuZ2xvd1VwbG9hZCh7DQoJCQkJCQkJCWZpbGVGaWx0ZXI6IG51bGwsDQoJCQkJCQkJCXVwbG9hZFVybDogY29udGV4dC5wb3N0aW1hZ2V1cGxvYWRGaWxlVXJsLA0KCQkJCQkJCQlyZW5kZXJNb2RlOiAnbGluaycNCgkJCQkJCX0pDQoJCQkuYmluZCgnZ2xvd1VwbG9hZEJlZ3VuJywgZnVuY3Rpb24gKGUpIHsNCgkJCQkJY29udGV4dC51cGxvYWRpbmcgPSB0cnVlOw0KCQkJCQljb250ZXh0LnBvc3RpbWFnZWF0dGFjaG1lbnRVcGxvYWQuaHRtbChjb250ZXh0LmF0dGFjaG1lbnRQcm9ncmVzc1RleHQucmVwbGFjZSgnezB9JywgMCkpOw0KCQkJfSkNCgkJCQkJLmJpbmQoJ2dsb3dVcGxvYWRDb21wbGV0ZScsIGZ1bmN0aW9uIChlLCBmaWxlKSB7DQoJCQkJCQkJaWYgKGZpbGUgJiYgZmlsZS5uYW1lLmxlbmd0aCA+IDApIHsNCgkJCQkJCQkJCWNvbnRleHQucG9zdGltYWdlZmlsZSA9IHsNCgkJCQkJCQkJCQkJZmlsZU5hbWU6IGZpbGUubmFtZSwNCgkJCQkJCQkJCQkJaXNSZW1vdGU6IGZhbHNlLA0KCQkJCQkJCQkJCQlpc05ldzogdHJ1ZQ0KCQkJCQkJCQkJfQ0KCQkJCQkJCQkJY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50TmFtZS52YWwoY29udGV4dC5wb3N0aW1hZ2VmaWxlLmZpbGVOYW1lKS5hdHRyKCdyZWFkb25seScsICdyZWFkb25seScpOw0KCQkJCQkJCQkJbG9hZFBvc3RJbWFnZVByZXZpZXcoKTsNCgkJCQkJCQkJCWNvbnRleHQudXBsb2FkaW5nID0gZmFsc2U7DQoJCQkJCQkJCQljb250ZXh0LnBvc3RpbWFnZWF0dGFjaG1lbnRVcGxvYWQuaHRtbChjb250ZXh0LmF0dGFjaG1lbnRDaGFuZ2VUZXh0KS5yZW1vdmVDbGFzcygnYWRkJykuYWRkQ2xhc3MoJ2NoYW5nZScpOw0KCQkJCQkJCQkJY29udGV4dC5wb3N0aW1hZ2VhdHRhY2htZW50UmVtb3ZlLnNob3coKTsNCgkJCQkJCQl9DQoJCQkJCX0pDQoJCQkJCS5iaW5kKCdnbG93VXBsb2FkRmlsZVByb2dyZXNzJywgZnVuY3Rpb24gKGUsIGRldGFpbHMpIHsNCgkJCQkJCQljb250ZXh0LnBvc3RpbWFnZWF0dGFjaG1lbnRVcGxvYWQuaHRtbChjb250ZXh0LmF0dGFjaG1lbnRQcm9ncmVzc1RleHQucmVwbGFjZSgnezB9JywgZGV0YWlscy5wZXJjZW50KSk7DQoJCQkJCX0pDQoJCQkJCS5iaW5kKCdnbG93VXBsb2FkRXJyb3InLCBmdW5jdGlvbihlKSB7DQoJCQkJCQlsb2FkUG9zdEltYWdlUHJldmlldygpOw0KCQkJCQkJY29udGV4dC51cGxvYWRpbmcgPSBmYWxzZTsNCgkJCQkJCWNvbnRleHQucG9zdGltYWdlYXR0YWNobWVudFVwbG9hZC5odG1sKGNvbnRleHQuYXR0YWNobWVudENoYW5nZVRleHQpLnJlbW92ZUNsYXNzKCdjaGFuZ2UnKS5hZGRDbGFzcygnYWRkJyk7DQoJCQkJCX0pOw0KDQoNCg0KCQkJCQkJLy8gdGFiIHNldHVwDQoJCQkJCQkkKGNvbnRleHQudGFic1NlbGVjdG9yKS5nbG93VGFiYmVkUGFuZXMoew0KCQkJCQkJCQljc3NDbGFzczogJ3RhYi1wYW5lJywNCgkJCQkJCQkJdGFiU2V0Q3NzQ2xhc3M6ICd0YWItc2V0IHdpdGgtcGFuZXMnLA0KCQkJCQkJCQl0YWJDc3NDbGFzc2VzOiBbJ3RhYiddLA0KCQkJCQkJCQl0YWJTZWxlY3RlZENzc0NsYXNzZXM6IFsndGFiIHNlbGVjdGVkJ10sDQoJCQkJCQkJCXRhYkhvdmVyQ3NzQ2xhc3NlczogWyd0YWIgaG92ZXInXSwNCgkJCQkJCQkJZW5hYmxlUmVzaXppbmc6IGZhbHNlLA0KCQkJCQkJCQl0YWJzOiBbDQoJCQkJCQkJCVtjb250ZXh0LndyaXRlVGFiSWQsIGNvbnRleHQud3JpdGVUYWJMYWJlbCwgbnVsbF0sDQoJCQkJCQkJCVtjb250ZXh0Lm9wdGlvbnNUYWJJZCwgY29udGV4dC5vcHRpb25zVGFiTGFiZWwsIG51bGxdDQoJCQkJCQkJCV0NCgkJCQkJCX0pOw0KCQkJCX0NCgkJfTsNCg0KfSkoalF1ZXJ5KTsNCg==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

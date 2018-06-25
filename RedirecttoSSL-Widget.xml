@@ -1,0 +1,22 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_RedirectToSSL_Name}" version="10.1.8.10498" description="${resource:Core_RedirectToSSL_Description}" instanceIdentifier="0f732a7447ad4597ba39f118eb0477d5" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="redirect-to-ssl">
+		<contentScript><![CDATA[
+#if (!$core_v2_widget.IsInWidgetPreviewMode)
+	$core_v2_page.EnsureSecureConnection()
+#end
+$core_v2_widget.Hide()
+		]]></contentScript>
+		<languageResources><language key="en-us">
+  <resource name="Core_RedirectToSSL_Description">Redirects the current page to SSL if it is over an insecure connection</resource>
+  <resource name="Core_RedirectToSSL_Name">Redirect to SSL</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Core_RedirectToSSL_Description">如果连接不安全，则将当前页面重定向到 SSL</resource>
+  <resource name="Core_RedirectToSSL_Name">重定向到 SSL</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Core_RedirectToSSL_Description">如果目前的頁面是透過不安全的連線傳送，則重新導向至 SSL</resource>
+  <resource name="Core_RedirectToSSL_Name">重新導向至 SSL</resource>
+</language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

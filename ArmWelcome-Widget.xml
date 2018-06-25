@@ -1,0 +1,28 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="Arm - Welcome" version="10.1.8.10498" description="" instanceIdentifier="38906a5a7e1342b4b9528cd467f03853" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="raw-content grid">
+		<contentScript><![CDATA[<div id="$core_v2_widget.UniqueId('content')" class="user-defined-markup">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-6 box">
+                <a href="/p/arm-blog">
+                <div class="inner blogs">
+                    <h2>Read blogs</h2>
+                    <p>Read the latest news, technical articles and blogs aimed at delivering an Arm-based design efficiently.</p>
+                </div></a>
+            </div>
+            <div class="col-sm-6 box">
+                <a href="/f">
+                <div class="inner forums">
+                    <h2>Browse forums</h2>
+                    <p>Community based support for developing on Arm technology, join developers from all over the world.</p>
+                </div></a>
+            </div>
+        </div>
+    </div>
+</div>]]></contentScript>
+		<configuration><![CDATA[<propertyGroup id="group1" resourceName="Options">
+	<property id="title" resourceName="CF_Title" dataType="string" defaultValue="${resource:CF_GenericContent}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>]]></configuration>
+		<languageResources><language key="en-us"><resource name="CF_Title">Welcome</resource></language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

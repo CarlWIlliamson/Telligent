@@ -1,0 +1,314 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:MediaGalleries_MediaGalleryPostList_Name}" version="10.1.8.10498" description="${resource:MediaGalleries_MediaGalleryPostList_Description}" instanceIdentifier="8883c000f76a47938a05d43c71f7307a" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="media-gallery-post-list">
+		<contentScript><![CDATA[$core_v2_widget.ExecuteFile('load.vm')
+
+#set ($showSidebarList = false)
+#set ($region = $core_v2_widget.RegionName.ToLower())
+#set ($layout = $core_v2_page.Layout.ToLower())
+
+#if ($region == 'split-sidebar-left' || $region == 'split-sidebar-right' || $region == 'left-sidebar') 
+    #set ($showSidebarList = true)
+#elseif ($region == 'right-sidebar' && !$layout.Contains('split-content') && !$layout.Contains('split-sidebar'))
+    #set ($showSidebarList = true)
+#end
+
+#if($showSidebarList == false)
+
+    <div class="navigation-list navigation ui-links" data-minlinks="0" data-maxlinks="0">
+        <ul>
+            #if($currentGallery)
+                #set($url = false)
+                #set($url = $core_v2_mediaUrls.Slideshow($currentGallery.Id))
+                #if($url)
+                    <li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link view-slideshow"><span></span>$core_v2_language.GetResource('MediaGallery_ViewSlideshow')</a></li>
+                    #set($hasLinks = true)
+                #end
+
+                #if ($core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+                    <li class="navigation-list-item">
+                        <a data-messagename="widget.${core_v2_widget.WrapperElementId}.gallerySubscribe" data-galleryid="$currentGallery.ApplicationId" data-subscribed="true" href="#" #if(!$core_v2_applicationSubscription.Get($currentGallery.ApplicationId, "%{}").IsSubscribed) style="display:none" #end>
+                            $core_v2_language.GetResource('MediaGallery_Subscribed')
+                        </a>
+                    </li>
+                    <li class="navigation-list-item">
+                        <a data-messagename="widget.${core_v2_widget.WrapperElementId}.gallerySubscribe" data-galleryid="$currentGallery.ApplicationId" data-subscribed="false" href="#" #if($core_v2_applicationSubscription.Get($currentGallery.ApplicationId, "%{}").IsSubscribed) style="display:none" #end>
+                            $core_v2_language.GetResource('MediaGallery_Unsubscribed')
+                        </a>
+                    </li>
+                    #registerEndOfPageHtml("widget.${core_v2_widget.WrapperElementId}.gallerySubscribe")
+                        <script type="text/javascript">
+                        jQuery(function(j){
+                            function update(value, link) {
+                                j.telligent.evolution.post({
+                                    url: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('subscribe.vm'))',
+                                    data: {
+                                        subscribe: value,
+                                        galleryId: link.data('galleryid')
+                                    },
+                                    dataType: 'json',
+                                    success: function(response) {
+                                        if (response.subscribe) {
+                                            link.closest('ul').find('a[data-subscribed="false"]').hide();
+                                            link.closest('ul').find('a[data-subscribed="true"]').show();
+                                        } else {
+                                            link.closest('ul').find('a[data-subscribed="false"]').show();
+                                            link.closest('ul').find('a[data-subscribed="true"]').hide();
+                                        }
+
+                                        if (response.warnings && response.warnings.length > 0) {
+                                            j.telligent.evolution.notifications.show(response.warnings[0], { type: 'warning' });
+                                        }
+                                    }
+                                });
+                            }
+                            j.telligent.evolution.messaging.subscribe('widget.${core_v2_widget.WrapperElementId}.gallerySubscribe', function(data){
+                                update(!j(data.target).data('subscribed'), j(data.target));
+                            });
+                        });
+                        </script>
+                    #end
+                #end
+
+                #set($url = false)
+                #set($url = $core_v2_mediaUrls.Rss($currentGallery.Id))
+                #if ($url)
+                    <li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link rss"><span></span>$core_v2_language.GetResource('Rss')</a></li>
+                #end
+            #else
+                #set($url = false)
+                #set($url = $core_v2_mediaUrls.GroupAggregateRss($core_v2_group.Current.Id))
+                #if ($url)
+                    <li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link rss"><span></span>$core_v2_language.GetResource('Rss')</a></li>
+                #end
+            #end
+
+            <li class="navigation-list-item">
+                <a href="#" data-more>$core_v2_language.GetResource('more')</a>
+            </li>
+            <li class="navigation-list-item">
+                <a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="sort">
+        <span class="by">
+            <select class="ui-select" data-update="$core_v2_encoding.HtmlAttributeEncode($core_v2_page.AdjustQueryString($core_v2_page.Url, "GalleryPostSort=SORTBY&SortOrder=$sortOrder&PageIndex=1&GalleryViewType=$viewType"))">
+                <option #if($sortBy=='PostDate') selected#end value="PostDate">$core_v2_language.GetResource('Recent')</options>
+                <option #if($sortBy=='Subject') selected#end value="Subject">$core_v2_language.GetResource('Name')</options>
+                <option #if($sortBy=='Downloads') selected#end value="Downloads">$core_v2_language.GetResource('Downloads')</options>
+                #if($showSortByRating)<option #if($sortBy=='Rating') selected#end value="Rating">$core_v2_language.GetResource('Rating')</options>#end
+            </select>
+        </span>
+        <span class="order">
+            <select class="ui-select" data-update="$core_v2_encoding.HtmlAttributeEncode($core_v2_page.AdjustQueryString($core_v2_page.Url, "GalleryPostSort=$sortBy&SortOrder=SORTORDER&PageIndex=1&GalleryViewType=$viewType"))">
+                <option value="Descending" #if ($sortOrder.ToLower() == 'descending') selected #end>$core_v2_language.GetResource('Sort_Descending')</option>
+                <option value="Ascending" #if ($sortOrder.ToLower() == 'ascending') selected #end>$core_v2_language.GetResource('Sort_Ascending')</option>
+            </select>
+        </span>
+    </div>
+#end
+
+#if($showSidebarList == true && !$medias && $medias.Count == 0)
+    $core_v2_widget.Hide()    
+#else
+
+    #if($viewType == 'Thumbnail')
+        #if ($medias && $medias.Count > 0)
+            <div class="content-list thumbnail ui-masonry margin-top" id="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.UniqueId('thumbnails'))" data-columnclass="thumbnail-column">
+                $core_v2_widget.ExecuteFile('list-thumbnail.vm')
+            </div>
+        #else
+            <div class="message norecords">
+                #if ($core_v2_gallery.Current)
+                    #set ($addUrl = $core_v2_mediaUrls.AddMedia($core_v2_gallery.Current.Id, true))
+                    #if ($core_v2_gallery.Current && $addUrl) 
+                        $core_v2_language.FormatString($core_v2_language.GetResource("NoRecords_Link"), $addUrl)
+                    #else
+                        $core_v2_language.GetResource("NoRecords")
+                    #end
+                #else
+                    $core_v2_language.GetResource("NoRecords")
+                #end
+            </div>
+        #end
+    #else
+    	#if($showSidebarList == false)
+        	$core_v2_ui.PagedContent('list-detail.vm')
+        #else
+        	$core_v2_ui.PagedContent('list-detail-sidebar.vm')
+        #end
+    #end
+
+    #if($showSidebarList == false)
+        #registerEndOfPageHtml('telligent.evolution.widgets.mediaGalleryPostList')
+            <script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+        #end
+        #registerEndOfPageHtml()
+            <script type="text/javascript">
+            jQuery.telligent.evolution.widgets.mediaGalleryPostList.register({
+                wrapper: "#$core_v2_widget.WrapperElementId",
+                view: '$viewType',
+                hasMore:#if ($hasMore) true#else false#end,
+                pageIndexKey: '$core_v2_encoding.JavascriptEncode($core_v2_ui.PageIndexQueryStringKey)',
+                loadNextPageUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('list-callback.vm'))',
+                thumbnailContainer: '#$core_v2_encoding.JavascriptEncode($core_v2_widget.UniqueId('thumbnails'))',
+                previewFileUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('preview-files.vm'))'
+            });
+            </script>
+        #end
+    #end
+#end
+
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:MediaGalleries_MediaGalleryPostList_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:MediaGalleries_MediaGalleryPostList_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="sortBy" resourceName="CF_MediaGallery_PostList_SortBy" dataType="string" defaultValue="PostDate">
+		<propertyValue value="PostDate" resourceName="CF_MediaGallery_PostList_SortBy_Recent" />
+		<propertyValue value="Subject" resourceName="CF_MediaGallery_PostList_SortBy_Subject" />
+		<propertyValue value="Downloads" resourceName="CF_MediaGallery_PostList_SortBy_Downloads" />
+		<propertyValue value="Views" resourceName="CF_MediaGallery_PostList_SortBy_Views" />
+		<propertyValue value="Comments" resourceName="CF_MediaGallery_PostList_SortBy_Comments" />
+		<propertyValue value="Rating" resourceName="CF_MediaGallery_PostList_SortBy_Rating" />
+	</property>
+	<property id="viewType" resourceName="View" dataType="string" defaultValue="default">
+		<propertyValue value="default" resourceName="View_Default" />
+		<propertyValue value="List" resourceName="View_List" />
+		<propertyValue value="Thumbnail" resourceName="View_Thumbnails" />
+	</property>
+	<property id="selectedMediaGalleryOrGroup" resourceName="CF_MediaGallery_SelectGroupAndGallery" dataType="Custom" defaultValue="" controlType="Telligent.Evolution.MediaGalleries.Controls.MediaGallerySelectionControl, Telligent.Evolution.MediaGalleries" width="95%" />
+	<property id="pageSize" resourceName="CF_MediaGallery_PostList_PageSize" dataType="int" defaultValue="20">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="100" />
+	</property>
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="cancel">Cancel</resource>
+  <resource name="CF_MediaGallery_PostList_PageSize">Number of files to display per page</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy">Sort By</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Comments">Number of comments</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Downloads">Number of downloads</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Rating">Rating</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Recent">Date/Time posted</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Subject">Name (alphabetical)</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Views">Number of views</resource>
+  <resource name="CF_MediaGallery_SelectGroupAndGallery">Select group/media gallery to pull content from</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Downloads">By download count</resource>
+  <resource name="Downloads_Plural">{0} downloads</resource>
+  <resource name="Downloads_Singular">{0} download</resource>
+  <resource name="Hide">Hide</resource>
+  <resource name="MediaGalleries_MediaGalleryPostList_Description">Displays a filterable list of media gallery files.</resource>
+  <resource name="MediaGalleries_MediaGalleryPostList_Name">Media Gallery - File List</resource>
+  <resource name="MediaGalleries_MediaGalleryPostList_Name_TopLinks">Top links, files &amp; videos</resource>
+  <resource name="MediaGalleries_MediaGalleryPostList_Title_MediaGallery">Media Gallery</resource>
+  <resource name="MediaGallery_Subscribed">Turn Gallery notifications off</resource>
+  <resource name="MediaGallery_Unsubscribed">Turn Gallery notifications on</resource>
+  <resource name="MediaGallery_ViewSlideshow">View slideshow</resource>
+  <resource name="more">More</resource>
+  <resource name="Name">By name</resource>
+  <resource name="NoRecords">There are no files to show. This could be because there are no files in this gallery or due to a filter.</resource>
+  <resource name="NoRecords_Link">There are no files to show.  Be the first to &lt;a href="{0}"&gt;add a file&lt;/a&gt;.</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Rating">By average rating</resource>
+  <resource name="Recent">By date</resource>
+  <resource name="Rss">RSS</resource>
+  <resource name="Sort_Ascending">Ascending</resource>
+  <resource name="Sort_Descending">Descending</resource>
+  <resource name="View">View</resource>
+  <resource name="View_Default">According to configured defaults</resource>
+  <resource name="View_List">Detailed List</resource>
+  <resource name="View_Thumbnails">Thumbnails</resource>
+</language>
+<language key="zh-cn">
+  <resource name="cancel">取消</resource>
+  <resource name="CF_MediaGallery_PostList_PageSize">每页显示的文件数</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy">排序方式</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Comments">评论数</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Downloads">下载数</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Rating">评级</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Recent">发布的日期/时间</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Subject">名称(字母顺序)</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Views">查看数</resource>
+  <resource name="CF_MediaGallery_SelectGroupAndGallery">选择要从中拉入内容的社区/媒体库</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Downloads">按下载数</resource>
+  <resource name="Downloads_Plural">{0} 次下载</resource>
+  <resource name="Downloads_Singular">{0} 次下载</resource>
+  <resource name="Hide">隐藏</resource>
+  <resource name="MediaGalleries_MediaGalleryPostList_Description">显示媒体库文件的可筛选列表。</resource>
+  <resource name="MediaGalleries_MediaGalleryPostList_Name">媒体库 - 文件列表</resource>
+  <resource name="MediaGalleries_MediaGalleryPostList_Name_TopLinks">热门链接，文件和视频</resource>
+  <resource name="MediaGalleries_MediaGalleryPostList_Title_MediaGallery">媒体库</resource>
+  <resource name="MediaGallery_Subscribed">关闭库通知</resource>
+  <resource name="MediaGallery_Unsubscribed">打开库通知</resource>
+  <resource name="MediaGallery_ViewSlideshow">查看幻灯片</resource>
+  <resource name="more">更多</resource>
+  <resource name="Name">按名称</resource>
+  <resource name="NoRecords">没有可显示的文件。这可能是因为此库没有文件或筛选器未筛选出任何结果。</resource>
+  <resource name="NoRecords_Link"></resource>
+  <resource name="Options">选项</resource>
+  <resource name="Rating">按平均评级</resource>
+  <resource name="Recent">按日期</resource>
+  <resource name="Rss">RSS</resource>
+  <resource name="Sort_Ascending">升序</resource>
+  <resource name="Sort_Descending">降序</resource>
+  <resource name="View">查看</resource>
+  <resource name="View_Default">根据配置的缺省设置</resource>
+  <resource name="View_List">详细列表</resource>
+  <resource name="View_Thumbnails">缩略图</resource>
+</language>
+<language key="zh-tw">
+  <resource name="cancel">取消</resource>
+  <resource name="CF_MediaGallery_PostList_PageSize">每個頁面要顯示的檔案數目</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy">排序依據</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Comments">留言數目</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Downloads">下載數目</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Rating">評分</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Recent">張貼日期/時間</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Subject">名稱 (按字母排序)</resource>
+  <resource name="CF_MediaGallery_PostList_SortBy_Views">檢視數目</resource>
+  <resource name="CF_MediaGallery_SelectGroupAndGallery">選取要從中提取內容的社群/媒體資源庫</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Downloads">依下載計數</resource>
+  <resource name="Downloads_Plural">{0} 次下載</resource>
+  <resource name="Downloads_Singular">{0} 次下載</resource>
+  <resource name="Hide">隱藏</resource>
+  <resource name="MediaGalleries_MediaGalleryPostList_Description">顯示媒體資源庫檔案的可篩選清單。</resource>
+  <resource name="MediaGalleries_MediaGalleryPostList_Name">媒體資源庫 - 檔案清單</resource>
+  <resource name="MediaGalleries_MediaGalleryPostList_Name_TopLinks">熱門鏈接，文檔和視頻</resource>
+  <resource name="MediaGalleries_MediaGalleryPostList_Title_MediaGallery">媒體資源庫</resource>
+  <resource name="MediaGallery_Subscribed">關閉資源庫通知</resource>
+  <resource name="MediaGallery_Unsubscribed">開啟資源庫通知</resource>
+  <resource name="MediaGallery_ViewSlideshow">檢視投影片放映</resource>
+  <resource name="more">更多</resource>
+  <resource name="Name">依名稱</resource>
+  <resource name="NoRecords">沒有檔案可顯示。這可能是因為此資源庫沒有任何檔案或者篩選的結果。</resource>
+  <resource name="NoRecords_Link"></resource>
+  <resource name="Options">選項</resource>
+  <resource name="Rating">依平均評分</resource>
+  <resource name="Recent">依日期</resource>
+  <resource name="Rss">RSS</resource>
+  <resource name="Sort_Ascending">遞增</resource>
+  <resource name="Sort_Descending">遞減</resource>
+  <resource name="View">檢視</resource>
+  <resource name="View_Default">根據自訂預設值</resource>
+  <resource name="View_List">詳細清單</resource>
+  <resource name="View_Thumbnails">縮圖</resource>
+</language></languageResources>
+		<files>
+			<file name="list-callback.vm">JGNvcmVfdjJfd2lkZ2V0LkV4ZWN1dGVGaWxlKCdsb2FkLnZtJykNCg0KI3NldCAoJGhhc01vcmUgPSBmYWxzZSkNCiNzZXQgKCRjdXJyZW50UGFnZWRRdWFudGl0eSA9ICgkbWVkaWFzLlBhZ2VJbmRleCArIDEpICogJG1lZGlhcy5QYWdlU2l6ZSkNCiNpZiAoJG1lZGlhcy5Ub3RhbENvdW50ID4gJGN1cnJlbnRQYWdlZFF1YW50aXR5KQ0KCSNzZXQgKCRoYXNNb3JlID0gdHJ1ZSkNCiNlbmQNCiRjb3JlX3YyX3dpZGdldC5FeGVjdXRlRmlsZSgnbGlzdC10aHVtYm5haWwudm0nKQ==</file>
+			<file name="list-detail.vm">I2lmKCEkbWVkaWFzKQ0KCSRjb3JlX3YyX3dpZGdldC5FeGVjdXRlRmlsZSgnbG9hZC52bScpDQojZW5kDQoNCgkjZm9yZWFjaCgkbWVkaWEgaW4gJG1lZGlhcykNCgkjYmVmb3JlYWxsDQoJCTx1bCBjbGFzcz0iY29udGVudC1saXN0IGNvbnRlbnQgbWFyZ2luLWJvdHRvbSI+DQoJI2VhY2gNCgkJI3NldCAoJG1lZGlhVHlwZSA9ICRjb3JlX3YyX3VpLkdldE1lZGlhVHlwZSgkbWVkaWEuRmlsZS5GaWxlVXJsLCAiJXtWaWV3VHlwZT0nVmlldyd9IikpDQoJCTxsaSBjbGFzcz0iY29udGVudC1pdGVtIiBkYXRhLW1lZGlhaWQ9IiRtZWRpYS5JZCIgZGF0YS1ocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRtZWRpYS5VcmwpIj4NCgkJCTxkaXYgY2xhc3M9ImNvbnRlbnQgYWJicmV2aWF0ZWQiPg0KCQkJCTxkaXYgY2xhc3M9ImF2YXRhciI+DQoJCQkJCTxhIGhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJG1lZGlhLlVybCkiIGNsYXNzPSJpbnRlcm5hbC1saW5rIHZpZXctcG9zdCI+DQoJCQkJCQkkIWNvcmVfdjJfdWkuR2V0UHJldmlld0h0bWwoJG1lZGlhLkZpbGUuRmlsZVVybCwgIiV7d2lkdGg9MTAwLGhlaWdodD0xMDB9IikNCgkJCQkJPC9hPg0KCQkJCTwvZGl2Pg0KCQkJCTxkaXYgY2xhc3M9InN1bW1hcnkiPg0KCQkJCQk8aDMgY2xhc3M9Im5hbWUiPg0KCQkJCQkJPGEgaHJlZj0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkbWVkaWEuVXJsKSIgY2xhc3M9ImludGVybmFsLWxpbmsgdmlldy1wb3N0Ij4kbWVkaWEuVGl0bGU8L2E+DQoJCQkJCTwvaDM+DQoJCQkJCTxkaXYgY2xhc3M9ImF1dGhvciI+DQoJCQkJCQk8ZGl2IGNsYXNzPSJhdmF0YXIiPg0KCQkJCQkJCSNpZiAoJG1lZGlhLkF1dGhvci5Qcm9maWxlVXJsKQ0KCQkJCQkJCQk8YSBocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRtZWRpYS5BdXRob3IuUHJvZmlsZVVybCkiPg0KCQkJCQkJCQkJJGNvcmVfdjJfdWkuR2V0UmVzaXplZEltYWdlSHRtbCgkbWVkaWEuQXV0aG9yLkF2YXRhclVybCwgMjQsIDI0LCAiJXtib3JkZXI9JzBweCcsIGFsdD0kbWVkaWEuQXV0aG9yLkRpc3BsYXlOYW1lLCBSZXNpemVNZXRob2QgPSAnWm9vbUFuZENyb3AnIH0iKQ0KCQkJCQkJCQk8L2E+DQoJCQkJCQkJI2Vsc2UNCgkJCQkJCQkJJGNvcmVfdjJfdWkuR2V0UmVzaXplZEltYWdlSHRtbCgkbWVkaWEuQXV0aG9yLkF2YXRhclVybCwgMjQsIDI0LCAiJXtib3JkZXI9JzBweCcsIGFsdD0kbWVkaWEuQXV0aG9yLkRpc3BsYXlOYW1lLCBSZXNpemVNZXRob2QgPSAnWm9vbUFuZENyb3AnIH0iKQ0KCQkJCQkJCSNlbmQNCgkJCQkJCTwvZGl2Pg0KCQkJCQkJPHNwYW4gY2xhc3M9InVzZXItbmFtZSI+DQoJCQkJCQkJI2lmICgkbWVkaWEuQXV0aG9yLlByb2ZpbGVVcmwpDQoJCQkJCQkJCTxhIGhyZWY9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJG1lZGlhLkF1dGhvci5Qcm9maWxlVXJsKSIgY2xhc3M9ImludGVybmFsLWxpbmsgdmlldy11c2VyLXByb2ZpbGUiPg0KCQkJCQkJCQkJJG1lZGlhLkF1dGhvci5EaXNwbGF5TmFtZQ0KCQkJCQkJCQk8L2E+DQoJCQkJCQkJI2Vsc2UNCgkJCQkJCQkJJG1lZGlhLkF1dGhvci5EaXNwbGF5TmFtZQ0KCQkJCQkJCSNlbmQNCgkJCQkJCTwvc3Bhbj4NCgkJCQkJPC9kaXY+DQoJCQkJCTxkaXYgY2xhc3M9InN0YXR1cyI+DQoJCQkJCQk8dWwgY2xhc3M9ImF0dHJpYnV0ZS1saXN0Ij4NCgkJCQkJCQk8bGkgY2xhc3M9ImF0dHJpYnV0ZS1pdGVtIGRvd25sb2FkcyI+DQoJCQkJCQkJCTxzcGFuIGNsYXNzPSJhdHRyaWJ1dGUtdmFsdWUiPg0KCQkJCQkJCQkJI3NldCgkZG93bmxvYWRzID0gMCkNCgkJCQkJCQkJCSNzZXQoJGRvd25sb2FkcyA9ICRtZWRpYS5Eb3dubG9hZHMpDQoJCQkJCQkJCQkjaWYgKCRkb3dubG9hZHMgPT0gMSkNCgkJCQkJCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5Gb3JtYXRTdHJpbmcoJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ0Rvd25sb2Fkc19TaW5ndWxhcicpLCAkY29yZV92Ml9sYW5ndWFnZS5Gb3JtYXROdW1iZXIoJGRvd25sb2FkcykpDQoJCQkJCQkJCQkjZWxzZQ0KCQkJCQkJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdFN0cmluZygkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnRG93bmxvYWRzX1BsdXJhbCcpLCAkY29yZV92Ml9sYW5ndWFnZS5Gb3JtYXROdW1iZXIoJGRvd25sb2FkcykpDQoJCQkJCQkJCQkjZW5kDQoJCQkJCQkJCTwvc3Bhbj4NCgkJCQkJCQk8L2xpPg0KCQkJCQkJCTxsaSBjbGFzcz0iYXR0cmlidXRlLWl0ZW0gcmF0aW5nIj4NCgkJCQkJCQkJPHNwYW4gY2xhc3M9ImF0dHJpYnV0ZS12YWx1ZSI+JGNvcmVfdjJfdWkuUmF0ZSgkbWVkaWEuQ29udGVudElkLCAkY29yZV92Ml9tZWRpYS5Db250ZW50VHlwZUlkLCAiJXtSZWFkT25seT0ndHJ1ZScsQ3NzQ2xhc3M9J3NtYWxsJ30iKTwvc3Bhbj4NCgkJCQkJCQk8L2xpPg0KCQkJCQkJCSNpZiAoJG1lZGlhVHlwZSAhPSAnRW1wdHknKQ0KCQkJCQkJCQk8bGkgY2xhc3M9ImF0dHJpYnV0ZS1pdGVtIHZpZXctYXR0YWNobWVudCI+PHNwYW4gY2xhc3M9ImF0dHJpYnV0ZS12YWx1ZSI+PGEgaHJlZj0iIyIgZGF0YS1tZXNzYWdlbmFtZT0iaGlkZVNob3dNZWRpYSIgZGF0YS1tZWRpYWlkPSIkbWVkaWEuSWQiPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdWaWV3Jyk8L2E+PC9zcGFuPjwvbGk+DQoJCQkJCQkJCTxsaSBjbGFzcz0iYXR0cmlidXRlLWl0ZW0gaGlkZS1hdHRhY2htZW50IGhpZGRlbiIgc3R5bGU9ImRpc3BsYXk6IG5vbmU7Ij48c3BhbiBjbGFzcz0iYXR0cmlidXRlLXZhbHVlIj48YSBocmVmPSIjIiBkYXRhLW1lc3NhZ2VuYW1lPSJoaWRlU2hvd01lZGlhIiBkYXRhLW1lZGlhaWQ9IiRtZWRpYS5JZCI+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ0hpZGUnKTwvYT48L3NwYW4+PC9saT4NCgkJCQkJCQkjZW5kDQoJCQkJCQk8L3VsPg0KCQkJCQk8L2Rpdj4NCgkJCQkJPGRpdiBjbGFzcz0iY29udGVudCBwcmV2aWV3Ij48L2Rpdj4JCQkJCQ0KCQkJCTwvZGl2Pg0KCQkJCTxkaXYgY2xhc3M9ImF0dHJpYnV0ZXMiPg0KCQkJCQk8dWwgY2xhc3M9ImF0dHJpYnV0ZS1saXN0Ij4NCgkJCQkJCTxsaSBjbGFzcz0iYXR0cmlidXRlLWl0ZW0iPg0KCQkJCQkJCTxzcGFuIGNsYXNzPSJhdHRyaWJ1dGUtdmFsdWUiPiRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdERhdGUoJG1lZGlhLkRhdGUpPC9zcGFuPg0KCQkJCQkJPC9saT4NCgkJCQkJPC91bD4NCgkJCQk8L2Rpdj4NCgkJCTwvZGl2Pg0KCQk8L2xpPg0KCSNub2RhdGENCgkJPGRpdiBjbGFzcz0ibWVzc2FnZSBub3JlY29yZHMiPg0KCQkJI2lmICgkY29yZV92Ml9nYWxsZXJ5LkN1cnJlbnQpDQoJCQkJI3NldCAoJGFkZFVybCA9ICRjb3JlX3YyX21lZGlhVXJscy5BZGRNZWRpYSgkY29yZV92Ml9nYWxsZXJ5LkN1cnJlbnQuSWQsIHRydWUpKQ0KCQkJCSNpZiAoJGNvcmVfdjJfZ2FsbGVyeS5DdXJyZW50ICYmICRhZGRVcmwpDQoJCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdFN0cmluZygkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiTm9SZWNvcmRzX0xpbmsiKSwgJGFkZFVybCkNCgkJCQkjZWxzZQ0KCQkJCQkkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiTm9SZWNvcmRzIikNCgkJCQkjZW5kDQoJCQkjZWxzZQ0KCQkJCSRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCJOb1JlY29yZHMiKQ0KCQkJI2VuZA0KCQk8L2Rpdj4NCg0KCSNhZnRlcmFsbA0KCQk8L3VsPg0KCSNlbmQNCg0KI2lmICgkbWVkaWFzKQ0KCSRjb3JlX3YyX3VpLlBhZ2VyKCRtZWRpYXMuUGFnZUluZGV4LCAkbWVkaWFzLlBhZ2VTaXplLCAkbWVkaWFzLlRvdGFsQ291bnQsICIleyBTaG93SW5kaXZpZHVhbFBhZ2VzID0gJ3RydWUnLCBTaG93UHJldmlvdXMgPSAndHJ1ZScsIFNob3dOZXh0ID0gJ3RydWUnLCBQYWdlZENvbnRlbnRGaWxlID0gJ2xpc3QtZGV0YWlsLnZtJywgTG9hZE9uQW55SGFzaENoYW5nZSA9ICd0cnVlJywgTG9hZGluZ0luZGljYXRvciA9ICd0cnVlJyB9IikNCiNlbmQNCg==</file>
+			<file name="list-detail-sidebar.vm">I2lmKCEkbWVkaWFzKQoJJGNvcmVfdjJfd2lkZ2V0LkV4ZWN1dGVGaWxlKCdsb2FkLnZtJykKI2VuZAoKI2ZvcmVhY2goJG1lZGlhIGluICRtZWRpYXMpCiNiZWZvcmVhbGwKCTxkaXYgY2xhc3M9ImF2YXRhci1saXN0Ij4KCTx1bCBjbGFzcz0iY29udGVudC1saXN0Ij4KI2VhY2gKCSNzZXQoJGF1dGhvciA9ICRtZWRpYS5BdXRob3IpCgoJPGxpIGNsYXNzPSJjb250ZW50LWl0ZW0iIGRhdGEtaHJlZj0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkbWVkaWEuVXJsKSI+CgkJPGRpdiBjbGFzcz0iYXV0aG9yIj4KCQkJPGRpdiBjbGFzcz0iYXZhdGFyIj4KCQkJCSNpZighJG1lZGlhLkZpbGUuSXNSZW1vdGVBdHRhY2htZW50KQoJCQkJICAgICRjb3JlX3YyX3VpLkdldFByZXZpZXdIdG1sKCRtZWRpYS5GaWxlLkZpbGVVcmwsICIleyBXaWR0aCA9IDM1LCBIZWlnaHQgPSAzNSB9IikKCQkJICAgICNlbHNlCgkJCQkJPGEgaHJlZj0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkbWVkaWEuRmlsZS5GaWxlVXJsKSI+CgkJCQkJCSRjb3JlX3YyX3VpLkdldFJlc2l6ZWRJbWFnZUh0bWwoIn4vY2ZzLWZpbGVzeXN0ZW1maWxlL19fa2V5L2NvbW11bml0eXNlcnZlci1jb21wb25lbnRzLWltYWdlZmlsZXZpZXdlci9maWxldHlwZWltYWdlc18yRTAwXy91bmtub3duLnBuZ18yRDAwXzM1eDM1LnBuZyIsIDM1LCAzNSwgIiV7Ym9yZGVyPScwcHgnLCBhbHQ9JG1lZGlhLkF1dGhvci5EaXNwbGF5TmFtZSwgUmVzaXplTWV0aG9kID0gJ1pvb21BbmRDcm9wJyB9IikKCQkJCQk8L2E+CgkJCQkjZW5kCgkJCTwvZGl2PgoJCQk8YSBocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRtZWRpYS5VcmwpIiBjbGFzcz0iaW50ZXJuYWwtbGluayB2aWV3LWZ1bGwtcG9zdCBuYXZpZ2FibGUgdWktdGlwIiBkYXRhLXRpcD0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnVmlldycpKSI+CgkJCQk8ZGl2IGNsYXNzPSJjb250ZW50Ij4kY29yZV92Ml9sYW5ndWFnZS5UcnVuY2F0ZSgkbWVkaWEuVGl0bGUsIDIwMCwgIi4uLiIpPC9kaXY+CgkJCTwvYT4KCQkJPGRpdiBjbGFzcz0ibWV0YSI+CgkJCQk8YSBocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRtZWRpYS5VcmwpIiBjbGFzcz0iaW50ZXJuYWwtbGluayB2aWV3LXBvc3QgbmF2aWdhYmxlIj4KCQkJCQkkY29yZV92Ml91aS5BZ29EYXRlKCRtZWRpYS5DcmVhdGVkRGF0ZSkKCQkJCTwvYT4KCQkJPC9kaXY+CgkJPC9kaXY+Cgk8L2xpPgojYWZ0ZXJhbGwKCTwvdWw+Cgk8L2Rpdj4KI25vZGF0YQoJJGNvcmVfdjJfd2lkZ2V0LkhpZGUoKQojZW5kCg==</file>
+			<file name="list-thumbnail.vm">77u/I2lmICgkc2hvd1NpZGViYXJMaXN0ID09IHRydWUpDQogICAgI3NldCgkd2lkdGggPSAxMTUpDQojZWxzZQ0KICAgICNzZXQoJHdpZHRoID0gMTQwKQ0KI2VuZA0KDQojZm9yZWFjaCgkbWVkaWEgaW4gJG1lZGlhcykNCgk8ZGl2IGNsYXNzPSJjb250ZW50LWl0ZW0gY29udGVudCB0aHVtYm5haWwiIGRhdGEtaGFzbW9yZT0iJGhhc01vcmUiIGRhdGEtdXJsPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRtZWRpYS5VcmwpIj4NCgkJPGRpdiBjbGFzcz0iYXZhdGFyIj4NCgkJCSRjb3JlX3YyX3VpLkdldFByZXZpZXdIdG1sKCRtZWRpYS5GaWxlLkZpbGVVcmwsICIleyBXaWR0aCA9ICR3aWR0aCB9IikNCgkJPC9kaXY+DQoJCTxoMyBjbGFzcz0ibmFtZSI+DQoJCQk8YSBocmVmPSIkY29yZV92Ml9lbmNvZGluZy5IdG1sQXR0cmlidXRlRW5jb2RlKCRtZWRpYS5VcmwpIj4kbWVkaWEuVGl0bGU8L2E+DQoJCTwvaDM+DQoJPC9kaXY+DQojZW5k</file>
+			<file name="load.vm">77u/I3NldCgkdmlld1R5cGUgPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ3ZpZXdUeXBlJywgJ2RlZmF1bHQnKSkNCiNpZiAoISR2aWV3VHlwZSB8fCAkdmlld1R5cGUgPT0gJ2RlZmF1bHQnKQ0KCSNzZXQoJHZpZXdUeXBlID0gJGNvcmVfdjJfbWVkaWEuQ3VycmVudFZpZXdUeXBlKQ0KI2VuZA0KDQojc2V0KCRzb3J0QnkgPSAkY29yZV92Ml9wYWdlLkdldFF1ZXJ5U3RyaW5nVmFsdWUoJ0dhbGxlcnlQb3N0U29ydCcpKQ0KI2lmICghJHNvcnRCeSB8fCAkc29ydEJ5ID09ICcnKQ0KCSNzZXQoJHNvcnRCeSA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgnc29ydEJ5JywgJ1Bvc3REYXRlJykpDQojZW5kDQojc2V0KCRwYWdlU2l6ZSA9ICRjb3JlX3YyX3dpZGdldC5HZXRJbnRWYWx1ZSgncGFnZVNpemUnLDUpKQ0KI3NldCgkcGFnZUluZGV4ID0gJGNvcmVfdjJfdWkuR2V0Q3VycmVudFBhZ2VJbmRleCgpKQ0KI3NldCgkc29ydE9yZGVyID0gJGNvcmVfdjJfcGFnZS5HZXRRdWVyeVN0cmluZ1ZhbHVlKCdTb3J0T3JkZXInKSkNCiNpZiAoISRzb3J0T3JkZXIgfHwgJHNvcnRPcmRlciA9PSAnJykNCgkjaWYgKCRzb3J0QnkgPT0gJ1N1YmplY3QnKQ0KCQkjc2V0KCRzb3J0T3JkZXIgPSAnQXNjZW5kaW5nJykNCgkjZWxzZQ0KCQkjc2V0KCRzb3J0T3JkZXIgPSAnRGVzY2VuZGluZycpDQoJI2VuZA0KI2VuZA0KI2lmICgkdmlld1R5cGUgPT0gJ1RodW1ibmFpbCcgJiYgJHNvcnRCeSA9PSAnU3ViamVjdCcpDQoJI3NldCgkc29ydE9yZGVyID0gJ0FzY2VuZGluZycpDQojZW5kDQojc2V0KCRtZWRpYXMgPSBmYWxzZSkNCiNzZXQoJHNob3dTb3J0QnlSYXRpbmcgPSBmYWxzZSkNCiNzZXQoJGNvbmZpZyA9ICRjb3JlX3YyX3BhZ2UuUGFyc2VRdWVyeVN0cmluZygkY29yZV92Ml93aWRnZXQuR2V0Q3VzdG9tVmFsdWUoJ3NlbGVjdGVkTWVkaWFHYWxsZXJ5T3JHcm91cCcsJycpKSkNCiNzZXQoJGN1cnJlbnRHYWxsZXJ5ID0gZmFsc2UpDQoNCiNpZiAoJGNvbmZpZy5WYWx1ZXMoJ01lZGlhR2FsbGVyeScpLkNvdW50ID4gMCkNCgkjc2V0KCRnYWxsZXJ5TGlzdCA9IGZhbHNlKQ0KCSNmb3JlYWNoKCRnYWxsZXJ5SWQgaW4gJGNvbmZpZy5WYWx1ZXMoJ01lZGlhR2FsbGVyeScpKQ0KCQkjaWYoJGdhbGxlcnlJZCA9PSAnMCcpDQoJCQkjc2V0KCRnYWxsZXJ5SWQgPSAkY29yZV92Ml9nYWxsZXJ5LkN1cnJlbnQuSWQpDQoJCSNlbmQNCgkJI2lmKCRnYWxsZXJ5SWQgPiAwKQ0KCQkJI2lmICghJHNob3dTb3J0QnlSYXRpbmcpDQoJCQkJI3NldCgkdG1wR2FsbGVyeSA9ICRjb3JlX3YyX2dhbGxlcnkuR2V0KCIle0lkPSRnYWxsZXJ5SWR9IikpDQoJCQkJI2lmICgkdG1wR2FsbGVyeSkNCgkJCQkJI3NldCgkc2hvd1NvcnRCeVJhdGluZyA9ICR0bXBHYWxsZXJ5LkVuYWJsZVJhdGluZ3MpDQoJCQkJCSNzZXQoJGN1cnJlbnRHYWxsZXJ5ID0gJHRtcEdhbGxlcnkpDQoJCQkJI2VuZA0KCQkJI2VuZA0KCQkJI2lmKCEkZ2FsbGVyeUxpc3QpDQoJCQkJI3NldCgkZ2FsbGVyeUxpc3QgPSAiJGdhbGxlcnlJZCIpDQoJCQkjZWxzZQ0KCQkJCSNzZXQoJGdhbGxlcnlMaXN0ID0gIiRnYWxsZXJ5TGlzdCwkZ2FsbGVyeUlkIikNCgkJCQkjc2V0KCRjdXJyZW50R2FsbGVyeSA9IGZhbHNlKQ0KCQkJI2VuZA0KCQkjZW5kDQoJI2VuZA0KDQoJI2lmICgkZ2FsbGVyeUxpc3QpDQoJCSNzZXQoJG1lZGlhcyA9ICRjb3JlX3YyX21lZGlhLkxpc3QoIiV7R2FsbGVyeUlkcz0kZ2FsbGVyeUxpc3QsUGFnZVNpemU9JHBhZ2VTaXplLFBhZ2VJbmRleD0kcGFnZUluZGV4LFNvcnRPcmRlcj0kc29ydE9yZGVyLFNvcnRCeT0kc29ydEJ5fSIpKQ0KCSNlbmQNCiNlbHNlaWYgKCRjb25maWcuVmFsdWUoJ0dyb3VwJykpDQoJI3NldCgkZ3JvdXAgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb25maWcuVmFsdWUoJ0dyb3VwJykpKQ0KCSNpZiAoJGdyb3VwIDw9IDApDQoJCSNzZXQoJGdyb3VwID0gJGNvcmVfdjJfZ3JvdXAuQ3VycmVudC5JZCkNCgkjZW5kDQoJI2lmKCRncm91cCA+IDApDQoJCSNmb3JlYWNoKCR0bXBHYWxsZXJ5IGluICRjb3JlX3YyX2dhbGxlcnkuTGlzdCgiJXtHcm91cElkPSRncm91cH0iKSkNCgkJCSNpZiAoISRzaG93U29ydEJ5UmF0aW5nKQ0KCQkJCSNzZXQoJHNob3dTb3J0QnlSYXRpbmcgPSAkdG1wR2FsbGVyeS5FbmFibGVSYXRpbmdzKQ0KCQkJI2VuZA0KCQkjZW5kDQoJCSNzZXQoJG1lZGlhcyA9ICRjb3JlX3YyX21lZGlhLkxpc3QoIiV7R3JvdXBJZD0kZ3JvdXAsUGFnZVNpemU9JHBhZ2VTaXplLFBhZ2VJbmRleD0kcGFnZUluZGV4LEluY2x1ZGVTdWJHcm91cHM9JGNvcmVfdjJfdXRpbGl0eS5QYXJzZUJvb2woJGNvbmZpZy5WYWx1ZSgnSW5jbHVkZVN1Ykdyb3VwcycpKSxTb3J0T3JkZXI9JHNvcnRPcmRlcixTb3J0Qnk9JHNvcnRCeX0iKSkNCgkjZW5kDQojZW5kDQoNCiNpZighJG1lZGlhcykJDQoJI2lmICgkY29yZV92Ml9nYWxsZXJ5LkN1cnJlbnQpDQoJCSNzZXQoJGN1cnJlbnRHYWxsZXJ5ID0gJGNvcmVfdjJfZ2FsbGVyeS5DdXJyZW50KQ0KCQkjc2V0KCRzaG93U29ydEJ5UmF0aW5nID0gJGN1cnJlbnRHYWxsZXJ5LkVuYWJsZVJhdGluZ3MpDQoJCSNzZXQoJG1lZGlhcyA9ICRjb3JlX3YyX21lZGlhLkxpc3QoIiV7R2FsbGVyeUlkPSRjb3JlX3YyX2dhbGxlcnkuQ3VycmVudC5JZCxQYWdlU2l6ZT0kcGFnZVNpemUsUGFnZUluZGV4PSRwYWdlSW5kZXgsU29ydE9yZGVyPSRzb3J0T3JkZXIsU29ydEJ5PSRzb3J0Qnl9IikpDQoJI2Vsc2UNCgkJI2ZvcmVhY2goJHRtcEdhbGxlcnkgaW4gJGNvcmVfdjJfZ2FsbGVyeS5MaXN0KCIle0dyb3VwSWQ9JGNvcmVfdjJfZ3JvdXAuQ3VycmVudC5JZH0iKSkNCgkJCSNpZiAoISRzaG93U29ydEJ5UmF0aW5nKQ0KCQkJCSNzZXQoJHNob3dTb3J0QnlSYXRpbmcgPSAkdG1wR2FsbGVyeS5FbmFibGVSYXRpbmdzKQ0KCQkJI2VuZA0KCQkjZW5kDQoJCSNzZXQoJG1lZGlhcyA9ICRjb3JlX3YyX21lZGlhLkxpc3QoIiV7R3JvdXBJZD0kY29yZV92Ml9ncm91cC5DdXJyZW50LklkLFBhZ2VTaXplPSRwYWdlU2l6ZSxQYWdlSW5kZXg9JHBhZ2VJbmRleCxTb3J0T3JkZXI9JHNvcnRPcmRlcixTb3J0Qnk9JHNvcnRCeX0iKSkNCgkjZW5kDQojZW5kDQoNCiNzZXQgKCRoYXNNb3JlID0gZmFsc2UpDQojc2V0ICgkY3VycmVudFBhZ2VkUXVhbnRpdHkgPSAoJG1lZGlhcy5QYWdlSW5kZXggKyAxKSAqICRtZWRpYXMuUGFnZVNpemUpDQojaWYgKCRtZWRpYXMuVG90YWxDb3VudCA+ICRjdXJyZW50UGFnZWRRdWFudGl0eSkNCiAgICAjc2V0ICgkaGFzTW9yZSA9IHRydWUpDQojZW5k</file>
+			<file name="preview-files.vm">77u/I3NldCAoJG1lZGlhSWQgPSBmYWxzZSkNCiNzZXQgKCRtZWRpYUlkID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUludCgkY29yZV92Ml9wYWdlLkdldFF1ZXJ5U3RyaW5nVmFsdWUoJ21lZGlhSWQnKSkpDQoNCiNpZiAoISRtZWRpYUlkKQ0KCSRjb3JlX3YyX3dpZGdldC5IaWRlKCkNCiNlbmQNCg0KI3NldCgkbWVkaWEgPSAkY29yZV92Ml9tZWRpYS5HZXQoJG1lZGlhSWQpKQ0KI2lmICghJG1lZGlhKQ0KCSRjb3JlX3YyX3dpZGdldC5IaWRlKCkNCiNlbmQNCg0KPGRpdiBjbGFzcz0iY29udGVudCBpbmxpbmUiPg0KCSQhY29yZV92Ml91aS5HZXRWaWV3SHRtbCgkbWVkaWEuRmlsZS5GaWxlVXJsLCAiJXtWaWV3VHlwZT0nVmlldycsIEFkanVzdFRvQ29udGFpbmVyPSdUcnVlJywgT3V0cHV0SXNQZXJzaXN0ZWQ9J0ZhbHNlJ30iKQ0KPC9kaXY+</file>
+			<file name="subscribe.vm">77u/I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkNCgkjc2V0KCRzdWJzY3JpYmUgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlQm9vbCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnc3Vic2NyaWJlJykpKQ0KCSNzZXQoJGFwcGxpY2F0aW9uSWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlR3VpZCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnZ2FsbGVyeUlkJykpKQ0KDQoJJGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoJI3NldCgkcmVzcG9uc2UgPSBmYWxzZSkNCg0KCSNpZiAoJHN1YnNjcmliZSkNCgkJI3NldCgkcmVzcG9uc2UgPSAkY29yZV92Ml9hcHBsaWNhdGlvblN1YnNjcmlwdGlvbi5DcmVhdGUoJGFwcGxpY2F0aW9uSWQsICRjb3JlX3YyX2dhbGxlcnkuQXBwbGljYXRpb25UeXBlSWQsICIle30iKSkNCgkjZWxzZQ0KCQkjc2V0KCRyZXNwb25zZSA9ICRjb3JlX3YyX2FwcGxpY2F0aW9uU3Vic2NyaXB0aW9uLkRlbGV0ZSgkYXBwbGljYXRpb25JZCwgJGNvcmVfdjJfZ2FsbGVyeS5BcHBsaWNhdGlvblR5cGVJZCwgIiV7fSIpKQ0KCSNlbmQNCg0KCSNpZiAoJHJlc3BvbnNlICYmICRyZXNwb25zZS5IYXNFcnJvcnMoKSkNCgkJJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCRyZXNwb25zZS5FcnJvcnMpDQoJI2VuZA0KCXsic3Vic2NyaWJlIjojaWYoJHN1YnNjcmliZSkgdHJ1ZSNlbHNlIGZhbHNlI2VuZCwid2FybmluZ3MiOlsNCgkJI2ZvcmVhY2ggKCR3YXJuaW5nIGluICRyZXNwb25zZS5XYXJuaW5ncykNCgkJCSNlYWNoDQoJCQkJIiRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJHdhcm5pbmcuTWVzc2FnZSkiDQoJCQkjYmV0d2Vlbg0KCQkJCSwNCgkJI2VuZA0KCV19DQoJDQojZW5k</file>
+			<file name="ui.js">KGZ1bmN0aW9uKCQpIHsNCg0KCXZhciBzZXR1cExpc3REZXRhaWxMaW5rcyA9IGZ1bmN0aW9uKGNvbnRleHQpIHsNCgkJCSQoJy52aWV3JywgY29udGV4dC53cmFwcGVyKS5vbignY2hhbmdlJywgZnVuY3Rpb24oZSl7DQoJCQkJdmFyIHNvcnRlZFVybCA9ICQoZS50YXJnZXQpLmRhdGEoJ3VwZGF0ZScpLnJlcGxhY2UoJ1ZJRVdUWVBFJywgJChlLnRhcmdldCkudmFsKCkpOw0KCQkJCXdpbmRvdy5sb2NhdGlvbiA9IHNvcnRlZFVybDsNCgkJCX0pOw0KCQkJJCgnLmJ5JywgY29udGV4dC53cmFwcGVyKS5vbignY2hhbmdlJywgZnVuY3Rpb24oZSl7DQoJCQkJdmFyIHNvcnRlZFVybCA9ICQoZS50YXJnZXQpLmRhdGEoJ3VwZGF0ZScpLnJlcGxhY2UoJ1NPUlRCWScsICQoZS50YXJnZXQpLnZhbCgpKTsNCgkJCQl3aW5kb3cubG9jYXRpb24gPSBzb3J0ZWRVcmw7DQoJCQl9KTsNCgkJCSQoJy5vcmRlcicsIGNvbnRleHQud3JhcHBlcikub24oJ2NoYW5nZScsIGZ1bmN0aW9uKGUpew0KCQkJCXZhciBvcmRlcmVkVXJsID0gJChlLnRhcmdldCkuZGF0YSgndXBkYXRlJykucmVwbGFjZSgnU09SVE9SREVSJywgJChlLnRhcmdldCkudmFsKCkpOw0KCQkJCXdpbmRvdy5sb2NhdGlvbiA9IG9yZGVyZWRVcmw7DQoJCQl9KTsNCgkJfSwNCgkJc2V0dXBBdHRhY2htZW50Vmlld0xpbmtzID0gZnVuY3Rpb24oY29udGV4dCkgew0KCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm1lc3NhZ2luZy5zdWJzY3JpYmUoJ2hpZGVTaG93TWVkaWEnLCBmdW5jdGlvbihkYXRhKSB7DQoJCQkJdmFyIGxpbmsgPSAkKGRhdGEudGFyZ2V0KTsNCgkJCQl2YXIgbWVkaWFJZCA9IGxpbmsuZGF0YSgnbWVkaWFpZCcpOw0KCQkJCXZhciBwYXJlbnQgPSAkKCcuY29udGVudC1pdGVtW2RhdGEtbWVkaWFpZD0iJyArIG1lZGlhSWQgKyAnIl0nLCBjb250ZXh0LndyYXBwZXIpOw0KCQkJCWlmIChsaW5rLnBhcmVudCgpLnBhcmVudCgpLmhhc0NsYXNzKCd2aWV3LWF0dGFjaG1lbnQnKSkgew0KCQkJCQkkKCcuaGlkZS1hdHRhY2htZW50JywgcGFyZW50KS5yZW1vdmVDbGFzcygnaGlkZGVuJykuc2hvdygpOw0KCQkJCQlsaW5rLnBhcmVudCgpLnBhcmVudCgpLmFkZENsYXNzKCdoaWRkZW4nKS5oaWRlKCk7DQoNCgkJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLmdldCh7DQoJCQkJCQl1cmw6IGNvbnRleHQucHJldmlld0ZpbGVVcmwsDQoJCQkJCQlkYXRhOiB7DQoJCQkJCQkJbWVkaWFJZDogbWVkaWFJZA0KCQkJCQkJfQ0KCQkJCQl9KS50aGVuKGZ1bmN0aW9uKGV4Y2VycHQpew0KCQkJCQkJcGFyZW50LmZpbmQoJy5jb250ZW50LnByZXZpZXcnKQ0KCQkJCQkJCS5lbXB0eSgpDQoJCQkJCQkJLmFwcGVuZChleGNlcnB0KQ0KCQkJCQkJCS5yZW1vdmVDbGFzcygnaGlkZGVuJykNCgkJCQkJCQkuc2hvdygpOw0KCQkJCQl9KTsNCg0KCQkJCQlyZXR1cm4gZmFsc2U7DQoJCQkJfSBlbHNlIHsNCgkJCQkJJCgnLmNvbnRlbnQgLmNvbnRlbnQnLCBwYXJlbnQpLmFkZENsYXNzKCdoaWRkZW4nKS5oaWRlKCk7DQoJCQkJCSQoJy52aWV3LWF0dGFjaG1lbnQnLCBwYXJlbnQpLnJlbW92ZUNsYXNzKCdoaWRkZW4nKS5zaG93KCk7DQoJCQkJCWxpbmsucGFyZW50KCkucGFyZW50KCkuYWRkQ2xhc3MoJ2hpZGRlbicpLmhpZGUoKTsNCgkJCQkJcmV0dXJuIGZhbHNlOw0KCQkJCX07DQoJCQl9KTsNCgkJfSwNCgkJbG9hZE5leHRQYWdlID0gZnVuY3Rpb24oY29udGV4dCwgcGFnZUluZGV4KSB7DQoJCQljb250ZXh0LmlzTG9hZGluZ01vcmUgPSB0cnVlOw0KDQoJCQl2YXIgZGF0YSA9IHt9DQoJCQlkYXRhW2NvbnRleHQucGFnZUluZGV4S2V5XSA9IHBhZ2VJbmRleCArIDE7DQoNCgkJCXJldHVybiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uZ2V0KHsNCgkJCQl1cmw6IGNvbnRleHQubG9hZE5leHRQYWdlVXJsLA0KCQkJCWRhdGE6IGRhdGENCgkJCX0pLnRoZW4oZnVuY3Rpb24ocmVzcG9uc2Upew0KCQkJCWNvbnRleHQuaXNMb2FkaW5nTW9yZSA9IGZhbHNlOw0KCQkJCXJldHVybiByZXNwb25zZTsNCgkJCX0pOw0KCQl9Ow0KCQlzZXR1cEVuZGxlc3NTY3JvbGxpbmcgPSBmdW5jdGlvbihjb250ZXh0KSB7DQoJCQljb250ZXh0LnBhZ2VJbmRleCA9IDA7DQoJCQkkKGRvY3VtZW50KS5vbignc2Nyb2xsZW5kJywgZnVuY3Rpb24oZSl7DQoJCQkJaWYoY29udGV4dC5pc0xvYWRpbmdNb3JlIHx8ICFjb250ZXh0Lmhhc01vcmUpDQoJCQkJCXJldHVybjsNCgkJCQlsb2FkTmV4dFBhZ2UoY29udGV4dCwgY29udGV4dC5wYWdlSW5kZXggKyAxKS5kb25lKGZ1bmN0aW9uKHJlc3BvbnNlKXsNCgkJCQkJdmFyIGl0ZW1zID0gJChyZXNwb25zZSkuZmlsdGVyKCdkaXYnKTsNCgkJCQkJY29udGV4dC5oYXNNb3JlID0gaXRlbXMuZGF0YSgnaGFzbW9yZScpID09ICdUcnVlJzsNCgkJCQkJJChjb250ZXh0LnRodW1ibmFpbENvbnRhaW5lcikuZXZvbHV0aW9uTWFzb25yeSgnYXBwZW5kJywgaXRlbXMpOw0KCQkJCQljb250ZXh0LnBhZ2VJbmRleCsrOw0KCQkJCX0pOw0KCQkJfSk7DQoJCX07DQoNCgl2YXIgYXBpID0gew0KCQlyZWdpc3RlcjogZnVuY3Rpb24oY29udGV4dCkgew0KCQkJY29udGV4dC53cmFwcGVyID0gJChjb250ZXh0LndyYXBwZXIpOw0KCQkJc2V0dXBMaXN0RGV0YWlsTGlua3MoY29udGV4dCk7DQoJCQlzZXR1cEF0dGFjaG1lbnRWaWV3TGlua3MoY29udGV4dCk7DQoJCQlpZihjb250ZXh0LnZpZXcgPT0gJ1RodW1ibmFpbCcpIHsNCgkJCQlzZXR1cEVuZGxlc3NTY3JvbGxpbmcoY29udGV4dCk7DQoJCQkJJChjb250ZXh0LndyYXBwZXIpLm9uKCdjbGljaycsICcuY29udGVudC1pdGVtJywgZnVuY3Rpb24oZSl7DQoJCQkJCXdpbmRvdy5sb2NhdGlvbiA9ICQodGhpcykuZGF0YSgndXJsJyk7DQoJCQkJfSk7DQoJCQl9DQoJCX0NCgl9Ow0KDQoJaWYgKHR5cGVvZiAkLnRlbGxpZ2VudCA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQgPSB7fTsgfQ0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSB7fTsgfQ0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID0ge307IH0NCgkkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cy5tZWRpYUdhbGxlcnlQb3N0TGlzdCA9IGFwaTsNCg0KfSkoalF1ZXJ5KTsNCg==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

@@ -1,0 +1,485 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_NavigationCustom_Name}" version="10.1.8.10498" description="${resource:Core_NavigationCustom_Description}" instanceIdentifier="8f6b41a33bb44c47b2edcaabd3cbe63c" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="navigation-custom">
+		<contentScript><![CDATA[#set ($layout = $core_v2_widget.GetStringValue('layout', 'vertical'))
+#set ($synchronizedLinksTemplateId = $core_v2_widget.UniqueId('synchronizedLinksTemplate'))
+#set ($moreLabel = $core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('moreLabel', '${resource:more}')))
+#set ($links = $core_v2_widget.GetStringValue('links','custom'))
+#set ($includeSubGroups = $core_v2_widget.GetBoolValue('includeSubGroups', true))
+
+#if ($links == 'custom')
+	#set ($navigationItems = $core_v2_customNavigation.Deserialize($core_v2_widget.GetCustomValue('navigation', '')))
+	#if (!$navigationItems || $navigationItems.Count == 0)
+		$core_v2_widget.Hide()
+	#end
+	#set ($linksToShow = $navigationItems.Count)
+#elseif($links =='groups')
+	#set ($groups = $core_v2_group.List("%{ PageIndex = $pageIndex, PageSize = 20, SortBy = 'SortOrder', SortOrder = 'Ascending', ParentGroupId=$core_v2_group.Root.Id }"))
+	#if ($groups.TotalCount == 0)
+		$core_v2_widget.Hide()
+	#end
+	## leave space for a 'more groups' link if there's more to show
+	#if ($groups.Count < $groups.TotalCount)
+		#set ($linksToShow = $groups.Count + 1)
+	#else
+		#set ($linksToShow = $groups.Count)
+	#end
+#elseif($links == 'sync')
+	#set ($linksToShow = 100)
+#end
+
+#set ($display = $core_v2_widget.GetStringValue('display', 'expanded'))
+#if ($display == 'collapsed')
+	#set ($linksToShow = 0)
+#end
+
+#set ($containerId = $core_v2_widget.UniqueId('container'))
+
+#if($links == 'sync')
+	## stub content so still renders
+	<span></span>
+	#registerEndOfPageHtml()
+		<script type="text/html" id="$core_v2_encoding.HtmlAttributeEncode($synchronizedLinksTemplateId)">
+			<div class="ui-links navigation-list links"
+				data-minlinks="0"
+				data-direction="$core_v2_encoding.HtmlAttributeEncode($layout)"
+				data-maxlinks="$linksToShow">
+				<ul class="navigation-list">
+					<% foreach(links, function(link) { %>
+						<li class="navigation-list-item">
+							<a href="<%: link.url %>"><%= link.label %></a>
+						</li>
+					<% }); %>
+					<li class="navigation-list-item">
+						<a href="#" data-more>$moreLabel</a>
+					</li>
+					<li class="navigation-list-item">
+						<a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+					</li>
+				</ul>
+			</div>
+		</script>
+		<script type="text/javascript">
+			jQuery(function(j){
+				var template;
+				var wrapper = j('#$core_v2_widget.WrapperElementId .content-fragment-content');
+				j.telligent.evolution.messaging.subscribe('navigation.siteNavigationContent', function(data){
+					template = template || j.telligent.evolution.template.compile('$synchronizedLinksTemplateId');
+					wrapper.html(template({
+						links: data.items
+					}));
+				});
+			});
+		</script>
+	#end
+#elseif($links == 'custom')
+	#foreach ($link in $navigationItems)
+	#beforeall
+		<div class="ui-links navigation-list links"
+			id="$core_v2_encoding.HtmlAttributeEncode($containerId)"
+			data-minlinks="0"
+			data-direction="$core_v2_encoding.HtmlAttributeEncode($layout)"
+			data-maxlinks="$linksToShow">
+			<ul class="navigation-list">
+	#each
+				<li class="navigation-list-item #if ($link.Children) hasChildren #end">
+					<a href="$core_v2_encoding.HtmlAttributeEncode($link.Url)" #if($link.IsSelected) class="selected" #end>$link.Label</a>
+					#if ($link.Children)
+						#foreach ($subLink in $link.Children)
+						#beforeall
+							<ul class="children" style="display:none">
+						#each
+							<li>
+								<a href="$core_v2_encoding.HtmlAttributeEncode($subLink.Url)" #if($subLink.IsSelected) class="selected" #end>$subLink.Label</a>
+							</li>
+						#afterall
+							</ul>
+						#end
+					#end
+
+				</li>
+	#afterall
+				<li class="navigation-list-item">
+					<a href="#" data-more>$moreLabel</a>
+				</li>
+				<li class="navigation-list-item">
+					<a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+				</li>
+			</ul>
+		</div>
+	#end
+#elseif($links == 'groups')
+	#set ($currentGroup = $core_v2_group.Current)
+	#set ($currentGroupPath = $core_v2_group.CurrentGroupPath)
+	#foreach ($group in $groups)
+	#beforeall
+		<div class="ui-links navigation-list links"
+			id="$core_v2_encoding.HtmlAttributeEncode($containerId)"
+			data-minlinks="0"
+			data-direction="$core_v2_encoding.HtmlAttributeEncode($layout)"
+			data-maxlinks="$linksToShow">
+			<ul class="navigation-list">
+	#each
+				<li class="navigation-list-item  #if($group.HasGroups) withSubGroups #end">
+					#set ($selected = false)
+					#foreach ($groupPathComponent in $currentGroupPath)
+						#if ($groupPathComponent.Id == $group.Id)
+							#set ($selected = true)
+						#end
+					#end
+					<a data-groupid="$group.Id" href="$core_v2_encoding.HtmlAttributeEncode($group.Url)" #if($selected) class="selected" #end>
+						$group.Name
+					</a>
+
+					#if ($includeSubGroups)
+						#set ($subGroups = $core_v2_group.List("%{ PageIndex = $pageIndex, PageSize = 15, SortBy = 'SortOrder', SortOrder = 'Ascending', ParentGroupId=$group.Id }"))
+						#foreach ($subGroup in $subGroups)
+						#beforeall
+							<ul class="children" style="display:none">
+						#each
+							<li>
+								#set ($selected = false)
+								#foreach ($groupPathComponent in $currentGroupPath)
+									#if ($groupPathComponent.Id == $subGroup.Id)
+										#set ($selected = true)
+									#end
+								#end
+								<a href="$core_v2_encoding.HtmlAttributeEncode($subGroup.Url)" #if($selected) class="selected" #end>$subGroup.Name</a>
+							</li>
+						#afterall
+							#if ($subGroups.TotalCount > $subGroups.Count)
+								#set ($difference = $subGroups.TotalCount - $subGroups.Count)
+								#set ($groupListUrl = false)
+								#set ($groupListUrl = $core_v2_groupUrls.SubGroupList($group.Id))
+								#if ($groupListUrl)
+									<li>
+										<a href="$core_v2_encoding.HtmlAttributeEncode($groupListUrl)">
+											$core_v2_language.FormatString($core_v2_language.GetResource('MoreGroupsCount'), $difference.ToString())
+										</a>
+									</li>
+								#end
+							#end
+							</ul>
+						#end
+					#end
+
+				</li>
+	#afterall
+				#if ($groups.Count < $groups.TotalCount) *#
+					<li class="navigation-list-item">
+						<a href="$core_v2_encoding.HtmlAttributeEncode($core_v2_groupUrls.Home())">$core_v2_language.GetResource('MoreGroups')</a>
+					</li>
+				#end
+				<li class="navigation-list-item">
+					<a href="#" data-more>$moreLabel</a>
+				</li>
+				<li class="navigation-list-item">
+					<a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+				</li>
+			</ul>
+		</div>
+	#end
+#end
+#if ($layout == 'horizontal')
+	#registerEndOfPageHtml()
+		<script>
+		jQuery(function(j){
+			// no sub-nav on touch
+			if(j('body').hasClass('touch'))
+				return;
+
+			var container = j('#$containerId');
+			var popup;
+			var currentParent;
+			var hideTimeoutHandle;
+
+			function hideLinksPopup() {
+				if(popup) {
+					popup.glowPopUpPanel('hide', true);
+					$(currentParent).removeClass('subnav-open');
+					currentParent = null;
+				}
+			}
+			
+			// provided by Ben to correct the navigation flicker issue
+			function mouseOut() {
+			    window.clearTimeout(hideTimeoutHandle);
+				hideTimeoutHandle = window.setTimeout(function() { 
+				    hideLinksPopup();
+				}, 300);
+			}
+			
+			function mouseOver() {
+			    window.clearTimeout(hideTimeoutHandle);
+			}
+            /////////////////////
+            
+			function showLinksPopUp(parent, children) {
+				parent.addClass('subnav-open');
+				if(currentParent == parent.get(0)) {
+					return;
+				}
+
+				var links = j('<ul></ul>').append(children);
+				/*links.on('mouseleave', function(e){
+					if(e.relatedTarget != parent.get(0))
+						hideLinksPopup();
+				});*/
+
+				if(popup) {
+					hideLinksPopup();
+					popup.glowPopUpPanel('empty', '')
+						.glowPopUpPanel('append', links)
+						.glowPopUpPanel('show', parent);
+				} else {
+					popup = j('<div></div>')
+						.glowPopUpPanel({
+							cssClass: 'links-popup-panel',
+							zIndex: 1500,
+							hideOnDocumentClick: true
+						})
+						// Ben's update
+						.on('glowPopUpPanelMouseOut', function() {
+						    mouseOut();
+						})
+						.on('glowPopUpPanelMouseOver', function() {
+						    mouseOver();
+						})
+						///////////
+						.glowPopUpPanel('append', links)
+						.glowPopUpPanel('show', parent)
+				}
+				currentParent = parent.get(0);
+			}
+
+			container.on('mouseenter', '.navigation-list-item a', function(e){
+				var elm = j(e.target);
+				var children = elm.data('_link_children');
+				if(!children) {
+					children = elm.closest('li').find('ul.children > li');
+					elm.data('_link_children', children);
+				}
+				if(children && children.length > 0) {
+				    //window.clearTimeout(hideTimeoutHandle);
+				    mouseOver();
+					showLinksPopUp(elm, children);
+				}
+			});
+
+			container.on('mouseleave', '.navigation-list-item a', function(e){
+				/*if(!(e.relatedTarget &&
+					(j(e.relatedTarget).is('.links-popup-panel') ||
+					j(e.relatedTarget).closest('.links-popup-panel').length > 0))) {
+					window.clearTimeout(hideTimeoutHandle);
+					hideTimeoutHandle = window.setTimeout(function() { 
+					hideLinksPopup();
+					}, 150);
+				}*/
+				mouseOut();
+			});
+		});
+		</script>
+	#end
+#end
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Core_NavigationCustom_Name}'))
+		]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Core_NavigationCustom_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="links" dataType="string" resourceName="links" descriptionResourceName="links_description" defaultValue="custom" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="custom" resourceName="linksCustom" propertiesToShow="navigation" propertiesToHide="includeSubGroups" />
+		<propertyValue value="groups" resourceName="linksGroups" propertiesToShow="includeSubGroups" propertiesToHide="navigation"/>
+		<propertyValue value="sync" resourceName="linksSync" propertiesToHide="includeSubGroups,navigation"/>
+	</property>
+	<property id="includeSubGroups" resourceName="includeSubGroups" dataType="bool" defaultValue="true" />
+	<property id="navigation" dataType="custom" controlType="Telligent.Evolution.Controls.CustomNavigationCustomControl, Telligent.Evolution.Platform" maximumDepth="2" resourceName="customNavigation" descriptionResourceName="customNavigation_description" navigationType="site" />
+	<property id="layout" resourceName="layout" dataType="string" defaultValue="vertical">
+		<propertyValue value="vertical" resourceName="layoutVertical" />
+		<propertyValue value="horizontal" resourceName="layoutHorizontal" />
+	</property>
+	<property id="display" dataType="string" resourceName="display" descriptionResourceName="display_description" defaultValue="expanded" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="expanded" resourceName="displayExpanded" propertiesToHide="moreLabel"/>
+		<propertyValue value="collapsed" resourceName="displayCollapsed" propertiesToShow="moreLabel"/>
+	</property>
+	<property id="moreLabel" resourceName="moreLabel" descriptionResourceName="moreLabel_Description" dataType="string" defaultValue="${resource:more}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="cancel">Cancel</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Core_NavigationCustom_Description">Renders navigation links based on groups, custom navigation list, or site banner links</resource>
+  <resource name="Core_NavigationCustom_Name">Navigation</resource>
+  <resource name="Core_NavigationCustom_Name_SubCommunities">Sub-Communities</resource>
+  <resource name="customNavigation">Custom Navigation Items</resource>
+  <resource name="customNavigation_description">Add, edit, delete, and reorder custom navigation items.</resource>
+  <resource name="display">Display</resource>
+  <resource name="display_description">When collapsed, links are hidden by default behind an expansion link which displays them</resource>
+  <resource name="displayCollapsed">Collapsed</resource>
+  <resource name="displayExpanded">Expanded</resource>
+  <resource name="includeSubGroups">Include Sub Groups</resource>
+  <resource name="layout">Layout</resource>
+  <resource name="layoutHorizontal">Horizontal</resource>
+  <resource name="layoutVertical">Vertical</resource>
+  <resource name="links">Links</resource>
+  <resource name="links_description">Links can be defined by this widget instance or synchronized with custom links configured in the Site Banner</resource>
+  <resource name="linksCustom">Custom</resource>
+  <resource name="linksGroups">Groups</resource>
+  <resource name="linksSync">Synchronized</resource>
+  <resource name="more">More</resource>
+  <resource name="MoreGroups">All Groups</resource>
+  <resource name="MoreGroupsCount">{0} More</resource>
+  <resource name="moreLabel">Expand Link Label</resource>
+  <resource name="moreLabel_Description">Labels the link to expand collapsed links</resource>
+  <resource name="navigation_communities">Communities</resource>
+  <resource name="navigation_content">Content</resource>
+  <resource name="navigation_people">People</resource>
+  <resource name="NavigationItem_AndroidCommunity">Android Community</resource>
+  <resource name="NavigationItem_ArmApprovedProgram">Arm Approved Program</resource>
+  <resource name="NavigationItem_ARMBlog">Blog</resource>
+  <resource name="NavigationItem_ArmDesignReviews">Arm Design Reviews</resource>
+  <resource name="NavigationItem_ARMDevPlatform">Arm Dev Platforms</resource>
+  <resource name="NavigationItem_ArmPeople">Arm People</resource>
+  <resource name="NavigationItem_BlogReview">Arm Blog Review</resource>
+  <resource name="NavigationItem_Calendar">Calendar</resource>
+  <resource name="NavigationItem_ChineseCommunity">Chinese Community</resource>
+  <resource name="NavigationItem_Communities">Communities</resource>
+  <resource name="NavigationItem_CommunityHelp">Community Help</resource>
+  <resource name="NavigationItem_CommunityManagement">Community Management</resource>
+  <resource name="NavigationItem_Company">Company</resource>
+  <resource name="NavigationItem_Content">Activity</resource>
+  <resource name="NavigationItem_DesignStart">DesignStart</resource>
+  <resource name="NavigationItem_Documentation">Documentation</resource>
+  <resource name="NavigationItem_Downloads">Downloads</resource>
+  <resource name="NavigationItem_Embedded">Embedded</resource>
+  <resource name="NavigationItem_Forums">Forums</resource>
+  <resource name="NavigationItem_Graphics">Graphics &amp; Multimedia</resource>
+  <resource name="NavigationItem_GroupOwners">Group Owners</resource>
+  <resource name="NavigationItem_Ideas">Community feedback</resource>
+  <resource name="NavigationItem_IOT">Internet of Things</resource>
+  <resource name="NavigationItem_OpenSupportCase">Open a support case</resource>
+  <resource name="NavigationItem_PartnerBlogReview">Partner blog review</resource>
+  <resource name="NavigationItem_People">People</resource>
+  <resource name="NavigationItem_Processors">Processors</resource>
+  <resource name="NavigationItem_SOC">SoC Design</resource>
+  <resource name="NavigationItem_SoftwareTools">Software Tools</resource>
+  <resource name="NavigationItem_Support">Support</resource>
+  <resource name="NavigationItem_Training">Training</resource>
+  <resource name="NavigationItem_Trustzone">TrustZone for ARMv8-M</resource>
+  <resource name="NavigationItem_UniversityProgram">Arm University Program</resource>
+  <resource name="Options">Options</resource>
+</language>
+<language key="zh-cn">
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Core_NavigationCustom_Description">根据社区、自定义导航列表或网站横幅链接呈现导航链接</resource>
+  <resource name="Core_NavigationCustom_Name">导航</resource>
+  <resource name="Core_NavigationCustom_Name_SubCommunities">子版块</resource>
+  <resource name="customNavigation">自定义导航项目</resource>
+  <resource name="customNavigation_description">添加、编辑、删除和重新排序自定义导航项目。</resource>
+  <resource name="display">显示</resource>
+  <resource name="display_description">折叠后，缺省情况下链接将隐藏到显示它们的展开链接后</resource>
+  <resource name="displayCollapsed">已折叠</resource>
+  <resource name="displayExpanded">已展开</resource>
+  <resource name="includeSubGroups">包括子社区</resource>
+  <resource name="layout">布局</resource>
+  <resource name="layoutHorizontal">水平</resource>
+  <resource name="layoutVertical">垂直</resource>
+  <resource name="links">链接</resource>
+  <resource name="links_description">链接可由该小组件实例定义，或与网站横幅中配置的自定义链接同步</resource>
+  <resource name="linksCustom">自定义</resource>
+  <resource name="linksGroups">社区</resource>
+  <resource name="linksSync">已同步</resource>
+  <resource name="more">更多</resource>
+  <resource name="MoreGroups">所有社区</resource>
+  <resource name="MoreGroupsCount">另外 {0} 个</resource>
+  <resource name="moreLabel">展开链接标签</resource>
+  <resource name="moreLabel_Description">标记链接以展开已折叠的链接</resource>
+  <resource name="navigation_communities">社区板块</resource>
+  <resource name="navigation_content">内容</resource>
+  <resource name="navigation_people">用户</resource>
+  <resource name="NavigationItem_AndroidCommunity">Android社区</resource>
+  <resource name="NavigationItem_ARMBlog">Arm博客</resource>
+  <resource name="NavigationItem_ARMDevPlatform">Arm开发硬件平台</resource>
+  <resource name="NavigationItem_ArmPeople">Arm用户</resource>
+  <resource name="NavigationItem_BlogReview">Arm 博客评论</resource>
+  <resource name="NavigationItem_Calendar">日历</resource>
+  <resource name="NavigationItem_ChineseCommunity">中文社区</resource>
+  <resource name="NavigationItem_Communities">社区板块</resource>
+  <resource name="NavigationItem_CommunityHelp">社区求助</resource>
+  <resource name="NavigationItem_CommunityManagement"> 社区管理</resource>
+  <resource name="NavigationItem_Company">公司新闻</resource>
+  <resource name="NavigationItem_Content">内容</resource>
+  <resource name="NavigationItem_DesignStart">DesignStart</resource>
+  <resource name="NavigationItem_Embedded">嵌入式</resource>
+  <resource name="NavigationItem_Graphics">图像和多媒体</resource>
+  <resource name="NavigationItem_GroupOwners"> 集团业主</resource>
+  <resource name="NavigationItem_Ideas">想法</resource>
+  <resource name="NavigationItem_IOT">物联网</resource>
+  <resource name="NavigationItem_PartnerBlogReview">合作伙伴博客评论</resource>
+  <resource name="NavigationItem_People">用户</resource>
+  <resource name="NavigationItem_Processors">处理器</resource>
+  <resource name="NavigationItem_SOC">SoC设计</resource>
+  <resource name="NavigationItem_SoftwareTools">软件工具</resource>
+  <resource name="NavigationItem_Trustzone">TrustZone for ARMv8-M</resource>
+  <resource name="NavigationItem_UniversityProgram">Arm 大学课程</resource>
+  <resource name="Options">选项</resource>
+</language>
+<language key="zh-tw">
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Core_NavigationCustom_Description">根據社群、自訂導覽清單或網站橫幅連結呈現導覽連結</resource>
+  <resource name="Core_NavigationCustom_Name">導覽</resource>
+  <resource name="Core_NavigationCustom_Name_SubCommunities">子版塊</resource>
+  <resource name="customNavigation">自訂導覽項目</resource>
+  <resource name="customNavigation_description">新增、編輯、刪除和重新排序自訂導覽項目。</resource>
+  <resource name="display">顯示</resource>
+  <resource name="display_description">摺疊的連結依預設會隱%E8%97%8F在展開連結之後</resource>
+  <resource name="displayCollapsed">已摺疊</resource>
+  <resource name="displayExpanded"> 擴展</resource>
+  <resource name="includeSubGroups">包含子社群</resource>
+  <resource name="layout">配置</resource>
+  <resource name="layoutHorizontal">垂直</resource>
+  <resource name="layoutVertical">水平</resource>
+  <resource name="links">連結</resource>
+  <resource name="links_description">連結可由此 Widget 執行個體所定義，%E6%88%96與網站橫幅中設定的自訂連結同步處理</resource>
+  <resource name="linksCustom">自訂</resource>
+  <resource name="linksGroups">社群</resource>
+  <resource name="linksSync">已同步處理</resource>
+  <resource name="more">更多</resource>
+  <resource name="MoreGroups">所有社群</resource>
+  <resource name="MoreGroupsCount">{0} 更多</resource>
+  <resource name="moreLabel">展開連結標籤</resource>
+  <resource name="moreLabel_Description">展開已摺疊之連結的%E9%80%A3結標籤</resource>
+  <resource name="navigation_communities">社區版塊</resource>
+  <resource name="navigation_content">內容</resource>
+  <resource name="navigation_people">用戶</resource>
+  <resource name="NavigationItem_AndroidCommunity">android社区</resource>
+  <resource name="NavigationItem_ARMBlog">Arm博客</resource>
+  <resource name="NavigationItem_ARMDevPlatform">Arm 開發硬體平台</resource>
+  <resource name="NavigationItem_ArmPeople">Arm人</resource>
+  <resource name="NavigationItem_BlogReview">Arm博客評論</resource>
+  <resource name="NavigationItem_Calendar">日曆</resource>
+  <resource name="NavigationItem_ChineseCommunity">中文社区</resource>
+  <resource name="NavigationItem_Communities">社區版塊</resource>
+  <resource name="NavigationItem_CommunityHelp">社區求助</resource>
+  <resource name="NavigationItem_CommunityManagement"> 社区管理</resource>
+  <resource name="NavigationItem_Company">公司新聞</resource>
+  <resource name="NavigationItem_Content">內容</resource>
+  <resource name="NavigationItem_DesignStart">DesignStart</resource>
+  <resource name="NavigationItem_Embedded">嵌入式</resource>
+  <resource name="NavigationItem_Graphics">圖像和多媒體</resource>
+  <resource name="NavigationItem_GroupOwners">集团业主</resource>
+  <resource name="NavigationItem_Ideas">想法</resource>
+  <resource name="NavigationItem_IOT">物聯網</resource>
+  <resource name="NavigationItem_PartnerBlogReview">合作夥伴博客評論</resource>
+  <resource name="NavigationItem_People"> 人</resource>
+  <resource name="NavigationItem_Processors">處理器</resource>
+  <resource name="NavigationItem_SOC">SoC 設計</resource>
+  <resource name="NavigationItem_SoftwareTools">軟體工具</resource>
+  <resource name="NavigationItem_Trustzone">TrustZone for Armv8-M</resource>
+  <resource name="NavigationItem_UniversityProgram">Arm大學課程</resource>
+  <resource name="Options">選項</resource>
+</language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

@@ -1,0 +1,390 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Calendar_EventAddEdit_Name}" version="10.1.8.10498" description="${resource:Calendar_EventAddEdit_Description}" instanceIdentifier="82dced9f1b7a4eb68157ea4f1e3f5104" theme="" isCacheable="false" varyCacheByUser="false" showHeaderByDefault="true" cssClass="event-edit-widget">
+		<contentScript><![CDATA[#set ($userId = $core_v2_user.Accessing.Id)
+#set ($userTimeZoneId = $core_v2_user.Accessing.TimeZoneId)
+#set ($event = false)
+#set ($event = $calendar_v1_events.Current)
+#set ($calendar = $calendar_v1_calendars.Current)
+
+#set ($hasCreatePermission = $calendar_v1_calendars.HasPermission($calendar.Id,$calendar_v1_permissions.CreateEvent))
+#set ($hasEditPermission = $calendar_v1_calendars.HasPermission($calendar.Id,$calendar_v1_permissions.EditEvent))
+
+#if(!$hasCreatePermission || ($event && !$hasEditPermission))
+  $core_v2_widget.Hide()
+#end
+
+#set ($geocodingEnabled = false)
+#if ($geocoding_v1_core.IsEnabled)
+    #set ($geocodingEnabled = true)
+#end
+
+<div class="field-list-header"></div>
+<fieldset class="field-list">
+
+  <h1>
+    #if ($event)
+      $event.EventTitle
+    #else
+      $core_v2_language.GetResource('Event_New')
+    #end
+  </h1>
+
+  <div class="message error" id="$core_v2_widget.GetUniqueId('ErrorMessageId')" style="display:none;"></div>
+
+  <ul class="field-list">
+    <li class="field-item required event-title">
+      <label for="$core_v2_widget.UniqueId('title')" class="field-item-header">$core_v2_language.GetResource('EventTitleLabel')</label>
+      <span class="field-item-input">
+        <input type="text" id="$core_v2_widget.UniqueId('title')" name="$core_v2_widget.UniqueId('title')" size="60" value="#if ($event)$event.EventTitle#end" />
+      </span>
+      <span class="field-item-validation" style="display: none;"></span>
+    </li>
+
+    <li class="field-item event-location">
+      <label for="$core_v2_widget.UniqueId('location')" class="field-item-header">$core_v2_language.GetResource('EventLocationLabel')</label>
+      <span class="field-item-input">
+        <input type="text" id="$core_v2_widget.UniqueId('location')" name="$core_v2_widget.UniqueId('location')" size="60" value="#if ($event)$event.EventLocation#end" />
+      </span>
+      <span id="$core_v2_widget.UniqueId('map_check_area')" name="$core_v2_widget.UniqueId('map_check_area')">
+      	<input type="checkbox" id="$core_v2_widget.UniqueId('chkMap')" name="$core_v2_widget.UniqueId('chkMap')" /> <label for="$core_v2_widget.UniqueId('chkMap')">$core_v2_language.GetResource('Calendar_GetMap')</label>
+      </span>
+      <span class="field-item-validation" style="display: none;"></span>
+      <div id="$core_v2_widget.UniqueId('mapLoader')" name="$core_v2_widget.UniqueId('mapLoader')" class="mapLoader"></div>
+      <div id="$core_v2_widget.UniqueId('copyLocLink')" name="$core_v2_widget.UniqueId('copyLocLink')" class="copyLocLink"><a href="#" id="$core_v2_widget.UniqueId('copy_loc_link')" name="$core_v2_widget.UniqueId('copy_loc_link')" style="display:none;"></a></div>
+      <div id="$core_v2_widget.UniqueId('geocode_subform_wrapper')" name="$core_v2_widget.UniqueId('geocode_subform_wrapper')" class="geocode_subform_wrapper">
+         <input type="text" id="$core_v2_widget.UniqueId('txtLat')" name="$core_v2_widget.UniqueId('txtLat')" value="#if ($event && $event.Latitude >= -90 && $event.Latitude <= 90)$event.Latitude#end" />
+         <input type="text" id="$core_v2_widget.UniqueId('txtLng')" name="$core_v2_widget.UniqueId('txtLng')" value="#if ($event && $event.Longitude >= -180 && $event.Longitude <= 180)$event.Longitude#end"  />
+         <input type="text" id="$core_v2_widget.UniqueId('txtAddr')" name="$core_v2_widget.UniqueId('txtAddr')" value="#if ($event)$event.AddressString#end"  />
+      </div>
+    </li>
+
+    <li class="field-item event-url">
+      <label for="$core_v2_widget.UniqueId('url')" class="field-item-header">$core_v2_language.GetResource('EventUrlLabel')</label>
+      <span class="field-item-description">$core_v2_language.GetResource('EventUrlDescription')</span>
+      <span class="field-item-input">
+        <input type="text" id="$core_v2_widget.UniqueId('url')" name="$core_v2_widget.UniqueId('url')" size="60" value="#if ($event)$event.EventReferenceUrl#end" />
+      </span>
+      <span class="field-item-validation" style="display: none;"></span>
+    </li>
+
+    <li class="field-item required event-startdate">
+    <label for="$core_v2_widget.UniqueId('startDate')" class="field-item-header">$core_v2_language.GetResource('EventStartDateLabel')</label>
+    <span class="field-item-input">
+      #if ($event)
+        #set($timeZoneId = $event.TimeZone.Id)
+        #set($startDateValue = $event.EventStartDate)
+        #set($endDateValue = $event.EventEndDate)
+      #elseif ($core_v2_page.GetQueryStringValue('startDate'))
+        #set($startDateValue = $calendar_v1_UI.ParseDateTimeExact($core_v2_page.GetQueryStringValue('startDate')))
+        #if(!$startDate || $startDate.Year == 1)
+    	    #set ($startDate = $calendar_v1_UI.RoundUp($core_v2_utility.CurrentDate, 30))
+        #end
+        #set($endDateValue = $startDateValue.AddHours(1))
+    	#set($timeZoneId = $userTimeZoneId)
+      #else
+        #set($startDateValue = $calendar_v1_UI.RoundUp($core_v2_utility.CurrentDate, 30))
+        #set($endDateValue = $startDateValue.AddHours(1))
+        #set($timeZoneId = $userTimeZoneId)
+      #end
+      <input type="text" id="$core_v2_widget.UniqueId('startDate')" name="$core_v2_widget.UniqueId('startDate')" value="$core_v2_encoding.JavascriptEncode($startDateValue)" />
+    </span>
+    <span class="field-item-validation" style="display:none;"></span>
+  </li>
+  <li class="field-item event-enddate">
+    <label for="$core_v2_widget.UniqueId('endDate')" class="field-item-header">$core_v2_language.GetResource('EventEndDateLabel')</label>
+    <span class="field-item-input">
+      <input type="text" id="$core_v2_widget.UniqueId('endDate')" name="$core_v2_widget.UniqueId('endDate')" value="$core_v2_encoding.JavascriptEncode($endDateValue)" />
+    </span>
+    <span class="field-item-validation" style="display:none;"></span>
+  </li>
+
+    <li class="field-item setting-time-zone">
+      <label class="field-item-name" for="$core_v2_widget.UniqueId('timezone')">${core_v2_language.GetResource("EventTimeZone")}</label>
+      <span class="field-item-description">$core_v2_language.GetResource('EventTimeZoneDescription')</span>
+      <span class="field-item-input">
+          #foreach($timezone in $core_v2_configuration.TimeZones)
+          #beforeall
+            <select id="$core_v2_widget.UniqueId('timezone')" name="$core_v2_widget.UniqueId('timezone')" class="ui-select">
+          #each
+              <option value="$timezone.Id"#if ($timezone.Id == $timeZoneId) selected="selected"#end>$timezone.Name</option>
+          #afterall
+            </select>
+          #end
+      </span>
+    </li> 
+
+#set ($body='')
+#if ($event)
+    #set ($body = $event.EventRawDescription)
+#end
+
+    <li class="field-item required event-body">
+      <label for="$core_v2_widget.UniqueId('body')" class="field-item-header">$core_v2_language.GetResource('EventDescriptionLabel')</label>
+      <span class="field-item-input">$core_v2_editor.Render('body',"%{Width='100%', Height='250px', Value=$body, ContentTypeId=$calendar_v1_events.ContentTypeId}")</span>
+      <span class="field-item-validation" style="display:none;"></span>
+    </li>
+
+#set ($registrationTypeResourcePrefix = 'RegistrationType_')
+
+    <li class="field-item event-registration">
+      <label for="$core_v2_widget.UniqueId('registrationType')" class="field-item-header">$core_v2_language.GetResource('EventRegistrationTypeLabel')</label>
+      <select id="$core_v2_widget.UniqueId('registrationType')" class="ui-select">
+        #foreach ($type in $calendar_v1_events.RegistrationTypes)
+        #each
+          #set ($registrationTypeResorce = "$registrationTypeResourcePrefix$type.Value")
+          <option value="$type.Key" #if($event.RegistrationType == $type.Value) selected="selected"#end>$core_v2_language.GetResource($registrationTypeResorce)</option>
+        #end
+      </select>
+      <span class="field-item-validation" style="display:none;"></span>
+    </li>
+
+#set($canReadCalendar=$calendar_v1_calendars.HasAnonymousPermission($calendar.Id, $calendar_v1_permissions.ViewCalendar))
+#set ($tmpChecked = false)
+#if ($event)
+    #set ($tmpChecked = $event.AllowAnonymousRegistrations && $canReadCalendar)
+#end
+
+    <li class="field-item post-anonymous" #if(!$canReadCalendar)style="display:none;"#end>
+      <span class="field-item-input">
+				<input type="checkbox" id="$core_v2_widget.UniqueId('allowAnonymous')" #if($tmpChecked)checked="checked"#end />
+				<label for="$core_v2_widget.UniqueId('allowAnonymous')">$core_v2_language.GetResource('AllowAnonymousRegistrationLabel')</label>
+			</span>
+	  </li>
+
+    <li class="field-item event-maxregistrants" >
+        <label for="$core_v2_widget.UniqueId('maxRegistrations')" class="field-item-header">$core_v2_language.GetResource('EventMaxRegistrationLabel')</label>
+        <span class="field-item-input">
+          <input type="text" id="$core_v2_widget.UniqueId('maxRegistrations')" name="$core_v2_widget.UniqueId('maxRegistrations')" value="#if ($event)$event.MaximumRegistrationsAllowed#end" />
+        </span>
+        <span class="field-item-validation" style="display:none;"></span>
+    </li>
+
+    <li class="field-item post-tags">
+      <label for="$core_v2_widget.UniqueId('tags')" class="field-item-header">$core_v2_language.GetResource('CreateEditPost_Tags')</label>
+      <span class="field-item-input">
+        <input type="text" id="$core_v2_widget.UniqueId('tags')" value="$core_v2_utility.Join(', ', $event.Tags)" size="60" />
+      </span>
+    </li>
+
+  </ul>
+</fieldset>
+<div class="field-list-footer"></div>
+
+<div class="field-list-header"></div>
+<fieldset class="field-list save-event-form">
+    <ul class="field-list">
+    <li class="field-item save-button">
+      <span class="field-item-input">
+        <a href="javascript:void(0);" id="$core_v2_widget.UniqueId('save')" class="internal-link save-post button">
+          <span></span> $core_v2_language.GetResource('EventCreateButton')
+        </a>
+        <span class="processing" style="display: none;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+      </span>
+    </li>
+  </ul>
+</fieldset>
+<div class="field-list-footer"></div>
+
+#registerEndOfPageHtml('telligent.evolution.Calendar.widgets.eventeditui')
+<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+#end
+
+      #registerEndOfPageHtml()
+      <script type="text/javascript">
+      //<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+      jQuery(document).ready(function()
+      {
+    	      jQuery.telligent.evolution.Calendar.widgets.editevent.register({
+                 eventId: #if($event) $event.Id#else -1#end
+                ,calendarId: #if($calendar) $calendar.Id#else -1#end
+                ,applicationId: '$calendar.ApplicationId'
+                ,errorMessageId: '$core_v2_widget.UniqueId('ErrorMessageId')'
+                ,wrapperId: '$core_v2_widget.WrapperElementId'
+                #set($hourOffset = 0)
+                #set($hourOffset = $core_v2_configuration.GetTimeZone($timeZoneId, $startDateValue).HourOffset)
+                ,startDateHourOffset: $hourOffset
+                #set($hourOffset = 0)
+                #set($hourOffset = $core_v2_configuration.GetTimeZone($timeZoneId, $endDateValue).HourOffset)
+                ,endDateHourOffset: $hourOffset
+                ,elements : {
+                    save : '#$core_v2_widget.UniqueId('save')'
+                    ,maxRegistrations : $('.field-item.event-maxregistrants')
+                }
+                ,inputs: {
+                    startDate : '#$core_v2_widget.UniqueId('startDate')'
+                    ,endDate : '#$core_v2_widget.UniqueId('endDate')'
+                    ,eventTitle : '#$core_v2_widget.UniqueId('title')'
+                    ,location : '#$core_v2_widget.UniqueId('location')'
+                    ,url : '#$core_v2_widget.UniqueId('url')'
+                    ,registrationType : '#$core_v2_widget.UniqueId('registrationType')'
+                    ,allowAnonymous : '#$core_v2_widget.UniqueId('allowAnonymous')'
+                    ,maxRegistrations : '#$core_v2_widget.UniqueId('maxRegistrations')'
+                    ,tags : '#$core_v2_widget.UniqueId('tags')'
+                    ,timezone : '#$core_v2_widget.UniqueId('timezone')'
+                    ,save : '#$core_v2_widget.UniqueId('save')'
+                }
+                ,map: {
+                    geocodingEnabled: '$geocodingEnabled'
+                    ,map_check_area : '#$core_v2_widget.UniqueId('map_check_area')'
+                    ,chkMap : '#$core_v2_widget.UniqueId('chkMap')'
+                    ,txtLat : '#$core_v2_widget.UniqueId('txtLat')'
+                    ,txtLng : '#$core_v2_widget.UniqueId('txtLng')'
+                    ,txtAddr : '#$core_v2_widget.UniqueId('txtAddr')'
+                    ,mapLoader : '#$core_v2_widget.UniqueId('mapLoader')'
+                    ,copyLocLink : '#$core_v2_widget.UniqueId('copyLocLink')'
+                    ,geocode_subform_wrapper : '#$core_v2_widget.UniqueId('geocode_subform_wrapper')'
+                }
+                ,urls: {
+                     COPYADDRESSLINK : '<a href="#" onclick="doLocationCopy({Address});return false;">{CopyText}</a>'
+                }
+                ,resources: {
+                    titleIsMissing : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('event_validator_titleRequired'))'
+                    ,titleTooLong : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('event_validator_titleLength'))'
+                    ,locationTooLong : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('event_validator_locationLength'))'
+                    ,urlNotValid : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('event_validator_invalidUrl'))'
+                    ,descriptionIsMissing : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('event_validator_descriptionRequired'))'
+                    ,maxRegistrationsNotAnInteger : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('event_validator_invalidMax'))'
+                    ,invalidDate : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('event_validator_invalidDate'))'
+                    ,invalidDateRange : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('event_validator_invalidDateRange'))'
+                    ,saveErrorText : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Event_SaveError'))'
+                    ,Calendar_CopyLink_Text : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Calendar_CopyLink_Text'))'
+                    ,calendar_addedit_maperror : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_addedit_maperror'))'
+                    ,calendar_addedit_mapunknown : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_addedit_mapunknown'))'
+                    ,errorLoadingMap : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('MapErrorMessage'))'
+
+                }
+                , getBodyContent: function() { return $core_v2_editor.GetContentScript('body'); }
+                , attachBodyChangeScript: function(f) { $core_v2_editor.GetAttachOnChangeScript('body', 'f') }
+                , saveUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('save.vm'))'
+            });
+	      });
+      //<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+      </script>
+      #end
+      ]]></contentScript>
+		<headerScript><![CDATA[$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Calendar_EventAddEdit_Title}'))]]></headerScript>
+		<configuration><![CDATA[
+      <propertyGroup id="options" resourceName="Options">
+        <property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Calendar_EventAddEdit_Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+      </propertyGroup>
+      ]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="AllowAnonymousRegistrationLabel">Allow anonymous users to register</resource>
+  <resource name="calendar_addedit_maperror">There was an error processing the map.</resource>
+  <resource name="calendar_addedit_mapunknown">Could not find location. Try to be more specific.</resource>
+  <resource name="Calendar_CopyLink_Text">Did you mean </resource>
+  <resource name="Calendar_EventAddEdit_Description">Displays form for adding a new event or editing an existing event</resource>
+  <resource name="Calendar_EventAddEdit_Name">Event Calendar - Add/Edit Event</resource>
+  <resource name="Calendar_EventAddEdit_Title">Add/Edit Event</resource>
+  <resource name="Calendar_GetMap">Include a map</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="CreateEditPost_Tags">Tags</resource>
+  <resource name="Event_New">New Event</resource>
+  <resource name="Event_SaveError">Unable to save event, an error occurred.</resource>
+  <resource name="event_validator_descriptionRequired">Please enter a description</resource>
+  <resource name="event_validator_invalidDate">A start date is required.</resource>
+  <resource name="event_validator_invalidDateRange">The date range entered is not valid</resource>
+  <resource name="event_validator_invalidMax">Please enter a valid number</resource>
+  <resource name="event_validator_invalidUrl">Invalid Url</resource>
+  <resource name="event_validator_locationLength">Maximum location length is 256 characters</resource>
+  <resource name="event_validator_titleLength">Maximum title length is 256 characters</resource>
+  <resource name="event_validator_titleRequired">Title is required.</resource>
+  <resource name="EventCreateButton">Save</resource>
+  <resource name="EventDescriptionLabel">Description</resource>
+  <resource name="EventEndDateLabel">End</resource>
+  <resource name="EventLocationLabel">Location</resource>
+  <resource name="EventMaxRegistrationLabel">Maximum registrants</resource>
+  <resource name="EventRegistrationTypeLabel">Registrations</resource>
+  <resource name="EventStartDateLabel">Start</resource>
+  <resource name="EventTimeZone">Time Zone</resource>
+  <resource name="EventTimeZoneDescription">Identify event timezone to ensure that dates are shown relative to the event location.</resource>
+  <resource name="EventTitleLabel">Title</resource>
+  <resource name="EventUrlDescription">If this event has its own information site, provide that URL here.</resource>
+  <resource name="EventUrlLabel">Website</resource>
+  <resource name="MapErrorMessage">An error occurred while attempting to load the map.</resource>
+  <resource name="Options">Options</resource>
+  <resource name="RegistrationType_ApprovalRequired">Registration (RSVP)</resource>
+  <resource name="RegistrationType_InvitationOnly">Invitation only</resource>
+  <resource name="RegistrationType_NotSet">No registration required</resource>
+  <resource name="RegistrationType_Open">Registration (no RSVP)</resource>
+</language>
+<language key="zh-cn">
+  <resource name="AllowAnonymousRegistrationLabel">允许匿名用户注册</resource>
+  <resource name="calendar_addedit_maperror">处理地图时出错。</resource>
+  <resource name="calendar_addedit_mapunknown">%E6%89%BE不到位置。请尝试提供更明确的位置。</resource>
+  <resource name="Calendar_CopyLink_Text">您是指</resource>
+  <resource name="Calendar_EventAddEdit_Description">显示用于添加新活动或编辑现有活动的窗体</resource>
+  <resource name="Calendar_EventAddEdit_Name">活动日历 - 添加/编辑活动</resource>
+  <resource name="Calendar_EventAddEdit_Title">添加/编辑活动</resource>
+  <resource name="Calendar_GetMap">包括地图</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="CreateEditPost_Tags">标记</resource>
+  <resource name="Event_New">新建活动</resource>
+  <resource name="Event_SaveError">无法保存活动，已出现错误。</resource>
+  <resource name="event_validator_descriptionRequired">请输入描述</resource>
+  <resource name="event_validator_invalidDate">开始日期是必需的。</resource>
+  <resource name="event_validator_invalidDateRange">输入的日期范围无效</resource>
+  <resource name="event_validator_invalidMax">请输入有效数字</resource>
+  <resource name="event_validator_invalidUrl">无效的 URL</resource>
+  <resource name="event_validator_locationLength">位置的最大长度为 256 个字%E7%AC%A6</resource>
+  <resource name="event_validator_titleLength">标题的最大长度为 256 个字符</resource>
+  <resource name="event_validator_titleRequired">标题是必需的。</resource>
+  <resource name="EventCreateButton">保存</resource>
+  <resource name="EventDescriptionLabel">描述</resource>
+  <resource name="EventEndDateLabel">结束</resource>
+  <resource name="EventLocationLabel">位置</resource>
+  <resource name="EventMaxRegistrationLabel">最大注册者数</resource>
+  <resource name="EventRegistrationTypeLabel">注册</resource>
+  <resource name="EventStartDateLabel">开始</resource>
+  <resource name="EventTitleLabel">标题</resource>
+  <resource name="EventUrlDescription">如果此活动具有其自身的信息网站，请在此处提供相应 URL。</resource>
+  <resource name="EventUrlLabel">网站</resource>
+  <resource name="Options">选项</resource>
+  <resource name="RegistrationType_ApprovalRequired">注册(RSVP)</resource>
+  <resource name="RegistrationType_InvitationOnly">仅邀请</resource>
+  <resource name="RegistrationType_NotSet">不需要注册</resource>
+  <resource name="RegistrationType_Open">注册(无 RSVP)</resource>
+</language>
+<language key="zh-tw">
+  <resource name="AllowAnonymousRegistrationLabel">允許匿名使用者註冊</resource>
+  <resource name="calendar_addedit_maperror">處理地圖時發生錯誤。</resource>
+  <resource name="calendar_addedit_mapunknown">找不到地點。請提供更精確的位置。</resource>
+  <resource name="Calendar_CopyLink_Text">您的意思是</resource>
+  <resource name="Calendar_EventAddEdit_Description">顯示用於新增事件或編輯現有事件的表單</resource>
+  <resource name="Calendar_EventAddEdit_Name">事件行事曆 - 新增/編輯事件</resource>
+  <resource name="Calendar_EventAddEdit_Title">新增/編輯事件</resource>
+  <resource name="Calendar_GetMap">包含地圖</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="CreateEditPost_Tags">標記</resource>
+  <resource name="Event_New">新增事件</resource>
+  <resource name="Event_SaveError">發生錯誤，無法儲存事件。</resource>
+  <resource name="event_validator_descriptionRequired">請輸入描述</resource>
+  <resource name="event_validator_invalidDate">需要開始日期。</resource>
+  <resource name="event_validator_invalidDateRange">輸入的日期範圍無效</resource>
+  <resource name="event_validator_invalidMax">請輸入有效的數字</resource>
+  <resource name="event_validator_invalidUrl">無效的 URL</resource>
+  <resource name="event_validator_locationLength">地點長度上限為 256 個字元</resource>
+  <resource name="event_validator_titleLength">標題長度上限為 256 個字元</resource>
+  <resource name="event_validator_titleRequired">需要標題。</resource>
+  <resource name="EventCreateButton">儲存</resource>
+  <resource name="EventDescriptionLabel">描述</resource>
+  <resource name="EventEndDateLabel">結束</resource>
+  <resource name="EventLocationLabel">地點</resource>
+  <resource name="EventMaxRegistrationLabel">註冊人數上限</resource>
+  <resource name="EventRegistrationTypeLabel">註冊</resource>
+  <resource name="EventStartDateLabel">開始</resource>
+  <resource name="EventTitleLabel">標題</resource>
+  <resource name="EventUrlDescription">如果事件本身具有資訊網站，請在此提供 URL。</resource>
+  <resource name="EventUrlLabel">網站</resource>
+  <resource name="Options">選項</resource>
+  <resource name="RegistrationType_ApprovalRequired">註冊 (RSVP)</resource>
+  <resource name="RegistrationType_InvitationOnly">僅限邀請</resource>
+  <resource name="RegistrationType_NotSet">不需要註冊</resource>
+  <resource name="RegistrationType_Open">註冊 (無 RSVP)</resource>
+</language></languageResources>
+		<files>
+			<file name="save.vm">JGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoNCiNzZXQoJGNhbGVuZGFySWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdjYWxlbmRhcklkJykpKQ0KI3NldCgkY2FsZW5kYXIgPSBmYWxzZSkNCiNzZXQoJGNhbGVuZGFyID0gJGNhbGVuZGFyX3YxX2NhbGVuZGFycy5TaG93KCRjYWxlbmRhcklkKSkNCiNpZighJGNhbGVuZGFyKQ0KICAgICRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcignVGhlIHNwZWNpZmllZCBjYWxlbmRhciBub3QgYmUgcmV0cmlldmVkJykNCiNlbmQNCg0KI3NldCgkZXZlbnRJZCA9IGZhbHNlKQ0KI3NldCgkZXZlbnRJZCA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VJbnQoJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0V2ZW50SWQnKSkpDQoNCiNzZXQoJGJvZHkgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnQm9keScpKQ0KI3NldCgkb3B0aW9ucyA9ICIle0JvZHk9JGJvZHl9IikNCg0KI3NldCgkdGl0bGUgPSBmYWxzZSkNCiNzZXQoJHRpdGxlID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ1RpdGxlJykpDQojaWYoJHRpdGxlKQ0KCSRvcHRpb25zLkFkZCgnVGl0bGUnLCAkdGl0bGUpDQojZW5kDQoNCiNzZXQoJGxvY2F0aW9uID0gZmFsc2UpDQojc2V0KCRsb2NhdGlvbiA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdMb2NhdGlvbicpKQ0KI2lmKCRsb2NhdGlvbikNCgkkb3B0aW9ucy5BZGQoJ0xvY2F0aW9uJywgJGxvY2F0aW9uKQ0KI2VuZA0KDQojc2V0KCR1cmwgPSBmYWxzZSkNCiNzZXQoJHVybCA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdVcmwnKSkNCiNpZigkdXJsKQ0KCSRvcHRpb25zLkFkZCgnVXJsJywgJHVybCkNCiNlbmQNCg0KI3NldCgkdGltZVpvbmUgPSBmYWxzZSkNCiNzZXQoJHRpbWVab25lID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ1RpbWVab25lJykpDQojaWYoJHRpbWVab25lKQ0KCSRvcHRpb25zLkFkZCgnVGltZVpvbmVJZCcsICR0aW1lWm9uZSkNCiNlbmQNCg0KI3NldCgkc3RhcnREYXRlID0gZmFsc2UpDQojc2V0KCRzdGFydERhdGUgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlRGF0ZSgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnU3RhcnREYXRlJykpKQ0KI3NldCgkc3RhcnREYXRlSG91ck9mZnNldCA9IGZhbHNlKQ0KI3NldCgkc3RhcnREYXRlSG91ck9mZnNldCA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VEb3VibGUoJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ1N0YXJ0RGF0ZUhvdXJPZmZzZXQnKSkpDQojaWYgKCRzdGFydERhdGVIb3VyT2Zmc2V0ICYmICR0aW1lWm9uZSAmJiAkc3RhcnREYXRlKQ0KICAgICNzZXQoJGhvdXJPZmZzZXQgPSAkY29yZV92Ml9jb25maWd1cmF0aW9uLkdldFRpbWVab25lKCR0aW1lWm9uZSwgJHN0YXJ0RGF0ZSkuSG91ck9mZnNldCkNCiAgICAjc2V0KCRob3VyT2Zmc2V0ID0gJHN0YXJ0RGF0ZUhvdXJPZmZzZXQgLSAkaG91ck9mZnNldCkNCiAgICAjc2V0KCRzdGFydERhdGUgPSAkc3RhcnREYXRlLkFkZEhvdXJzKCRob3VyT2Zmc2V0KSkNCiNlbmQNCiNpZigkc3RhcnREYXRlKQ0KCSRvcHRpb25zLkFkZCgnU3RhcnREYXRlJywgJHN0YXJ0RGF0ZSkNCiNlbmQNCg0KI3NldCgkZW5kRGF0ZSA9IGZhbHNlKQ0KI3NldCgkZW5kRGF0ZSA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VEYXRlKCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdFbmREYXRlJykpKQ0KI3NldCgkZW5kRGF0ZUhvdXJPZmZzZXQgPSBmYWxzZSkNCiNzZXQoJGVuZERhdGVIb3VyT2Zmc2V0ID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZURvdWJsZSgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnRW5kRGF0ZUhvdXJPZmZzZXQnKSkpDQojaWYgKCRlbmREYXRlSG91ck9mZnNldCAmJiAkdGltZVpvbmUgJiYgJGVuZERhdGUpDQogICAgI3NldCgkaG91ck9mZnNldCA9ICRjb3JlX3YyX2NvbmZpZ3VyYXRpb24uR2V0VGltZVpvbmUoJHRpbWVab25lLCAkZW5kRGF0ZSkuSG91ck9mZnNldCkNCiAgICAjc2V0KCRob3VyT2Zmc2V0ID0gJGVuZERhdGVIb3VyT2Zmc2V0IC0gJGhvdXJPZmZzZXQpDQogICAgI3NldCgkZW5kRGF0ZSA9ICRlbmREYXRlLkFkZEhvdXJzKCRob3VyT2Zmc2V0KSkNCiNlbmQNCiNpZigkZW5kRGF0ZSkNCgkkb3B0aW9ucy5BZGQoJ0VuZERhdGUnLCAkZW5kRGF0ZSkNCiNlbmQNCg0KI3NldCgkcmVnaXN0cmF0aW9uVHlwZSA9IGZhbHNlKQ0KI3NldCgkcmVnaXN0cmF0aW9uVHlwZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdSZWdpc3RyYXRpb25UeXBlJykpDQojaWYoJHJlZ2lzdHJhdGlvblR5cGUpDQoJJG9wdGlvbnMuQWRkKCdSZWdpc3RyYXRpb25UeXBlJywgJHJlZ2lzdHJhdGlvblR5cGUpDQojZW5kDQoNCiNzZXQoJGFsbG93QW5vbnltb3VzID0gJy0xJykNCiNzZXQoJGFsbG93QW5vbnltb3VzID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0FsbG93QW5vbnltb3VzJykpICMjIDEvMC8tMQ0KI2lmICgkYWxsb3dBbm9ueW1vdXMgPT0gJzAnKQ0KCSRvcHRpb25zLkFkZCgnQWxsb3dBbm9ueW1vdXMnLCAnRmFsc2UnKQ0KI2Vsc2VpZiAoJGFsbG93QW5vbnltb3VzID09ICcxJykNCgkkb3B0aW9ucy5BZGQoJ0FsbG93QW5vbnltb3VzJywgJ1RydWUnKQ0KI2VuZA0KDQojc2V0KCRtYXhSZWdpc3RyYXRpb25zID0gZmFsc2UpDQojc2V0KCRtYXhSZWdpc3RyYXRpb25zID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ01heFJlZ2lzdHJhdGlvbnMnKSkNCiNpZigkbWF4UmVnaXN0cmF0aW9ucykNCgkkb3B0aW9ucy5BZGQoJ01heFJlZ2lzdHJhdGlvbnMnLCAkbWF4UmVnaXN0cmF0aW9ucykNCiNlbmQNCg0KI3NldCgkdGFncyA9IGZhbHNlKQ0KI3NldCgkdGFncyA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdUYWdzJykpDQojaWYgKCR0YWdzKQ0KCSRvcHRpb25zLkFkZCgnVGFncycsICR0YWdzKQ0KI2VuZA0KDQojc2V0KCRBZGRyZXNzID0gZmFsc2UpDQojc2V0KCRBZGRyZXNzID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0FkZHJlc3MnKSkNCiNpZigkQWRkcmVzcykNCgkkb3B0aW9ucy5BZGQoJ0FkZHJlc3MnLCAkQWRkcmVzcykNCiNlbHNlDQogICAgJG9wdGlvbnMuQWRkKCdBZGRyZXNzJywnJykNCiNlbmQNCg0KDQojc2V0KCRMYXRpdHVkZSA9IGZhbHNlKQ0KI3NldCgkTGF0aXR1ZGUgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnTGF0aXR1ZGUnKSkNCiNpZigkTGF0aXR1ZGUpDQoJJG9wdGlvbnMuQWRkKCdMYXRpdHVkZScsICRMYXRpdHVkZSkNCiNlbHNlDQogICAgJG9wdGlvbnMuQWRkKCdBZGRyZXNzJywnJykgICAgDQojZW5kDQoNCiNzZXQoJExvbmdpdHVkZSA9IGZhbHNlKQ0KI3NldCgkTG9uZ2l0dWRlID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0xvbmdpdHVkZScpKQ0KI2lmKCRMb25naXR1ZGUpDQoJJG9wdGlvbnMuQWRkKCdMb25naXR1ZGUnLCAkTG9uZ2l0dWRlKQ0KI2Vsc2UNCiAgICAkb3B0aW9ucy5BZGQoJ0FkZHJlc3MnLCcnKSAgICANCiNlbmQNCg0KI2lmKCRldmVudElkICYmICRldmVudElkID4gMCkNCiAgICAjc2V0KCRldmVudCA9ICRjYWxlbmRhcl92MV9ldmVudHMuVXBkYXRlKCRjYWxlbmRhcklkLCAkZXZlbnRJZCwgJG9wdGlvbnMpKQ0KI2Vsc2UNCgkjc2V0KCRldmVudCA9ICRjYWxlbmRhcl92MV9ldmVudHMuQ3JlYXRlKCRjYWxlbmRhcklkLCAkb3B0aW9ucykpDQoJI3NldCgkZXZlbnRJZCA9ICRldmVudC5JZCkNCiNlbmQNCg0KI2lmKCRldmVudC5FcnJvcnMuQ291bnQgPiAwKQ0KCSRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcigkZXZlbnQuRXJyb3JzKQ0KI2VuZA0KDQojaWYgKCEkZXZlbnQuQXBwcm92ZWQpDQoJeyJyZWRpcmVjdFVybCI6IiRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJGNhbGVuZGFyX3YxX3VybHMuRXZlbnQoJGV2ZW50SWQpKSJ9DQojZWxzZQkJDQoJeyJyZWRpcmVjdFVybCI6IiRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJGV2ZW50LlVybCkifQ0KI2VuZA0K</file>
+			<file name="ui.js">KGZ1bmN0aW9uICgkKSB7DQogICAgaWYgKHR5cGVvZiAkLnRlbGxpZ2VudCA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQgPSB7fTsgfQ0KICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSB7fTsgfQ0KICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID0ge307IH0NCiAgICBpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbi5DYWxlbmRhciA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLkNhbGVuZGFyID0ge307IH0NCiAgICBpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbi5DYWxlbmRhci53aWRnZXRzID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24uQ2FsZW5kYXIud2lkZ2V0cyA9IHt9OyB9DQoNCiAgICB2YXIgX2F0dGFjaEhhbmRsZXJzID0gZnVuY3Rpb24gKGNvbnRleHQpIHsNCiAgICAgICAgdmFyIHNhdmVCdXR0b24gPSAkKGNvbnRleHQuZWxlbWVudHMuc2F2ZSk7DQogICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5uYXZpZ2F0aW9uQ29uZmlybWF0aW9uLmVuYWJsZSgpOw0KICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ubmF2aWdhdGlvbkNvbmZpcm1hdGlvbi5yZWdpc3RlcihzYXZlQnV0dG9uKTsNCg0KICAgICAgICAkKGNvbnRleHQuaW5wdXRzLnJlZ2lzdHJhdGlvblR5cGUpLmNoYW5nZShmdW5jdGlvbiAoKSB7DQogICAgICAgICAgICBpZiAodGhpcy52YWx1ZSA9PSAnMCcpIHsNCiAgICAgICAgICAgICAgICBjb250ZXh0LmVsZW1lbnRzLm1heFJlZ2lzdHJhdGlvbnMuaGlkZSgpOw0KICAgICAgICAgICAgfQ0KICAgICAgICAgICAgZWxzZSB7DQogICAgICAgICAgICAgICAgY29udGV4dC5lbGVtZW50cy5tYXhSZWdpc3RyYXRpb25zLnNob3coKTsNCiAgICAgICAgICAgIH0NCiAgICAgICAgfSk7DQogICAgfSwNCl9zYXZlID0gZnVuY3Rpb24gKGNvbnRleHQpIHsNCg0KICAgICQoJy5wcm9jZXNzaW5nJykuc2hvdygpOw0KDQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KICAgICAgICB1cmw6IGNvbnRleHQuc2F2ZVVybCwNCiAgICAgICAgZGF0YTogX3BvcHVsYXRlRGF0YShjb250ZXh0KSwNCiAgIAkJc3VjY2VzczpmdW5jdGlvbiAocmVzcG9uc2UpIHsNCgkgICAgICAgIGlmIChyZXNwb25zZS5yZWRpcmVjdFVybCkgew0KCSAgICAgICAgICAgIHdpbmRvdy5sb2NhdGlvbiA9IHJlc3BvbnNlLnJlZGlyZWN0VXJsOw0KCSAgICAgICAgfQ0KCSAgICAgICAgZWxzZSBpZiAocmVzcG9uc2UuZXJyb3JzKSB7DQoJICAgICAgICAgICAgY29udGV4dC5pc1NhdmluZyA9IGZhbHNlOw0KCSAgICAgICAgICAgIGFsZXJ0KGNvbnRleHQucmVzb3VyY2VzLnNhdmVFcnJvclRleHQgKyAnXG5cbicgKyByZXNwb25zZS5lcnJvcnNbMF0uZXJyb3IpOw0KDQoJICAgICAgICAgICAgJChjb250ZXh0LmlucHV0cy5zYXZlKS5wYXJlbnQoKS5yZW1vdmVDbGFzcygncHJvY2Vzc2luZycpOw0KCSAgICAgICAgICAgICQoY29udGV4dC5pbnB1dHMuc2F2ZSkucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJICAgICAgICB9DQoJCX0sDQoJCWVycm9yOiBmdW5jdGlvbiAoeGhyLCBkZXNjLCBleCkgew0KCQkJaWYoeGhyLnJlc3BvbnNlSlNPTi5FcnJvcnMgIT0gbnVsbCAmJiB4aHIucmVzcG9uc2VKU09OLkVycm9ycy5sZW5ndGggPiAwKXsNCgkJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ubm90aWZpY2F0aW9ucy5zaG93KHhoci5yZXNwb25zZUpTT04uRXJyb3JzWzBdLHt0eXBlOidlcnJvcid9KTsNCgkJCX0NCgkJCWVsc2V7DQoJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyhkZXNjLHt0eXBlOidlcnJvcid9KTsNCgkJCX0NCgkgICAgICAgICQoY29udGV4dC5pbnB1dHMuc2F2ZSkucGFyZW50KCkucmVtb3ZlQ2xhc3MoJ3Byb2Nlc3NpbmcnKTsNCgkgICAgICAgICQoY29udGV4dC5pbnB1dHMuc2F2ZSkucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJICAgICAgICAkKCcucHJvY2Vzc2luZycpLmhpZGUoKTsNCgkgICAgICAgIGNvbnRleHQuaXNTYXZpbmcgPSBmYWxzZTsNCgkJfQ0KICAgIH0pOw0KfSwNCiAgICBfcmVtb3ZlVGltZXpvbmVPZmZzZXQgPSBmdW5jdGlvbihjb250ZXh0LCBkLCBzZWxlY3RlZE1pbnV0ZU9mZnNldCkgew0KICAgICAgICBpZiAoaXNOYU4oZCkpIHsNCiAgICAgICAgICAgIHJldHVybiBudWxsOw0KICAgICAgICB9DQogICAgICAgIGlmIChkID09IG51bGwgfHwgaXNOYU4oc2VsZWN0ZWRNaW51dGVPZmZzZXQpKSB7DQogICAgICAgICAgICByZXR1cm4gZDsNCiAgICAgICAgfQ0KICAgICAgICANCiAgICAgICAgdmFyIGN1cnJlbnRNaW51dGVPZmZzZXQgPSAtZC5nZXRUaW1lem9uZU9mZnNldCgpOw0KICAgICAgICBpZiAoc2VsZWN0ZWRNaW51dGVPZmZzZXQgPT0gY3VycmVudE1pbnV0ZU9mZnNldCkgew0KICAgICAgICAgICAgcmV0dXJuIGQ7DQogICAgICAgIH0gZWxzZSB7DQogICAgICAgICAgICByZXR1cm4gbmV3IERhdGUoZC5nZXRUaW1lKCkgKyAoKHNlbGVjdGVkTWludXRlT2Zmc2V0IC0gY3VycmVudE1pbnV0ZU9mZnNldCkgKiA2MDAwMCkpOw0KICAgICAgICB9DQogICAgfSwNCiAgICBfcG9wdWxhdGVEYXRhID0gZnVuY3Rpb24gKGNvbnRleHQpIHsNCiAgICAgICAgdmFyIGRhdGEgPSB7DQogICAgICAgICAgICBCb2R5OiBjb250ZXh0LmdldEJvZHlDb250ZW50KCksDQogICAgICAgICAgICBFdmVudElkOiBjb250ZXh0LmV2ZW50SWQsDQogICAgICAgICAgICBDYWxlbmRhcklkOiBjb250ZXh0LmNhbGVuZGFySWQsDQogICAgICAgICAgICBUaW1lWm9uZTogJChjb250ZXh0LmlucHV0cy50aW1lem9uZSkudmFsKCkNCiAgICAgICAgfTsNCg0KICAgICAgICBpZiAoJChjb250ZXh0LmlucHV0cy5ldmVudFRpdGxlKS5sZW5ndGggPiAwKSB7DQogICAgICAgICAgICBkYXRhLlRpdGxlID0gJChjb250ZXh0LmlucHV0cy5ldmVudFRpdGxlKS52YWwoKTsNCiAgICAgICAgfQ0KDQogICAgICAgIGlmICgkKGNvbnRleHQuaW5wdXRzLmxvY2F0aW9uKS5sZW5ndGggPiAwKSB7DQogICAgICAgICAgICBkYXRhLkxvY2F0aW9uID0gJChjb250ZXh0LmlucHV0cy5sb2NhdGlvbikudmFsKCk7DQogICAgICAgIH0NCg0KICAgICAgICBpZiAoJChjb250ZXh0LmlucHV0cy51cmwpLmxlbmd0aCA+IDApIHsNCiAgICAgICAgICAgIGRhdGEuVXJsID0gJChjb250ZXh0LmlucHV0cy51cmwpLnZhbCgpOw0KICAgICAgICB9DQogICAgICAgIA0KICAgICAgICANCiAgICAgICAgaWYgKCQoY29udGV4dC5pbnB1dHMuc3RhcnREYXRlKS5sZW5ndGggPiAwICYmICQoY29udGV4dC5pbnB1dHMuc3RhcnREYXRlKS52YWwoKSAhPSAnMCcpIHsNCiAgICAgICAgICAgIHZhciBkID0gJChjb250ZXh0LmlucHV0cy5zdGFydERhdGUpLmdsb3dEYXRlVGltZVNlbGVjdG9yKCd2YWwnKTsNCiAgICAgICAgICAgIGRhdGEuU3RhcnREYXRlID0gJC50ZWxsaWdlbnQuZXZvbHV0aW9uLmZvcm1hdERhdGUoZCk7DQogICAgICAgICAgICBkYXRhLlN0YXJ0RGF0ZUhvdXJPZmZzZXQgPSAtKGQuZ2V0VGltZXpvbmVPZmZzZXQoKSAvIDYwKTsNCiAgICAgICAgfQ0KDQogICAgICAgIGlmICgkKGNvbnRleHQuaW5wdXRzLmVuZERhdGUpLmxlbmd0aCA+IDAgJiYgJChjb250ZXh0LmlucHV0cy5lbmREYXRlKS52YWwoKSAhPSAnMCcpIHsNCiAgICAgICAgICAgIHZhciBkID0gJChjb250ZXh0LmlucHV0cy5lbmREYXRlKS5nbG93RGF0ZVRpbWVTZWxlY3RvcigndmFsJyk7DQogICAgICAgICAgICBkYXRhLkVuZERhdGUgPSAkLnRlbGxpZ2VudC5ldm9sdXRpb24uZm9ybWF0RGF0ZShkKTsNCiAgICAgICAgICAgIGRhdGEuRW5kRGF0ZUhvdXJPZmZzZXQgPSAtKGQuZ2V0VGltZXpvbmVPZmZzZXQoKSAvIDYwKTsNCiAgICAgICAgfQ0KDQogICAgICAgIGlmICgkKGNvbnRleHQuaW5wdXRzLnJlZ2lzdHJhdGlvblR5cGUpLmxlbmd0aCA+IDApIHsNCiAgICAgICAgICAgIGRhdGEuUmVnaXN0cmF0aW9uVHlwZSA9ICQoY29udGV4dC5pbnB1dHMucmVnaXN0cmF0aW9uVHlwZSkudmFsKCk7DQogICAgICAgIH0NCg0KICAgICAgICBpZiAoJChjb250ZXh0LmlucHV0cy5hbGxvd0Fub255bW91cykubGVuZ3RoID4gMCkgew0KICAgICAgICAgICAgZGF0YS5BbGxvd0Fub255bW91cyA9ICQoY29udGV4dC5pbnB1dHMuYWxsb3dBbm9ueW1vdXMpLmlzKCc6Y2hlY2tlZCcpID8gMSA6IDA7DQogICAgICAgIH0NCiAgICAgICAgZWxzZSB7DQogICAgICAgICAgICBkYXRhLkFsbG93QW5vbnltb3VzID0gLTE7DQogICAgICAgIH0NCg0KICAgICAgICBpZiAoJChjb250ZXh0LmlucHV0cy5tYXhSZWdpc3RyYXRpb25zKS5sZW5ndGggPiAwKSB7DQogICAgICAgICAgICBkYXRhLk1heFJlZ2lzdHJhdGlvbnMgPSAkKGNvbnRleHQuaW5wdXRzLm1heFJlZ2lzdHJhdGlvbnMpLnZhbCgpOw0KICAgICAgICB9DQoNCiAgICAgICAgaWYgKCQoY29udGV4dC5pbnB1dHMudGFncykubGVuZ3RoID4gMCkgew0KICAgICAgICAgICAgdmFyIGluVGFncyA9ICQoY29udGV4dC5pbnB1dHMudGFncykudmFsKCkuc3BsaXQoL1ssO10vZyk7DQogICAgICAgICAgICB2YXIgdGFncyA9IFtdOw0KICAgICAgICAgICAgZm9yICh2YXIgaSA9IDA7IGkgPCBpblRhZ3MubGVuZ3RoOyBpKyspIHsNCiAgICAgICAgICAgICAgICB2YXIgdGFnID0gJC50cmltKGluVGFnc1tpXSk7DQogICAgICAgICAgICAgICAgaWYgKHRhZykgew0KICAgICAgICAgICAgICAgICAgICB0YWdzW3RhZ3MubGVuZ3RoXSA9IHRhZzsNCiAgICAgICAgICAgICAgICB9DQogICAgICAgICAgICB9DQoNCiAgICAgICAgICAgIGRhdGEuVGFncyA9IHRhZ3Muam9pbignLCcpOw0KICAgICAgICB9DQoNCiAgICAgICAgaWYgKCQoY29udGV4dC5tYXAuY2hrTWFwKS5pcygnOmNoZWNrZWQnKSkgew0KICAgICAgICAgICAgaWYgKCQoY29udGV4dC5tYXAudHh0QWRkcikubGVuZ3RoID4gMCkgew0KICAgICAgICAgICAgICAgIGRhdGEuQWRkcmVzcyA9ICQoY29udGV4dC5tYXAudHh0QWRkcikudmFsKCk7DQogICAgICAgICAgICB9DQoNCiAgICAgICAgICAgIGlmICgkKGNvbnRleHQubWFwLnR4dExhdCkubGVuZ3RoID4gMCkgew0KICAgICAgICAgICAgICAgIGRhdGEuTGF0aXR1ZGUgPSAkKGNvbnRleHQubWFwLnR4dExhdCkudmFsKCk7DQogICAgICAgICAgICB9DQoNCiAgICAgICAgICAgIGlmICgkKGNvbnRleHQubWFwLnR4dExuZykubGVuZ3RoID4gMCkgew0KICAgICAgICAgICAgICAgIGRhdGEuTG9uZ2l0dWRlID0gJChjb250ZXh0Lm1hcC50eHRMbmcpLnZhbCgpOw0KICAgICAgICAgICAgfQ0KICAgICAgICB9DQogICAgICAgIGVsc2Ugew0KICAgICAgICAgICAgZGF0YS5BZGRyZXNzID0gJyc7DQogICAgICAgICAgICBkYXRhLkxhdGl0dWRlID0gJyc7DQogICAgICAgICAgICBkYXRhLkxvbmdpdHVkZSA9ICcnOw0KICAgICAgICB9DQoNCiAgICAgICAgcmV0dXJuIGRhdGE7DQogICAgfSwNCiAgICBfYWRkVmFsaWRhdGlvbiA9IGZ1bmN0aW9uIChjb250ZXh0KSB7DQogICAgICAgIHZhciBzYXZlQnV0dG9uID0gJChjb250ZXh0LmVsZW1lbnRzLnNhdmUpOw0KDQogICAgICAgIHNhdmVCdXR0b24uZXZvbHV0aW9uVmFsaWRhdGlvbih7DQogICAgICAgICAgICBvblZhbGlkYXRlZDogZnVuY3Rpb24gKGlzVmFsaWQsIGJ1dHRvbkNsaWNrZWQsIGMpIHsNCiAgICAgICAgICAgICAgICBpZiAoaXNWYWxpZCAmJiAhY29udGV4dC5pc1NhdmluZykgew0KICAgICAgICAgICAgICAgICAgICBzYXZlQnV0dG9uLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KICAgICAgICAgICAgICAgIH0gZWxzZSB7DQogICAgICAgICAgICAgICAgICAgIHNhdmVCdXR0b24uYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7DQogICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgfSwNCiAgICAgICAgICAgIG9uU3VjY2Vzc2Z1bENsaWNrOiBmdW5jdGlvbiAoZSkgew0KICAgICAgICAgICAgICAgIGlmICghY29udGV4dC5pc1NhdmluZykgew0KICAgICAgICAgICAgICAgICAgICBjb250ZXh0LmlzU2F2aW5nID0gdHJ1ZTsNCiAgICAgICAgICAgICAgICAgICAgc2F2ZUJ1dHRvbi5wYXJlbnQoKS5hZGRDbGFzcygncHJvY2Vzc2luZycpOw0KICAgICAgICAgICAgICAgICAgICBzYXZlQnV0dG9uLmFkZENsYXNzKCdkaXNhYmxlZCcpOw0KICAgICAgICAgICAgICAgICAgICBfc2F2ZShjb250ZXh0KTsNCiAgICAgICAgICAgICAgICB9DQogICAgICAgICAgICB9DQogICAgICAgIH0pDQogICAgICAgIC5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRGaWVsZCcsIGNvbnRleHQuaW5wdXRzLmV2ZW50VGl0bGUsDQogICAgCQl7DQogICAgCQkgICAgcmVxdWlyZWQ6IHRydWUsDQogICAgCQkgICAgbWF4bGVuZ3RoOiAyNTYsDQogICAgCQkgICAgbWVzc2FnZXM6IHsgcmVxdWlyZWQ6IGNvbnRleHQucmVzb3VyY2VzLnRpdGxlSXNNaXNzaW5nLCBtYXhsZW5ndGg6IGNvbnRleHQucmVzb3VyY2VzLnRpdGxlVG9vTG9uZyB9DQogICAgCQl9LA0KCQkJJChjb250ZXh0LmlucHV0cy5ldmVudFRpdGxlKS5jbG9zZXN0KCcuZmllbGQtaXRlbScpLmZpbmQoJy5maWVsZC1pdGVtLXZhbGlkYXRpb24nKSwgbnVsbCkNCiAgICAgICAgLmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEZpZWxkJywgY29udGV4dC5pbnB1dHMubG9jYXRpb24sDQogICAgICAgIAl7DQogICAgICAgIAkgICAgbWF4bGVuZ3RoOiAyNTYsDQogICAgICAgIAkgICAgbWVzc2FnZXM6IHsgbWF4bGVuZ3RoOiBjb250ZXh0LnJlc291cmNlcy5sb2NhdGlvblRvb0xvbmcgfQ0KICAgICAgICAJfSwNCiAgICAgICAgCSQoY29udGV4dC5pbnB1dHMubG9jYXRpb24pLmNsb3Nlc3QoJy5maWVsZC1pdGVtJykuZmluZCgnLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpLCBudWxsKQ0KICAgICAgICAuZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkRmllbGQnLCBjb250ZXh0LmlucHV0cy51cmwsDQogICAgICAgICAgICB7DQogICAgICAgICAgICAgICAgdXJsOiB0cnVlLA0KICAgICAgICAgICAgICAgIG1lc3NhZ2VzOiB7IG1heGxlbmd0aDogY29udGV4dC5yZXNvdXJjZXMudXJsTm90VmFsaWQgfQ0KICAgICAgICAgICAgfSwNCiAgICAgICAgICAgICQoY29udGV4dC5pbnB1dHMudXJsKS5jbG9zZXN0KCcuZmllbGQtaXRlbScpLmZpbmQoJy5maWVsZC1pdGVtLXZhbGlkYXRpb24nKSwgbnVsbCkNCiAgICAgICAgLmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEZpZWxkJywgY29udGV4dC5pbnB1dHMubWF4UmVnaXN0cmF0aW9ucywNCiAgICAgICAgICAgIHsNCiAgICAgICAgICAgICAgICBkaWdpdHM6IHRydWUsDQogICAgICAgICAgICAgICAgbWVzc2FnZXM6IHsgZGlnaXRzOiBjb250ZXh0LnJlc291cmNlcy5tYXhSZWdpc3RyYXRpb25zTm90QW5JbnRlZ2VyIH0NCiAgICAgICAgICAgIH0sDQogICAgICAgICAgICAkKGNvbnRleHQuaW5wdXRzLm1heFJlZ2lzdHJhdGlvbnMpLmNsb3Nlc3QoJy5maWVsZC1pdGVtJykuZmluZCgnLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpLCBudWxsKQ0KICAgICAgICAuZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkQ3VzdG9tVmFsaWRhdGlvbicsIGNvbnRleHQuaW5wdXRzLnN0YXJ0RGF0ZSwgZnVuY3Rpb24gKCkgew0KICAgICAgICAgICAgdmFyIHN0YXJ0RGF0ZVZhbHVlID0gJC50ZWxsaWdlbnQuZXZvbHV0aW9uLmZvcm1hdERhdGUoJChjb250ZXh0LmlucHV0cy5zdGFydERhdGUpLmdsb3dEYXRlVGltZVNlbGVjdG9yKCd2YWwnKSk7DQoNCiAgICAgICAgICAgIHJldHVybiBzdGFydERhdGVWYWx1ZSAhPSAiIjsNCiAgICAgICAgfSwNCiAgICAgICAgICAgICAgICBjb250ZXh0LnJlc291cmNlcy5pbnZhbGlkRGF0ZSwNCgkJJChjb250ZXh0LmlucHV0cy5zdGFydERhdGUpLmNsb3Nlc3QoJy5maWVsZC1pdGVtJykuZmluZCgnLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpLCBudWxsKTsNCg0KDQogICAgICAgIHNhdmVCdXR0b24uZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkQ3VzdG9tVmFsaWRhdGlvbicsIGNvbnRleHQuaW5wdXRzLmVuZERhdGUsIGZ1bmN0aW9uICgpIHsNCiAgICAgICAgICAgIHZhciBzdGFydCA9ICQudGVsbGlnZW50LmV2b2x1dGlvbi5mb3JtYXREYXRlKCQoY29udGV4dC5pbnB1dHMuc3RhcnREYXRlKS5nbG93RGF0ZVRpbWVTZWxlY3RvcigndmFsJykpOw0KICAgICAgICAgICAgdmFyIGVuZCA9ICQudGVsbGlnZW50LmV2b2x1dGlvbi5mb3JtYXREYXRlKCQoY29udGV4dC5pbnB1dHMuZW5kRGF0ZSkuZ2xvd0RhdGVUaW1lU2VsZWN0b3IoJ3ZhbCcpKTsNCg0KICAgICAgICAgICAgaWYgKHN0YXJ0ID09ICIiIHx8IGVuZCA9PSAiIikNCiAgICAgICAgICAgICAgICByZXR1cm4gdHJ1ZTsNCiAgICAgICAgICAgIGVsc2UNCiAgICAgICAgICAgICAgICByZXR1cm4gKHN0YXJ0IDwgZW5kKTsNCiAgICAgICAgfSwNCiAgICAgICAgICAgICAgICBjb250ZXh0LnJlc291cmNlcy5pbnZhbGlkRGF0ZVJhbmdlLA0KCQkkKGNvbnRleHQuaW5wdXRzLmVuZERhdGUpLmNsb3Nlc3QoJy5maWVsZC1pdGVtJykuZmluZCgnLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpLCBudWxsKTsNCg0KICAgICAgICAkKGNvbnRleHQuaW5wdXRzLnN0YXJ0RGF0ZSkub24oJ2dsb3dEYXRlVGltZVNlbGVjdG9yQ2hhbmdlJywgZnVuY3Rpb24gKCkgew0KCQkJc2F2ZUJ1dHRvbi5ldm9sdXRpb25WYWxpZGF0aW9uKCd2YWxpZGF0ZScpOw0KCQl9KTsNCg0KCQkkKGNvbnRleHQuaW5wdXRzLmVuZERhdGUpLm9uKCdnbG93RGF0ZVRpbWVTZWxlY3RvckNoYW5nZScsIGZ1bmN0aW9uICgpIHsNCgkJCXNhdmVCdXR0b24uZXZvbHV0aW9uVmFsaWRhdGlvbigndmFsaWRhdGUnKTsNCgkJfSk7DQoNCiAgICAgICAgY29udGV4dC5hdHRhY2hCb2R5Q2hhbmdlU2NyaXB0KHNhdmVCdXR0b24uZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkQ3VzdG9tVmFsaWRhdGlvbicsICdib2R5JywgZnVuY3Rpb24gKCkgew0KICAgICAgICAgICAgdmFyIGJvZHkgPSBjb250ZXh0LmdldEJvZHlDb250ZW50KCk7DQogICAgICAgICAgICByZXR1cm4gYm9keS5sZW5ndGggPiAwOw0KICAgICAgICB9LA0KICAgICAgICAgICAgICAgIGNvbnRleHQucmVzb3VyY2VzLmRlc2NyaXB0aW9uSXNNaXNzaW5nLCAnIycgKyBjb250ZXh0LndyYXBwZXJJZCArICcgLmZpZWxkLWl0ZW0uZXZlbnQtYm9keSAuZmllbGQtaXRlbS12YWxpZGF0aW9uJywgbnVsbA0KICAgICAgICAgICAgICAgICkpOw0KDQogICAgfTsNCg0KICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5DYWxlbmRhci53aWRnZXRzLmVkaXRldmVudCA9IHsNCiAgICAgICAgcmVnaXN0ZXI6IGZ1bmN0aW9uIChjb250ZXh0KSB7DQogICAgICAgICAgICB2YXIgc2VsZWN0ZWRNaW51dGVPZmZzZXQgPSAkKGNvbnRleHQuaW5wdXRzLnRpbWV6b25lKS52YWwoKTsNCiAgICAgICAgICAgIHNlbGVjdGVkTWludXRlT2Zmc2V0ID0gcGFyc2VJbnQoc2VsZWN0ZWRNaW51dGVPZmZzZXQuc3BsaXQoL1w6LylbMF0sIDEwKTsNCg0KICAgICAgICAgICAgJChjb250ZXh0LmlucHV0cy5zdGFydERhdGUpDQogICAgICAgICAgICAudmFsKF9yZW1vdmVUaW1lem9uZU9mZnNldChjb250ZXh0LCBuZXcgRGF0ZSgkKGNvbnRleHQuaW5wdXRzLnN0YXJ0RGF0ZSkudmFsKCkpLCBjb250ZXh0LnN0YXJ0RGF0ZUhvdXJPZmZzZXQgKiA2MCkudG9JU09TdHJpbmcoKSkNCiAgICAgICAgICAgIC5nbG93RGF0ZVRpbWVTZWxlY3RvcigNCiAgICAgICAgICAgICAgICAkLmV4dGVuZCgNCiAgICAgICAgICAgICAgICAgICAge30sDQogICAgICAgICAgICAgICAgICAgICQuZm4uZ2xvd0RhdGVUaW1lU2VsZWN0b3IuZGF0ZVRpbWVEZWZhdWx0cywgew0KICAgICAgICAgICAgICAgICAgICAgICAgc2hvd1BvcHVwOiB0cnVlLA0KICAgICAgICAgICAgICAgICAgICAgICAgYWxsb3dCbGFua3ZhbHVlOiBmYWxzZSwNCiAgICAgICAgICAgICAgICAgICAgfSkNCiAgICAgICAgICAgICk7DQoNCiAgICAgICAgICAgICQoY29udGV4dC5pbnB1dHMuZW5kRGF0ZSkNCiAgICAgICAgICAgIC52YWwoX3JlbW92ZVRpbWV6b25lT2Zmc2V0KGNvbnRleHQsIG5ldyBEYXRlKCQoY29udGV4dC5pbnB1dHMuZW5kRGF0ZSkudmFsKCkpLCBjb250ZXh0LmVuZERhdGVIb3VyT2Zmc2V0ICogNjApLnRvSVNPU3RyaW5nKCkpDQogICAgICAgICAgICAuZ2xvd0RhdGVUaW1lU2VsZWN0b3IoDQogICAgICAgICAgICAgICAgJC5leHRlbmQoDQogICAgICAgICAgICAgICAgICAgIHt9LA0KICAgICAgICAgICAgICAgICAgICAkLmZuLmdsb3dEYXRlVGltZVNlbGVjdG9yLmRhdGVUaW1lRGVmYXVsdHMsIHsNCiAgICAgICAgICAgICAgICAgICAgICAgIHNob3dQb3B1cDogdHJ1ZSwNCiAgICAgICAgICAgICAgICAgICAgICAgIGFsbG93Qmxhbmt2YWx1ZTogdHJ1ZSwNCiAgICAgICAgICAgICAgICAgICAgfSkNCiAgICAgICAgICAgICk7DQoNCiAgICAgICAgICAgIGlmICgkKGNvbnRleHQuaW5wdXRzLnJlZ2lzdHJhdGlvblR5cGUpLnZhbCgpID09ICcwJykgew0KICAgICAgICAgICAgICAgIGNvbnRleHQuZWxlbWVudHMubWF4UmVnaXN0cmF0aW9ucy5oaWRlKCk7DQogICAgICAgICAgICB9DQoNCiAgICAgICAgICAgICQoY29udGV4dC5pbnB1dHMudGFncykuZXZvbHV0aW9uVGFnVGV4dEJveCh7IGFwcGxpY2F0aW9uSWQ6IGNvbnRleHQuYXBwbGljYXRpb25JZCB9KTsNCg0KDQogICAgICAgICAgICBfYXR0YWNoSGFuZGxlcnMoY29udGV4dCk7DQogICAgICAgICAgICBfYWRkVmFsaWRhdGlvbihjb250ZXh0KTsNCg0KICAgICAgICAgICAgaWYgKGNvbnRleHQubWFwLmdlb2NvZGluZ0VuYWJsZWQgPT0gJ1RydWUnIHx8IGNvbnRleHQubWFwLmdlb2NvZGluZ0VuYWJsZWQgPT0gJ3RydWUnKSB7DQogICAgICAgICAgICAgICAgTWFwSW5pdChjb250ZXh0KTsNCiAgICAgICAgICAgIH0gZWxzZSB7DQogICAgICAgICAgICAgICAgJChjb250ZXh0Lm1hcC5tYXBfY2hlY2tfYXJlYSkuaGlkZSgpOw0KICAgICAgICAgICAgfQ0KICAgICAgICB9DQogICAgfTsNCg0KDQogICAgTWFwSW5pdCA9IGZ1bmN0aW9uIChjb250ZXh0KSB7DQoNCiAgICAgICAgaWYgKCQoY29udGV4dC5tYXAudHh0TGF0KS52YWwoKSAhPSAnJyAmJiAkKGNvbnRleHQubWFwLnR4dExuZykudmFsKCkgIT0gJycpIHsNCiAgICAgICAgICAgICQoY29udGV4dC5tYXAuY2hrTWFwKS5hdHRyKCdjaGVja2VkJywgdHJ1ZSk7DQogICAgICAgIH0NCg0KICAgICAgICBpZiAoJChjb250ZXh0LmlucHV0cy5sb2NhdGlvbikudmFsKCkgIT0gJycgJiYgJChjb250ZXh0Lm1hcC5jaGtNYXApLmlzKCc6Y2hlY2tlZCcpKSB7DQogICAgICAgICAgICBHZXRNYXAoY29udGV4dCwgJChjb250ZXh0LmlucHV0cy5sb2NhdGlvbikudmFsKCkpDQogICAgICAgIH0NCg0KICAgICAgICAkKGNvbnRleHQuaW5wdXRzLmxvY2F0aW9uKS5jaGFuZ2UoDQogICAgICAgICAgICAgICAgIGZ1bmN0aW9uIChvYmpFdmVudCkgew0KICAgICAgICAgICAgICAgICAgICAgaWYgKCQoY29udGV4dC5tYXAuY2hrTWFwKS5pcygnOmNoZWNrZWQnKSkgew0KICAgICAgICAgICAgICAgICAgICAgICAgICQoY29udGV4dC5tYXAuY29weUxvY0xpbmspLmh0bWwoJycpLmhpZGUoKS51bmJpbmQoJ2NsaWNrJyk7DQogICAgICAgICAgICAgICAgICAgICAgICAgR2V0TWFwKGNvbnRleHQsICQodGhpcykudmFsKCkpOw0KICAgICAgICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgICAgICB9DQogICAgICAgICAgICAgKTsNCiAgICAgICAgJChjb250ZXh0Lm1hcC5jaGtNYXApLmNsaWNrKGZ1bmN0aW9uIChvYmpFdmVudCkgew0KICAgICAgICAgICAgaWYgKCQoY29udGV4dC5tYXAuY2hrTWFwKS5pcygnOmNoZWNrZWQnKSkgew0KICAgICAgICAgICAgICAgIGlmICgkKGNvbnRleHQuaW5wdXRzLmxvY2F0aW9uKS52YWwoKSAhPSAnJykgew0KICAgICAgICAgICAgICAgICAgICBHZXRNYXAoY29udGV4dCwgJChjb250ZXh0LmlucHV0cy5sb2NhdGlvbikudmFsKCkpOw0KICAgICAgICAgICAgICAgIH0NCiAgICAgICAgICAgIH0NCiAgICAgICAgICAgIGVsc2Ugew0KICAgICAgICAgICAgICAgIGNsZWFyRGF0YShjb250ZXh0KTsNCiAgICAgICAgICAgIH0NCiAgICAgICAgfSk7DQogICAgfQ0KDQogICAgR2V0TWFwID0gZnVuY3Rpb24gKGNvbnRleHQsIHF1ZXJ5KSB7DQoNCiAgICAgICAgY2xlYXJNYXBFcnJvcihjb250ZXh0KTsNCiAgICAgICAgY2xlYXJEYXRhKGNvbnRleHQpOw0KICAgICAgICBpZiAocXVlcnkgPT0gJycpIHJldHVybjsNCiAgICAgICAgdmFyIGxvYWRlciA9ICQoY29udGV4dC5tYXAubWFwTG9hZGVyKTsNCiAgICAgICAgJChsb2FkZXIpLmh0bWwoJzxzcGFuIGNsYXNzPSJ1aS1sb2FkaW5nIiB3aWR0aD0iNDgiIGhlaWdodD0iNDgiPjwvc3Bhbj4nKTsNCiAgICAgICAgR2V0TWFwUmVzdWx0KGNvbnRleHQsIHF1ZXJ5KTsNCiAgICB9DQogICAgZnVuY3Rpb24gTG9hZE1hcChjb250ZXh0LCByZXN1bHQpIHsNCg0KICAgICAgICBpZiAocmVzdWx0ID09IG51bGwgfHwgcmVzdWx0LkxhdGl0dWRlID09IG51bGwgfHwgcmVzdWx0LkxvbmdpdHVkZSA9PSBudWxsIHx8IHJlc3VsdC5BZGRyZXNzU3RyaW5nID09IG51bGwpIHsgY2xlYXJEYXRhKGNvbnRleHQpOyBTZXRNYXBVbmtub3duKGNvbnRleHQpOyByZXR1cm47IH0NCiAgICAgICAgdmFyIGhhbmRsZXIgPSByZXN1bHQuTWFwVXJsDQogICAgICAgIGhhbmRsZXIgPSBoYW5kbGVyLnJlcGxhY2UoJzI1MHgyNTAnLCAnMjAweDIwMCcpOw0KDQogICAgICAgIHZhciBsb2FkZXIgPSAkKGNvbnRleHQubWFwLm1hcExvYWRlcik7DQogICAgICAgIHZhciBpbWcgPSBuZXcgSW1hZ2UoKTsNCg0KICAgICAgICAkKGNvbnRleHQubWFwLnR4dExhdCkudmFsKHJlc3VsdC5MYXRpdHVkZSk7DQogICAgICAgICQoY29udGV4dC5tYXAudHh0TG5nKS52YWwocmVzdWx0LkxvbmdpdHVkZSk7DQogICAgICAgICQoY29udGV4dC5tYXAudHh0QWRkcikudmFsKHJlc3VsdC5BZGRyZXNzU3RyaW5nKTsNCg0KICAgICAgICBpZiAoJChjb250ZXh0LmlucHV0cy5sb2NhdGlvbikudmFsKCkgIT0gcmVzdWx0LkFkZHJlc3NTdHJpbmcpIHsNCiAgICAgICAgICAgIHZhciBjb3B5SWQgPSAkKGNvbnRleHQubWFwLmNvcHlMb2NMaW5rKS5hdHRyKCdpZCcpICsgJ19jb3B5JzsNCiAgICAgICAgICAgICQoY29udGV4dC5tYXAuY29weUxvY0xpbmspLmh0bWwoW2NvbnRleHQucmVzb3VyY2VzLkNhbGVuZGFyX0NvcHlMaW5rX1RleHQsICc8YSBocmVmPSIjIiAnLCAnaWQ9IicsIGNvcHlJZCwgJyI+JywgcmVzdWx0LkFkZHJlc3NTdHJpbmcsICc8L2E+J10uam9pbignJykpLmZhZGVJbigpOw0KICAgICAgICAgICAgJChjb250ZXh0Lm1hcC5jb3B5TG9jTGluaykuZGVsZWdhdGUoJyMnICsgY29weUlkLCAiY2xpY2siLCBmdW5jdGlvbiAoKSB7DQogICAgICAgICAgICAgICAgJChjb250ZXh0LmlucHV0cy5sb2NhdGlvbikudmFsKHJlc3VsdC5BZGRyZXNzU3RyaW5nKTsNCiAgICAgICAgICAgICAgICAkKGNvbnRleHQubWFwLmNvcHlMb2NMaW5rKS5oaWRlKCk7DQogICAgICAgICAgICB9KTsNCiAgICAgICAgfQ0KDQogICAgICAgICQoaW1nKQ0KICAgICAgICAub24oJ2xvYWQnLCBmdW5jdGlvbigpew0KICAgICAgICAgICAgJCh0aGlzKS5oaWRlKCk7DQogICAgICAgICAgICAkKGxvYWRlcikucmVtb3ZlQ2xhc3MoJ2xvYWRpbmcnKS5odG1sKHRoaXMpOw0KICAgICAgICAgICAgJCh0aGlzKS5mYWRlSW4oKTsNCiAgICAgICAgfSkNCiAgICAgICAgLm9uKCdlcnJvcicsIGZ1bmN0aW9uKCkgeyANCiAgICAgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coY29udGV4dC5yZXNvdXJjZXMuZXJyb3JMb2FkaW5nTWFwLCB7IHR5cGU6ICd3YXJuaW5nJyB9KTsNCiAgICAgICAgICAgICQobG9hZGVyKS5yZW1vdmVDbGFzcygnbG9hZGluZycpLmh0bWwodGhpcyk7DQogICAgICAgIH0pDQogICAgICAgIC5hdHRyKCdzcmMnLCBoYW5kbGVyKTsNCg0KICAgIH0NCiAgICBTZXRNYXBFcnJvciA9IGZ1bmN0aW9uIChjb250ZXh0KSB7ICQoY29udGV4dC5tYXAubWFwTG9hZGVyKS5odG1sKGNvbnRleHQucmVzb3VyY2VzLmNhbGVuZGFyX2FkZGVkaXRfbWFwZXJyb3IpLmFkZENsYXNzKCdtZXNzYWdlJykuYWRkQ2xhc3MoJ2Vycm9yJyk7IH0NCiAgICBTZXRNYXBVbmtub3duID0gZnVuY3Rpb24gKGNvbnRleHQpIHsgJChjb250ZXh0Lm1hcC5tYXBMb2FkZXIpLmh0bWwoY29udGV4dC5yZXNvdXJjZXNjYWxlbmRhcl9hZGRlZGl0X21hcHVua25vd24pLmFkZENsYXNzKCdtZXNzYWdlJykuYWRkQ2xhc3MoJ2Vycm9yJyk7IH0NCiAgICBjbGVhck1hcEVycm9yID0gZnVuY3Rpb24gKGNvbnRleHQpIHsgJChjb250ZXh0Lm1hcC5tYXBMb2FkZXIpLmh0bWwoJycpLnJlbW92ZUNsYXNzKCdtZXNzYWdlJykucmVtb3ZlQ2xhc3MoJ2Vycm9yJyk7IH0NCiAgICBjbGVhckRhdGEgPSBmdW5jdGlvbiAoY29udGV4dCkgew0KICAgICAgICBjbGVhck1hcEVycm9yKGNvbnRleHQpOw0KDQogICAgICAgICQoY29udGV4dC5tYXAudHh0TGF0KS52YWwoJycpOw0KICAgICAgICAkKGNvbnRleHQubWFwLnR4dExuZykudmFsKCcnKTsNCiAgICAgICAgJChjb250ZXh0Lm1hcC50eHRBZGRyKS52YWwoJycpOw0KICAgICAgICAkKGNvbnRleHQubWFwLmNvcHlfbG9jX2xpbmspLmh0bWwoJycpLmhpZGUoKTsNCiAgICAgICAgJChjb250ZXh0Lm1hcC5tYXBMb2FkZXIpLmh0bWwoJycpOw0KICAgIH0NCg0KICAgIGZ1bmN0aW9uIEdldE1hcFJlc3VsdChjb250ZXh0LCBxdWVyeSkgew0KDQogICAgICAgIHZhciBtZXNzYWdlID0gWydxdWVyeT0nLCBxdWVyeSwgJyZpbmNsdWRlbWFwdXJsPXRydWUnXS5qb2luKCcnKTsNCg0KICAgICAgICAkLmFqYXgoew0KICAgICAgICAgICAgdHlwZTogIlBPU1QiLA0KICAgICAgICAgICAgdXJsOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvZ2VvY29kaW5nL2dlb2NvZGUuanNvbicsDQogICAgICAgICAgICBkYXRhOiBtZXNzYWdlLA0KICAgICAgICAgICAgY29udGVudFR5cGU6ICJhcHBsaWNhdGlvbi9qc29uOyBjaGFyc2V0PXV0Zi04IiwNCiAgICAgICAgICAgIGRhdGFUeXBlOiAianNvbiIsDQogICAgICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsNCiAgICAgICAgICAgICAgICBMb2FkTWFwKGNvbnRleHQsIHJlc3BvbnNlLkdlb2NvZGluZyk7DQogICAgICAgICAgICB9LA0KICAgICAgICAgICAgYmVmb3JlU2VuZDogZnVuY3Rpb24gKHhocikgew0KICAgICAgICAgICAgICAgIFRlbGxpZ2VudFV0aWxpdHkuV3JpdGVBdXRob3JpemF0aW9uSGVhZGVyKHhocik7DQogICAgICAgICAgICB9LA0KICAgICAgICAgICAgZXJyb3I6IGZ1bmN0aW9uIChyZXF1ZXN0LCB0ZXh0U3RhdHVzLCBlcnJvclRocm93bikgew0KICAgICAgICAgICAgICAgIFNldE1hcEVycm9yKGNvbnRleHQpOw0KICAgICAgICAgICAgfQ0KICAgICAgICB9KTsNCiAgICB9DQoNCn0pKGpRdWVyeSk7DQo=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

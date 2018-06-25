@@ -1,0 +1,222 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Idea_Create_Name}" version="10.1.8.10498" description="${resource:Idea_Create_Description}" instanceIdentifier="8f2eba6966c04afd9ee93aa6ee88ab3d" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="idea-create">
+		<contentScript><![CDATA[#set($userId = $core_v2_user.Accessing.Id)
+#set($group = false)
+#set($group = $core_v2_group.Current)
+#set($challenge = false)
+#set($challenge = $telligentIdeas_v1_challenges.Current)
+
+#if(!$group || !$challenge)
+  $core_v2_widget.Hide()
+#else
+
+  #set($idea = false)
+  #set($idea = $telligentIdeas_v1_ideas.Current)
+
+  #set($canCreate = $telligentIdeas_v1_ideaPermissions.CanCreateIdeas($challenge.Id))
+  #set($canEdit = ($idea.TotalVotes == 0 && $idea.Author.Id == $core_v2_user.Accessing.Id) || $telligentIdeas_v1_ideaPermissions.CanEditIdeas($challenge.Id))
+
+  #if (!$idea && !$canCreate)
+	<div id="$core_v2_widget.UniqueId('errorMessage')" class="message error">$core_v2_language.GetResource("CreateIdeaPermissionDenied")</div>
+  #elseif ($idea && !$canEdit)
+	<div id="$core_v2_widget.UniqueId('errorMessage')" class="message error">$core_v2_language.GetResource("EditIdeaPermissionDenied")</div>
+  #else
+
+	#set($canModerate = $telligentIdeas_v1_ideaPermissions.CanManageIdeaStatus($challenge.Id))
+
+	<div id="$core_v2_widget.UniqueId('form')">
+	  <div class="field-list-header"></div>
+	  <fieldset class="field-list">
+		#if ($idea)
+		  <h1>$idea.Name</h1>
+		#else
+		  <h1>$core_v2_language.GetResource("Idea_Create_Title")</h1>
+		#end
+
+		<ul class="field-list">
+		  <li class="field-item required idea-name">
+			<label class="field-item-header" for="$core_v2_widget.UniqueId('name')">$core_v2_language.GetResource("Name")</label>
+			<span class="field-item-input">
+			  <textarea rows="1" class="scaled" maxlength="256" id="$core_v2_widget.UniqueId('name')" name="$core_v2_widget.UniqueId('name')">$!core_v2_encoding.HtmlEncode($idea.Name)</textarea>
+			</span>
+			<span class="field-item-validation" style="display: none;"></span>
+		  </li>
+
+		<li class="field-item required idea-body">
+		  <label for="$core_v2_widget.UniqueId('body')" class="field-item-header">$core_v2_language.GetResource('Description')</label>
+		  <span class="field-item-input">$core_v2_editor.Render('body',"%{Width='100%', Height='250px', Value=$!idea.Description('raw'), ContentTypeId=$telligentIdeas_v1_ideas.ContentTypeId }")</span>
+		  <span class="field-item-validation" style="display:none;"></span>
+		</li>
+
+		<li class="field-item post-tags">
+		  #set($tags = '')
+		  #foreach($tag in $core_v2_tags.Get($idea.Id, $telligentIdeas_v1_ideas.ContentTypeId, "%{}"))
+		  #each
+			  #set($tags = "$tags$core_v2_encoding.JavascriptEncode($core_v2_encoding.HtmlDecode($tag.TagName))")
+		  #between
+			  #set($tags = "$tags,")
+		  #end
+			<label for="$core_v2_widget.UniqueId('Tags')" class="field-item-header">$core_v2_language.GetResource('CreateEditPost_Tags')</label>
+			<span class="field-item-input">
+				<input id="$core_v2_widget.UniqueId('TagBox')" type="text" value="$tags" size="70" />
+			</span>
+		</li>
+
+	#if($canModerate)
+		#set($statuses = $telligentIdeas_v1_statuses.List())
+		#set($statusKey = '')
+		#if($idea)
+		  #set($statusKey = $idea.Status.Key)
+		#end
+
+
+		#foreach ($status in $statuses)
+		#beforeall
+			<li class="field-item required status">
+				<label for="$core_v2_widget.UniqueId('status')" class="field-item-header">$core_v2_language.GetResource('Status')</label>
+				<span class="field-item-input">
+					<select id="$core_v2_widget.UniqueId('status')" name="$core_v2_widget.UniqueId('status')">
+		#each
+						<option value="$status.Key" #if($statusKey == $status.Key || ($statusKey == '' && $status.IsDefault))selected="selected"#end>$status.Name</option>
+		#afterall
+					</select>
+				</span>
+				<span class="field-item-validation" style="display: none;"></span>
+			</li>
+		#end
+
+			</li>
+
+			<li class="field-item idea-notes">
+			  <label for="$core_v2_widget.UniqueId('notes')" class="field-item-header">$core_v2_language.GetResource('Notes')</label>
+			  <span class="field-item-input">$core_v2_editor.Render('notes',"%{Width='100%', Height='250px', Value=$!idea.StatusNotes('raw'), ContentTypeId=$telligentIdeas_v1_ideas.ContentTypeId }")</span>
+			  <span class="field-item-validation" style="display:none;"></span>
+			</li>
+	#end
+
+			<li class="field-item create-post">
+				<span class="field-item-input">
+					<a href="javascript:void(0);" class="internal-link save-post disabled button" id="$core_v2_widget.UniqueId('save')">
+					  <span></span>$core_v2_language.GetResource('CreateButton')
+					</a>
+					<span class="processing" style="visibility: hidden;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+				</span>
+			</li>
+		</ul>
+	</fieldset>
+	  <div class="field-list-footer"></div>
+	</div>
+
+	#registerEndOfPageHtml('telligent.evolution.Ideation.widgets.addEditIdea')
+	  <script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+	#end
+
+	#registerEndOfPageHtml()
+
+	  <script type="text/javascript">
+	  //<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+	  jQuery(document).ready(function(j)
+	  {
+		j.telligent.evolution.Ideation.widgets.addEditIdea.register({
+		  wrapperId:'$core_v2_widget.WrapperElementId'
+		  ,save: j('#$core_v2_widget.UniqueId('save')')
+		  ,nameInput:"#$core_v2_widget.UniqueId('name')"
+		  ,statusId:"$core_v2_widget.UniqueId('status')"
+		  ,ideaId:#if($idea)'$idea.Id'#else'00000000-0000-0000-0000-000000000000'#end
+		  ,groupId:$group.Id
+		  ,appId:'$challenge.Id'
+		  ,applicationId:'$challenge.ApplicationId'
+		  ,userId:$userId
+		  ,getBodyContent: function() { return $core_v2_editor.GetContentScript('body'); }
+		  ,getNotesContent: function() {
+			  if ('$canModerate' == 'True') {
+				return $core_v2_editor.GetContentScript('notes');
+			} else {
+				return null;
+			}
+		  }
+		  ,tagBox: j('#$core_v2_widget.UniqueId('TagBox')')
+		  ,nameRequiredMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Validator_NameRequired'))'
+		  ,duplicateNameMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Validator_DuplicateName'))'
+		  ,processingMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Saving'))'
+		  ,successMessage:j('#$core_v2_widget.UniqueId('successMessage')')
+		  ,errorMessage:j('#$core_v2_widget.UniqueId('errorMessage')')
+		  ,saveUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('save.vm'))'
+		  ,ideaContentTypeId: '$telligentIdeas_v1_ideas.ContentTypeId.ToString()'
+		});
+	  });
+		//<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+	</script>
+	#end
+  #end
+#end
+	  ]]></contentScript>
+		<headerScript><![CDATA[$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Idea_Create_Title}'))]]></headerScript>
+		<configuration><![CDATA[
+	  <propertyGroup id="options" resourceName="Options">
+		<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Idea_Create_Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	  </propertyGroup>
+	  ]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="CreateButton">Post</resource>
+  <resource name="CreateEditPost_Tags">Tags</resource>
+  <resource name="CreateIdeaPermissionDenied">You do not have permission to create ideas in this ideation.</resource>
+  <resource name="Description">Description</resource>
+  <resource name="EditIdeaPermissionDenied">You do not have permission to edit this idea in this ideation.</resource>
+  <resource name="Idea_Create_Description">Form to create or update an Idea</resource>
+  <resource name="Idea_Create_Name">Ideas - Create Idea</resource>
+  <resource name="Idea_Create_Title">Submit your Idea</resource>
+  <resource name="Name">Idea</resource>
+  <resource name="Notes">Status Notes</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Saving">Saving...</resource>
+  <resource name="Status">Status</resource>
+  <resource name="Validator_DuplicateName">A idea with this name already exists</resource>
+  <resource name="Validator_NameRequired">Idea is required</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="CreateButton">文章</resource>
+  <resource name="CreateEditPost_Tags">标记</resource>
+  <resource name="CreateIdeaPermissionDenied">您无权在此构思中创建创意。</resource>
+  <resource name="Description">描述</resource>
+  <resource name="EditIdeaPermissionDenied">您无权在此构思中编辑此创意。</resource>
+  <resource name="Idea_Create_Description">用于创建或更新创意的窗体</resource>
+  <resource name="Idea_Create_Name">创意 - 创建创意</resource>
+  <resource name="Idea_Create_Title">提交您的创意</resource>
+  <resource name="Name">创意</resource>
+  <resource name="Notes">状态说明</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Saving">正在保存...</resource>
+  <resource name="Status">状态</resource>
+  <resource name="Validator_DuplicateName">已存在具有此名称的创意</resource>
+  <resource name="Validator_NameRequired">创意是必需的</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="CreateButton">貼文</resource>
+  <resource name="CreateEditPost_Tags">標記</resource>
+  <resource name="CreateIdeaPermissionDenied">您沒有在此構思中建立構想的權限。</resource>
+  <resource name="Description">描述</resource>
+  <resource name="EditIdeaPermissionDenied">您沒有在此構思中編輯此構想的權限。</resource>
+  <resource name="Idea_Create_Description">用於建立或更新構想的表單</resource>
+  <resource name="Idea_Create_Name">構想 - 建立構想</resource>
+  <resource name="Idea_Create_Title">提交您的構想</resource>
+  <resource name="Name">構想</resource>
+  <resource name="Notes">狀態附註</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Saving">儲存中...</resource>
+  <resource name="Status">狀態</resource>
+  <resource name="Validator_DuplicateName">已經存在具有相同名稱的構想</resource>
+  <resource name="Validator_NameRequired">需要構想</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="4daabcc42846400e95f4990266d3e3c9" />
+		</requiredContext>
+		<files>
+			<file name="save.vm">77u/JGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoNCiNzZXQoJGlkZWFJZCA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VHdWlkKCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdJZGVhSWQnKSkpDQojc2V0KCRncm91cElkID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUludCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnR3JvdXBJZCcpKSkNCiNzZXQoJGNoYWxsZW5nZUlkID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUd1aWQoJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0FwcElkJykpKQ0KDQojc2V0KCRuYW1lID0gZmFsc2UpDQojc2V0KCRuYW1lID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ05hbWUnKSkNCiNzZXQoJGRlc2NyaXB0aW9uID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0JvZHknKSkNCiNzZXQoJHN0YXR1cyA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdTdGF0dXMnKSkNCiNzZXQoJHN0YXR1c05vdGVzID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ05vdGVzJykpDQoNCiNzZXQoJHVzZXJJZCA9ICRjb3JlX3YyX3VzZXIuQWNjZXNzaW5nLklkKQ0KI3NldCgkb3B0aW9ucyA9ICIle1VzZXJJZD0kdXNlcklkfSIpDQoNCiRvcHRpb25zLkFkZCgnU3RhdHVzJywgJHN0YXR1cykNCiRvcHRpb25zLkFkZCgnU3RhdHVzTm90ZXMnLCAkc3RhdHVzTm90ZXMpDQoNCiNzZXQoJHRhZ3MgPSBmYWxzZSkNCiNzZXQoJHRhZ3MgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnVGFncycpKQ0KJG9wdGlvbnMuQWRkKCdUYWdzJywgJHRhZ3MpDQoNCiNpZigkaWRlYUlkICYmICRpZGVhSWQgIT0gJzAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCcpDQogICAgI2lmKCRuYW1lKQ0KCQkkb3B0aW9ucy5BZGQoJ05hbWUnLCAkbmFtZSkNCgkjZW5kDQoJI2lmKCRkZXNjcmlwdGlvbikNCgkJJG9wdGlvbnMuQWRkKCdEZXNjcmlwdGlvbicsICRkZXNjcmlwdGlvbikNCgkjZW5kDQogICAgI3NldCgkaWRlYSA9ICR0ZWxsaWdlbnRJZGVhc192MV9pZGVhcy5VcGRhdGUoJGlkZWFJZCwgJG9wdGlvbnMpKQ0KI2Vsc2UNCiAgICAjc2V0KCRpZGVhID0gJHRlbGxpZ2VudElkZWFzX3YxX2lkZWFzLkNyZWF0ZSgkY2hhbGxlbmdlSWQsICRuYW1lLCAkZGVzY3JpcHRpb24sICRvcHRpb25zKSkNCiNlbmQNCg0KI2lmICgkaWRlYSkNCiAgICAjaWYoJGlkZWEuRXJyb3JzLkNvdW50ID4gMCkNCiAgICAJJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCRpZGVhLkVycm9ycykNCgkjZWxzZQ0KICAgICAgICB7InJlZGlyZWN0VXJsIjoiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkdGVsbGlnZW50SWRlYXNfdjFfdXJscy5JZGVhKCRpZGVhLklkKSkifQ0KCSNlbmQNCiNlbHNlCQkNCgkkY29yZV92Ml9wYWdlLlNlbmRKc29uRXJyb3IoJ1VuZXhwZWN0ZWQgZXJyb3IuIFRoZSBpZGVhIGhhcyBub3QgYmVlbiBjcmVhdGVkL3VwZGF0ZWQnKQ0KI2VuZA==</file>
+			<file name="ui.js">KGZ1bmN0aW9uICgkLCBnbG9iYWwpIHsNCiAgICBpZiAodHlwZW9mICQudGVsbGlnZW50ID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudCA9IHt9OyB9DQogICAgaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbiA9IHt9OyB9DQogICAgaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPSB7fTsgfQ0KICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLklkZWF0aW9uID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24uSWRlYXRpb24gPSB7fTsgfQ0KICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLklkZWF0aW9uLndpZGdldHMgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi5JZGVhdGlvbi53aWRnZXRzID0ge307IH0NCg0KICAgIHZhciBfc2F2ZSA9IGZ1bmN0aW9uIChjb250ZXh0KSB7DQoNCiAgICAgICAgdmFyIHRhZ1N0cmluZyA9ICcnOw0KICAgICAgICBpZiAoY29udGV4dC50YWdCb3gubGVuZ3RoID4gMCkgew0KICAgICAgICAgICAgdmFyIGluVGFncyA9IGNvbnRleHQudGFnQm94LnZhbCgpLnNwbGl0KC9bLDtdL2cpOw0KICAgICAgICAgICAgdmFyIHRhZ3MgPSBbXTsNCiAgICAgICAgICAgIGZvciAodmFyIGkgPSAwOyBpIDwgaW5UYWdzLmxlbmd0aDsgaSsrKSB7DQogICAgICAgICAgICAgICAgdmFyIHRhZyA9ICQudHJpbShpblRhZ3NbaV0pOw0KICAgICAgICAgICAgICAgIGlmICh0YWcpIHsNCiAgICAgICAgICAgICAgICAgICAgdGFnc1t0YWdzLmxlbmd0aF0gPSB0YWc7DQogICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgfQ0KDQogICAgICAgICAgICB0YWdTdHJpbmcgPSB0YWdzLmpvaW4oJywnKTsNCiAgICAgICAgfQ0KDQogICAgICAgIHZhciBub3RlcyA9ICcnOw0KICAgICAgICBpZiAoY29udGV4dC5nZXROb3Rlc0NvbnRlbnQoKSAhPSBudWxsKSB7DQogICAgICAgICAgICBub3RlcyA9IGNvbnRleHQuZ2V0Tm90ZXNDb250ZW50KCk7DQogICAgICAgIH0NCg0KICAgICAgICB2YXIgZGF0YSA9IHsNCiAgICAgICAgICAgIElkZWFJZDogY29udGV4dC5pZGVhSWQNCiAgICAgICAgICAgICwgR3JvdXBJZDogY29udGV4dC5ncm91cElkDQogICAgICAgICAgICAsIEFwcElkOiBjb250ZXh0LmFwcElkDQogICAgICAgICAgICAsIEJvZHk6IGNvbnRleHQuZ2V0Qm9keUNvbnRlbnQoKQ0KICAgICAgICAgICAgLCBTdGF0dXM6ICQoJyMnICsgY29udGV4dC5zdGF0dXNJZCkudmFsKCkNCiAgICAgICAgICAgICwgTm90ZXM6IG5vdGVzDQogICAgICAgICAgICAsIFRhZ3M6IHRhZ1N0cmluZw0KICAgICAgICB9Ow0KDQogICAgICAgIGlmIChjb250ZXh0Lm5hbWVJbnB1dC5sZW5ndGggPiAwKSB7DQogICAgICAgICAgICBkYXRhLk5hbWUgPSAkKGNvbnRleHQubmFtZUlucHV0KS5ldm9sdXRpb25Db21wb3NlcigndmFsJyk7DQogICAgICAgIH0NCg0KICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ucG9zdCh7DQogICAgICAgICAgICB1cmw6IGNvbnRleHQuc2F2ZVVybCwNCiAgICAgICAgICAgIGRhdGE6IGRhdGEsDQogICAgICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsNCiAgICAgICAgICAgICAgICBpZiAocmVzcG9uc2UuRXJyb3JzICYmIHJlc3BvbnNlLkVycm9ycy5sZW5ndGggPiAwKSB7DQogICAgICAgICAgICAgICAgICAgIGFsZXJ0KHJlc3BvbnNlLkVycm9yc1swXSk7DQogICAgICAgICAgICAgICAgfSBlbHNlIHsNCiAgICAgICAgICAgICAgICAgICAgd2luZG93LmxvY2F0aW9uID0gcmVzcG9uc2UucmVkaXJlY3RVcmw7DQogICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgfSwNCiAgICAgICAgICAgIGVycm9yOiBmdW5jdGlvbiAoeGhyLCBkZXNjLCBleCkgew0KICAgICAgICAgICAgICAgIGlmKHhoci5yZXNwb25zZUpTT04uRXJyb3JzICE9IG51bGwgJiYgeGhyLnJlc3BvbnNlSlNPTi5FcnJvcnMubGVuZ3RoID4gMCkNCgkJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyh4aHIucmVzcG9uc2VKU09OLkVycm9yc1swXSx7dHlwZTonZXJyb3InfSk7DQoJCQkJZWxzZQ0KCQkJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ubm90aWZpY2F0aW9ucy5zaG93KGRlc2Mse3R5cGU6J2Vycm9yJ30pOw0KICAgICAgICAgICAgICAgICQoJy5wcm9jZXNzaW5nJywgY29udGV4dC5zYXZlLnBhcmVudCgpKS5jc3MoInZpc2liaWxpdHkiLCAiaGlkZGVuIik7DQogICAgICAgICAgICAgICAgY29udGV4dC5zYXZlLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KICAgICAgICAgICAgfQ0KICAgICAgICB9KTsNCiAgICB9Ow0KDQogICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLklkZWF0aW9uLndpZGdldHMuYWRkRWRpdElkZWEgPSB7DQogICAgICAgIHJlZ2lzdGVyOiBmdW5jdGlvbiAoY29udGV4dCkgew0KDQogICAgICAgICAgICBjb250ZXh0LnRhZ0JveC5ldm9sdXRpb25UYWdUZXh0Qm94KHsgYXBwbGljYXRpb25JZDogY29udGV4dC5hcHBsaWNhdGlvbklkIH0pOw0KDQogICAgICAgICAgICAkKGNvbnRleHQubmFtZUlucHV0KS5ldm9sdXRpb25Db21wb3Nlcih7DQogICAgICAgICAgICAgICAgcGx1Z2luczogWydoYXNodGFncyddLA0KICAgICAgICAgICAgICAgIGNvbnRlbnRUeXBlSWQ6IGNvbnRleHQuaWRlYUNvbnRlbnRUeXBlSWQNCiAgICAgICAgICAgIH0pLmV2b2x1dGlvbkNvbXBvc2VyKCdvbmtleWRvd24nLCBmdW5jdGlvbiAoZSkgew0KICAgICAgICAgICAgICAgIGlmIChlLndoaWNoID09PSAxMykgew0KICAgICAgICAgICAgICAgICAgICByZXR1cm4gZmFsc2U7DQogICAgICAgICAgICAgICAgfSBlbHNlIHsNCiAgICAgICAgICAgICAgICAgICAgcmV0dXJuIHRydWU7DQogICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgfSk7DQoNCiAgICAgICAgICAgIGNvbnRleHQuc2F2ZS5jbGljayhmdW5jdGlvbiAoKSB7DQogICAgICAgICAgICAgICAgJCh0aGlzKS5ldm9sdXRpb25WYWxpZGF0aW9uKCd2YWxpZGF0ZScpOw0KICAgICAgICAgICAgICAgIGlmICghJCh0aGlzKS5ldm9sdXRpb25WYWxpZGF0aW9uKCdpc1ZhbGlkJykpIHsNCiAgICAgICAgICAgICAgICAgICAgY29udGV4dC5zYXZlLmFkZENsYXNzKCdkaXNhYmxlZCcpOw0KICAgICAgICAgICAgICAgICAgICByZXR1cm47DQogICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgICAgIF9zYXZlKGNvbnRleHQpOw0KICAgICAgICAgICAgfSk7DQoNCiAgICAgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5uYXZpZ2F0aW9uQ29uZmlybWF0aW9uLmVuYWJsZSgpOw0KICAgICAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5hdmlnYXRpb25Db25maXJtYXRpb24ucmVnaXN0ZXIoY29udGV4dC5zYXZlKTsNCg0KICAgICAgICAgICAgY29udGV4dC5zYXZlLmV2b2x1dGlvblZhbGlkYXRpb24oew0KICAgICAgICAgICAgICAgIHZhbGlkYXRlT25Mb2FkOiBjb250ZXh0LmlkZWFJZCA9PSAnMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwJyA/IGZhbHNlIDogbnVsbCwNCiAgICAgICAgICAgICAgICBvblZhbGlkYXRlZDogZnVuY3Rpb24gKGlzVmFsaWQsIGJ1dHRvbkNsaWNrZWQsIGMpIHsNCiAgICAgICAgICAgICAgICAgICAgaWYgKGlzVmFsaWQpIHsNCiAgICAgICAgICAgICAgICAgICAgICAgIGNvbnRleHQuc2F2ZS5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsNCiAgICAgICAgICAgICAgICAgICAgfSBlbHNlIHsNCiAgICAgICAgICAgICAgICAgICAgICAgIGNvbnRleHQuc2F2ZS5hZGRDbGFzcygnZGlzYWJsZWQnKTsNCiAgICAgICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgICAgIH0sDQogICAgICAgICAgICAgICAgb25TdWNjZXNzZnVsQ2xpY2s6IGZ1bmN0aW9uIChlKSB7DQogICAgICAgICAgICAgICAgICAgICQoJy5wcm9jZXNzaW5nJywgY29udGV4dC5zYXZlLnBhcmVudCgpKS5jc3MoInZpc2liaWxpdHkiLCAidmlzaWJsZSIpOw0KICAgICAgICAgICAgICAgICAgICBjb250ZXh0LnNhdmUuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7DQogICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgfSk7DQoNCiAgICAgICAgICAgIGNvbnRleHQuc2F2ZS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRGaWVsZCcsIGNvbnRleHQubmFtZUlucHV0LA0KICAgICAgICAgICAgICAgIHsNCiAgICAgICAgICAgICAgICAgICAgcmVxdWlyZWQ6IHRydWUsDQogICAgICAgICAgICAgICAgICAgIG1lc3NhZ2VzOiB7IHJlcXVpcmVkOiBjb250ZXh0Lm5hbWVSZXF1aXJlZE1lc3NhZ2UgfQ0KICAgICAgICAgICAgICAgIH0sDQogICAgICAgICAgICAgICAgJyMnICsgY29udGV4dC53cmFwcGVySWQgKyAnIC5maWVsZC1pdGVtLmlkZWEtbmFtZSAuZmllbGQtaXRlbS12YWxpZGF0aW9uJywgbnVsbCk7DQogICAgICAgIH0NCiAgICB9Ow0KDQp9KShqUXVlcnksIHdpbmRvdyk7DQo=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

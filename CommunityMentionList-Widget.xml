@@ -1,0 +1,55 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:GroupMentionListWidget_Title}" version="10.1.8.10498" description="${resource:GroupMentionListWidget_Description}" instanceIdentifier="7f2edee679dd4f47985960a90294e6e9" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="group-mention-list">
+		<contentScript><![CDATA[
+#set($group = false)
+#set($group = $core_v2_group.Current)
+#if (!$group)
+    $core_v2_widget.Hide()
+#end
+
+$core_v2_ui.PagedContent('mentions.vm')
+$core_v2_ui.Pager($mentions.PageIndex, $mentions.PageSize, $mentions.TotalCount, "%{PagedContentFile='mentions.vm'}")
+]]></contentScript>
+		<headerScript><![CDATA[
+	$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Title}'))
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Configuration_Options">
+    <property id="fragmentHeader" resourceName="Configuration_Title" dataType="string" defaultValue="${resource:Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="pageSize" resourceName="Configuration_PageSize" dataType="int" defaultValue="15">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="100" />
+	</property>
+</propertyGroup>
+]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Configuration_Options">Options</resource>
+  <resource name="Configuration_PageSize">Page Size</resource>
+  <resource name="Configuration_Title">Widget Title</resource>
+  <resource name="GroupMentionListWidget_Description">Shows content that mentioned a community.</resource>
+  <resource name="GroupMentionListWidget_Title">Community - Mention List</resource>
+  <resource name="No_Mentions_Message">{0} has not yet been mentioned.</resource>
+  <resource name="Title">Community Mentions</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Configuration_Options">选项</resource>
+  <resource name="Configuration_PageSize">页面大小</resource>
+  <resource name="Configuration_Title">小组件标题</resource>
+  <resource name="GroupMentionListWidget_Description">显示提到社区的内容。</resource>
+  <resource name="GroupMentionListWidget_Title">社区 - 引述列表</resource>
+  <resource name="No_Mentions_Message">{0} 尚未被引述。</resource>
+  <resource name="Title">社区引述</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Configuration_Options">選項</resource>
+  <resource name="Configuration_PageSize">頁面大小</resource>
+  <resource name="Configuration_Title">Widget 標題</resource>
+  <resource name="GroupMentionListWidget_Description">顯示曾提及社群的內容。</resource>
+  <resource name="GroupMentionListWidget_Title">社群 - 提及項目清單</resource>
+  <resource name="No_Mentions_Message">尚未提及 {0}。</resource>
+  <resource name="Title">社群提及項目</resource>
+</language></languageResources>
+		<files>
+			<file name="mentions.vm">I3NldCgkZ3JvdXAgPSBmYWxzZSkNCiNzZXQoJGdyb3VwID0gJGNvcmVfdjJfZ3JvdXAuQ3VycmVudCkNCiNzZXQoJHBhZ2VJbmRleCA9ICRjb3JlX3YyX3VpLkdldEN1cnJlbnRQYWdlSW5kZXgoKSkNCiNzZXQgKCRwYWdlU2l6ZSA9ICRjb3JlX3YyX3dpZGdldC5HZXRJbnRWYWx1ZSgncGFnZVNpemUnLCAxNSkpDQoNCiNzZXQoJG1lbnRpb25zID0gJGNvcmVfdjJfbWVudGlvbi5MaXN0KCIle01lbnRpb25lZENvbnRlbnRJZHM9JGdyb3VwLkNvbnRlbnRJZC5Ub1N0cmluZygpLE1lbnRpb25lZENvbnRlbnRUeXBlSWQ9JGNvcmVfdjJfZ3JvdXAuQ29udGVudFR5cGVJZCxQYWdlU2l6ZT0kcGFnZVNpemUsUGFnZUluZGV4PSRwYWdlSW5kZXgsU29ydEJ5PSdEYXRlJyxTb3J0T3JkZXI9J0Rlc2NlbmRpbmcnfSIpKQ0KI2ZvcmVhY2goJG1lbnRpb24gaW4gJG1lbnRpb25zKQ0KI2JlZm9yZWFsbA0KCTx1bCBjbGFzcz0iY29udGVudC1saXN0IGNvbnRlbnQiPg0KI2VhY2gNCgk8bGkgY2xhc3M9ImNvbnRlbnQtaXRlbSIgI2lmICgkbWVudGlvbi5NZW50aW9uaW5nQ29udGVudC5VcmwpIGRhdGEtaHJlZj0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkbWVudGlvbi5NZW50aW9uaW5nQ29udGVudC5VcmwpIiAjZW5kPg0KCQkjc2V0ICgkcmVzdWx0SHRtbCA9IGZhbHNlKQ0KCQkjc2V0ICgkcmVzdWx0SHRtbCA9ICRtZW50aW9uLk1lbnRpb25pbmdDb250ZW50LlZpZXdIdG1sKCkpDQoJCSNpZiAoJHJlc3VsdEh0bWwpDQoJCQkkcmVzdWx0SHRtbA0KCQkjZW5kDQoJPC9saT4NCiNhZnRlcmFsbA0KCTwvdWw+DQojbm9kYXRhDQoJPGRpdiBjbGFzcz0ibWVzc2FnZSBpbmZvcm1hdGlvbiI+DQoJCSRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdFN0cmluZygkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiTm9fTWVudGlvbnNfTWVzc2FnZSIpLCAkZ3JvdXAuTmFtZSkNCgk8L2Rpdj4NCiNlbmQ=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

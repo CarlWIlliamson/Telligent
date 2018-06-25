@@ -1,0 +1,426 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Forums_ThreadDetails}" version="10.1.8.10498" description="${resource:Forums_ThreadDetails_Description}" instanceIdentifier="35f3b1e334ba4b3abac07feb8ecfd586" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="thread-details">
+		<contentScript><![CDATA[#set ($accessingUser = $core_v2_user.Accessing)
+#set ($thread = $core_v2_forumThread.Current)
+#if (!$thread)
+	$core_v2_widget.Hide()
+#end
+
+#set ($forum = $core_v2_forum.Current)
+
+## permission
+#set ($isRegistered = $core_v2_user.IsRegistered($accessingUser.Id))
+#set ($hasModeratePermission = $core_v2_nodePermission.Get('forums', $forum.Id, $core_v2_forumPermissions.ReviewAbuse).IsAllowed)
+#set ($hasModifyThreadPermission = $core_v2_nodePermission.Get("forums", $forum.Id, $core_v2_forumPermissions.ModifyPost, "%{ PostId = '${thread.Id}', PostType = 'threads'}").IsAllowed)
+#set ($hasReadForumPermission = $core_v2_nodePermission.Get('forums', $forum.Id, $core_v2_forumPermissions.ReadForum).IsAllowed)
+#if (!$hasReadForumPermission)
+	$core_v2_widget.Hide()
+#end
+#set ($hasModerateUsersPermission = $core_v2_nodePermission.Get($core_v2_sitePermissions.ManageMembership).IsAllowed)
+#set ($hasReplyPermission = $core_v2_nodePermission.Get("forums", $forum.Id, $core_v2_forumPermissions.CreateReply, "%{ PostId = '${thread.Id}', PostType = 'threads'}").IsAllowed)
+
+#set ($accessingUserIsAuthor = false)
+#if ($accessingUser.Id == $thread.Author.Id)
+	#set ($accessingUserIsAuthor = true)
+#end
+
+#set ($isQA = false)
+#if ($thread.ThreadType == 'QuestionAndAnswer')
+	#set ($isQA = true)
+#end
+
+#set ($answersUrl = $core_v2_page.AdjustQueryString($thread.Url, "ReplyFilter=Answers&ReplySortBy=Answers&ReplySortOrder=Descending"))
+
+#set ($presentUsers = 0)
+#set ($presenceSummary = $core_v2_contentPresence.GetSummary($thread.ContentId, $thread.ContentTypeId))
+#if ($presenceSummary)
+	#set ($presentUsers = $presenceSummary.PresentUsers)
+#end
+
+#set ($wrapperId = $core_v2_widget.UniqueId('wrapper'))
+
+#set ($repliesTemplate = $core_v2_widget.UniqueId('repliesTemplate'))
+#registerClientTemplate($repliesTemplate)
+	<li class="attribute-item replies">
+		<span class="attribute-name">$core_v2_language.GetResource('Replies')</span>
+		<span class="attribute-value">
+			<% if(replyCount == 1) { %>
+				<%= replyCount %> $core_v2_language.GetResource('ReplySingular')
+			<% } else { %>
+				<%= replyCount %> $core_v2_language.GetResource('ReplyPlural')
+			<% } %>
+		</span>
+	</li>
+#end
+
+#set ($answersTemplate = $core_v2_widget.UniqueId('answersTemplate'))
+#registerClientTemplate($answersTemplate)
+	<li class="attribute-item answers">
+		<span class="attribute-name">$core_v2_language.GetResource('Answers')</span>
+		<span class="attribute-value">
+			<% if(answerCount == 1) { %>
+				<%= answerCount %> $core_v2_language.GetResource('AnswerSingular')
+			<% } else { %>
+				<%= answerCount %> $core_v2_language.GetResource('AnswerPlural')
+			<% } %>
+		</span>
+	</li>
+#end
+
+#set ($usersTemplate = $core_v2_widget.UniqueId('usersTemplate'))
+#registerClientTemplate($usersTemplate)
+	<li class="attribute-item users">
+		<span class="attribute-name">$core_v2_language.GetResource('Users')</span>
+		<span class="attribute-value">
+			<% if(presentUsers == 1) { %>
+				<%= presentUsers %> $core_v2_language.GetResource('UsersSingular')
+			<% } else { %>
+				<%= presentUsers %> $core_v2_language.GetResource('UsersPlural')
+			<% } %>
+		</span>
+	</li>
+#end
+
+#set ($statusTemplate = $core_v2_widget.UniqueId('statusTemplate'))
+#registerClientTemplate($statusTemplate)
+	<li class="attribute-item state <% if (status == 'Answered') { %> verified <% } else if (status == 'AnsweredNotVerified') { %> suggested <% } %>">
+		<span class="attribute-name">$core_v2_language.GetResource('State')</span>
+		<span class="attribute-value">
+			<% if (status == 'Answered') { %>
+				<a href="$core_v2_encoding.HtmlAttributeEncode($answersUrl)">
+					$core_v2_language.GetResource('VerifiedAnswer')
+				</a>
+			<% } else if (status == 'NotAnswered') { %>
+				$core_v2_language.GetResource('NotAnswered')
+			<% } else if (status == 'AnsweredNotVerified') { %>
+				<a href="$core_v2_encoding.HtmlAttributeEncode($answersUrl)">
+					$core_v2_language.GetResource('SuggestedAnswer')
+				</a>
+			<% } %>
+		</span>
+	</li>
+#end
+
+<div class="content-details minimal" id="$core_v2_encoding.HtmlAttributeEncode($wrapperId)">
+
+	<ul class="attribute-list">
+
+		#if ($isQA)
+			<li class="attribute-item state #if ($thread.ThreadStatus == 'Answered') verified #elseif ($thread.ThreadStatus == 'AnsweredNotVerified') suggested #end">
+				<span class="attribute-name">$core_v2_language.GetResource('State')</span>
+				<span class="attribute-value">
+					#if ($thread.ThreadStatus == 'Answered')
+						<a href="$core_v2_encoding.HtmlAttributeEncode($answersUrl)">
+							$core_v2_language.GetResource('VerifiedAnswer')
+						</a>
+					#elseif ($thread.ThreadStatus == 'NotAnswered')
+						$core_v2_language.GetResource('NotAnswered')
+					#elseif ($thread.ThreadStatus == 'AnsweredNotVerified')
+						<a href="$core_v2_encoding.HtmlAttributeEncode($answersUrl)">
+							$core_v2_language.GetResource('SuggestedAnswer')
+						</a>
+					#end
+				</span>
+			</li>
+		#end
+
+		#if ($forum.EnableQualityVoting)
+		<li class="attribute-item quality-vote"><span class="attribute-list attribute-value">Vote on this thread</span>
+			$core_v2_ui.ForumVotes("threadquality", $thread.Id)
+		</li>
+		#end
+
+		#set ($voteId = $core_v2_widget.UniqueId("vote${thread.ContentId}"))
+		#set ($unvoteId = $core_v2_widget.UniqueId("unvote${thread.ContentId}"))
+
+		#if ($isQA)
+			#set ($threadVotes = $core_v2_forumThreadVote.List($thread.Id, "%{ PageIndex = 0, PageSize = 1 }"))
+			#if (($hasReplyPermission && $isRegistered) || $threadVotes.TotalCount > 0)
+				<li class="attribute-item vote" data-count="$threadVotes.TotalCount" data-isAuthor="$accessingUserIsAuthor">
+					<span class="attribute-value">
+						$core_v2_ui.ForumVotes('thread', $thread.Id)
+						#if($hasReplyPermission && !$accessingUserIsAuthor && $isRegistered)
+							#set ($threadVote = false)
+							#set ($threadVote = $core_v2_forumThreadVote.Get($thread.Id))
+
+							<a id="$core_v2_encoding.HtmlAttributeEncode($voteId)"
+								data-threadid="$thread.Id"
+								data-tip="$core_v2_encoding.HtmlAttributeEncode($core_v2_language.GetResource('VoteThreadTip'))"
+								data-messagename="telligent.evolution.widgets.threadDetails.votethread"
+								data-unvotelink="$core_v2_encoding.HtmlAttributeEncode($unvoteId)"
+								#if ($threadVote) style="display:none" #end
+								## data-links="$core_v2_encoding.HtmlAttributeEncode($threadActionsId)"
+								href="#"
+								$core_v2_tourTip.Render($core_v2_language.GetResource('VoteThreadTourTip'), "%{ CssClass = 'add ui-tip', Index = 100 }")
+								>
+								$core_v2_language.GetResource('VoteThread')
+							</a>
+							<a id="$core_v2_encoding.HtmlAttributeEncode($unvoteId)"
+								data-threadid="$thread.Id"
+								data-tip="$core_v2_encoding.HtmlAttributeEncode($core_v2_language.GetResource('UnvoteThreadTip'))"
+								data-messagename="telligent.evolution.widgets.threadDetails.unvotethread"
+								data-votelink="$core_v2_encoding.HtmlAttributeEncode($voteId)"
+								#if (!$threadVote) style="display:none" #end
+								## data-links="$core_v2_encoding.HtmlAttributeEncode($threadActionsId)"
+								href="#"
+								class="remove ui-tip">
+								$core_v2_language.GetResource('UnvoteThread')
+							</a>
+						#else
+							<span class="attribute-description singular">$core_v2_language.GetResource('VotedThreadSingular')</span>
+							<span class="attribute-description plural">$core_v2_language.GetResource('VotedThreadPlural')</spa
+						#end
+					</span>
+				</li>
+			#end
+
+		#end
+
+	
+		<li class="attribute-item date">
+			<span class="attribute-name">$core_v2_language.GetResource('Date')</span>
+			<span class="attribute-value">
+				$core_v2_language.FormatDateAndTime($thread.Date)
+			</span>
+		</li>
+
+		#if ($thread.IsLocked)
+		<li class="attribute-item date">
+			<span class="attribute-name">$core_v2_language.GetResource('locked')</span>
+			<span class="attribute-value">
+				$core_v2_language.GetResource('locked')
+			</span>
+		</li>
+		#end
+
+		<li class="attribute-item replies">
+			<span class="attribute-name">$core_v2_language.GetResource('Replies')</span>
+			<span class="attribute-value">
+				#set ($replies = $core_v2_forumReply.List($thread.Id, "%{ PageSize = 1, PageIndex = 0 }"))
+				#set ($totalReplyCount = $replies.TotalCount)
+				#if ($totalReplyCount == 1)
+					#set ($countResource = 'ReplySingular')
+				#else
+					#set ($countResource = "ReplyPlural")
+				#end
+				$totalReplyCount.ToString() $core_v2_language.GetResource($countResource)
+			</span>
+		</li>
+		#if ($isQA)
+			#set ($suggestedAnswerCount = $core_v2_forumReply.List($thread.Id, "%{ ForumReplyQueryType = 'non-verified-answers', PageSize = 1, PageIndex = 0 }").TotalCount)
+
+			#if ($suggestedAnswerCount > 0)
+				<li class="attribute-item answers">
+					<span class="attribute-name">$core_v2_language.GetResource('Answers')</span>
+					<span class="attribute-value">
+						#if ($suggestedAnswerCount == 1)
+							#set ($countResource = 'AnswerSingular')
+						#else
+							#set ($countResource = "AnswerPlural")
+						#end
+						$suggestedAnswerCount.ToString() $core_v2_language.GetResource($countResource)
+					</span>
+				</li>
+			#end
+		#end
+		<li class="attribute-item subscribers">
+			<span class="attribute-name">$core_v2_language.GetResource('Subscribers')</span>
+			<span class="attribute-value">
+				#if ($thread.SubscriberCount == 1)
+					#set ($subscriberResource = 'SubscriberSingular')
+				#else
+					#set ($subscriberResource = "SubscriberPlural")
+				#end
+				$thread.SubscriberCount.ToString() $core_v2_language.GetResource($subscriberResource)
+			</span>
+		</li>
+		<li class="attribute-item views">
+			<span class="attribute-name">$core_v2_language.GetResource('Views')</span>
+			<span class="attribute-value">
+				#if ($thread.ViewCount == 1)
+					#set ($countResource = 'ViewSingular')
+				#else
+					#set ($countResource = "ViewPlural")
+				#end
+				$thread.ViewCount.ToString() $core_v2_language.GetResource($countResource)
+			</span>
+		</li>
+		<li class="attribute-item users">
+			<span class="attribute-name">$core_v2_language.GetResource('Users')</span>
+			<span class="attribute-value">
+				#if ($presentUsers == 1)
+					#set ($countResource = 'UsersSingular')
+				#else
+					#set ($countResource = "UsersPlural")
+				#end
+				$presentUsers $core_v2_language.GetResource($countResource)
+			</span>
+		</li>
+	</ul>
+
+	#foreach ($tag in $thread.Tags)
+	#beforeall
+		<div class="content-tags">
+			<ul class="tag-list">
+	#each
+		#set ($tagUrl = false)
+		#set ($tagUrl = $core_v2_forumUrls.Tags($thread.ForumId, $core_v2_utility.MakeList($tag)))
+		#if ($tagUrl)
+			<li class="tag-item">
+				<a href="$core_v2_encoding.HtmlAttributeEncode($tagUrl)" rel="tag">$tag</a>
+			</li>
+		#end
+	#afterall
+			</ul>
+		</div>
+	#end
+
+</div>
+
+#registerEndOfPageHtml('telligent.evolution.widgets.threadDetails')
+	<script src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+#end
+#registerEndOfPageHtml()
+	<script>
+	jQuery(document).ready(function() {
+		jQuery.telligent.evolution.widgets.threadDetails.register({
+			contentTypeId: '$thread.ContentTypeId',
+			contentId: '$thread.ContentId',
+			status: '$thread.ThreadStatus',
+			replyCount: #if ($thread.ReplyCount) $thread.ReplyCount #else 0 #end,
+			answerCount: #if ($thread.AnswerCount) $thread.AnswerCount #else 0 #end,
+			presentUsers: $presentUsers,
+			wrapper: '#$wrapperId',
+			voteId: #if ($isQA) '#$voteId' #else '' #end,
+			unvoteId: #if ($isQA) '#$unvoteId' #else '' #end,
+			templates: {
+				status: '$statusTemplate',
+				users: '$usersTemplate',
+				answers: '$answersTemplate',
+				replies: '$repliesTemplate'
+			}
+		});
+	});
+	</script>
+#end
+
+
+		]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Forums_ThreadDetails}'))
+		]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Forums_ThreadDetails}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="AnswerPlural">answers</resource>
+  <resource name="Answers">Answers</resource>
+  <resource name="AnswerSingular">answer</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Date">Date</resource>
+  <resource name="Forums_ThreadDetails">Forums - Thread Details</resource>
+  <resource name="Forums_ThreadDetails_Description">Displays details about a forum thread</resource>
+  <resource name="locked">Locked</resource>
+  <resource name="NotAnswered">Not Answered</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Replies">Replies</resource>
+  <resource name="ReplyPlural">replies</resource>
+  <resource name="ReplySingular">reply</resource>
+  <resource name="State">State</resource>
+  <resource name="SubscriberPlural">subscribers</resource>
+  <resource name="Subscribers">Subscribers</resource>
+  <resource name="SubscriberSingular">subscriber</resource>
+  <resource name="SuggestedAnswer">Suggested Answer</resource>
+  <resource name="UnvoteThread">I do not have this question.</resource>
+  <resource name="UnvoteThreadTip">Remove this from your questions list.</resource>
+  <resource name="Users">Users</resource>
+  <resource name="UsersPlural">members are here</resource>
+  <resource name="UsersSingular">member is here</resource>
+  <resource name="VerifiedAnswer">Accepted Answer</resource>
+  <resource name="ViewPlural">views</resource>
+  <resource name="Views">Views</resource>
+  <resource name="ViewSingular">view</resource>
+  <resource name="VotedThreadPlural">people also asked this</resource>
+  <resource name="VotedThreadSingular">person also asked this</resource>
+  <resource name="VoteThread">I have this question too.</resource>
+  <resource name="VoteThreadTip">Receive notifications of answers to this question and add this to your questions list.</resource>
+  <resource name="VoteThreadTourTip">Vote on replies to this question, receive notifications of answers, and add this to your questions list by selecting that you have this question.</resource>
+</language>
+<language key="zh-cn">
+  <resource name="AnswerPlural">个答案</resource>
+  <resource name="Answers">答案</resource>
+  <resource name="AnswerSingular">个答案</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Date">日期</resource>
+  <resource name="Forums_ThreadDetails">论坛 - 话题详细信息</resource>
+  <resource name="Forums_ThreadDetails_Description">显示有关论坛话题的详细信息</resource>
+  <resource name="locked"></resource>
+  <resource name="NotAnswered">未回答</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Replies">回复</resource>
+  <resource name="ReplyPlural">个回复</resource>
+  <resource name="ReplySingular">个回复</resource>
+  <resource name="State">状态</resource>
+  <resource name="SubscriberPlural">个订阅者</resource>
+  <resource name="Subscribers">订阅者</resource>
+  <resource name="SubscriberSingular">个订阅者</resource>
+  <resource name="SuggestedAnswer">推荐答案</resource>
+  <resource name="UnvoteThread">我没有此疑问</resource>
+  <resource name="UnvoteThreadTip">将此问题从问题列表中移除。</resource>
+  <resource name="Users"></resource>
+  <resource name="UsersPlural"></resource>
+  <resource name="UsersSingular"></resource>
+  <resource name="VerifiedAnswer">已验证答案</resource>
+  <resource name="ViewPlural">次查看</resource>
+  <resource name="Views">查看</resource>
+  <resource name="ViewSingular">次查看</resource>
+  <resource name="VotedThreadPlural">人也提出此</resource>
+  <resource name="VotedThreadSingular">人也提出此</resource>
+  <resource name="VoteThread">我也有此疑问</resource>
+  <resource name="VoteThreadTip">接收此问题答案的通知，并将该问题添加到问题列表中。</resource>
+  <resource name="VoteThreadTourTip"></resource>
+</language>
+<language key="zh-tw">
+  <resource name="AnswerPlural">個答案</resource>
+  <resource name="Answers">答案</resource>
+  <resource name="AnswerSingular">個答案</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Date">日期</resource>
+  <resource name="Forums_ThreadDetails">論壇 - 對話詳細資料</resource>
+  <resource name="Forums_ThreadDetails_Description">顯示論壇對話的相關詳細資料</resource>
+  <resource name="locked"></resource>
+  <resource name="NotAnswered">未回答</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Replies">回覆</resource>
+  <resource name="ReplyPlural">個回覆</resource>
+  <resource name="ReplySingular">個回覆</resource>
+  <resource name="State">狀態</resource>
+  <resource name="SubscriberPlural">個訂閱者</resource>
+  <resource name="Subscribers">訂閱者</resource>
+  <resource name="SubscriberSingular">個訂閱者</resource>
+  <resource name="SuggestedAnswer">已建議答案</resource>
+  <resource name="UnvoteThread">我沒有這個問題。</resource>
+  <resource name="UnvoteThreadTip">將其從問題清單中移除。</resource>
+  <resource name="Users"></resource>
+  <resource name="UsersPlural"></resource>
+  <resource name="UsersSingular"></resource>
+  <resource name="VerifiedAnswer">已驗證答案</resource>
+  <resource name="ViewPlural">個檢視</resource>
+  <resource name="Views">檢視次數</resource>
+  <resource name="ViewSingular">個檢視</resource>
+  <resource name="VotedThreadPlural">人也問這個</resource>
+  <resource name="VotedThreadSingular">人也問這個</resource>
+  <resource name="VoteThread">我也有相同問題。</resource>
+  <resource name="VoteThreadTip">接收此問題回答的通知並將其新增至您的問題清單中。</resource>
+  <resource name="VoteThreadTourTip"></resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="3e42a61fe20447f78ea9b0bb99a5c6a5" />
+		</requiredContext>
+		<files>
+			<file name="ui.js">KGZ1bmN0aW9uKCQsIGdsb2JhbCwgdW5kZWYpIHsNCg0KCXZhciBtZXNzYWdpbmcgPSAkLnRlbGxpZ2VudC5ldm9sdXRpb24ubWVzc2FnaW5nOw0KDQoJdmFyIG1vZGVsID0gew0KCQl2b3RlVGhyZWFkOiBmdW5jdGlvbihjb250ZXh0LCB0aHJlYWRJZCkgew0KCQkJcmV0dXJuICQudGVsbGlnZW50LmV2b2x1dGlvbi5wb3N0KHsNCgkJCQl1cmw6ICQudGVsbGlnZW50LmV2b2x1dGlvbi5zaXRlLmdldEJhc2VVcmwoKSArICdhcGkuYXNoeC92Mi9mb3J1bXMvdGhyZWFkcy97VGhyZWFkSWR9L3ZvdGUuanNvbicsDQoJCQkJZGF0YTogew0KCQkJCQlUaHJlYWRJZDogdGhyZWFkSWQNCgkJCQl9DQoJCQl9KTsNCgkJfSwNCgkJdW52b3RlVGhyZWFkOiBmdW5jdGlvbihjb250ZXh0LCB0aHJlYWRJZCkgew0KCQkJcmV0dXJuICQudGVsbGlnZW50LmV2b2x1dGlvbi5kZWwoew0KCQkJCXVybDogJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnNpdGUuZ2V0QmFzZVVybCgpICsgJ2FwaS5hc2h4L3YyL2ZvcnVtcy90aHJlYWRzL3tUaHJlYWRJZH0vdm90ZS5qc29uJywNCgkJCQlkYXRhOiB7DQoJCQkJCVRocmVhZElkOiB0aHJlYWRJZA0KCQkJCX0NCgkJCX0pOw0KCQl9LA0KCQlnZXRUaHJlYWRWb3RlQ291bnQ6IGZ1bmN0aW9uKGNvbnRleHQsIHRocmVhZElkKSB7DQoJCQlyZXR1cm4gJC50ZWxsaWdlbnQuZXZvbHV0aW9uLmdldCh7DQoJCQkJdXJsOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvZm9ydW1zL3RocmVhZHMve1RocmVhZElkfS92b3Rlcy5qc29uJywNCgkJCQlkYXRhOiB7DQoJCQkJCVRocmVhZElkOiB0aHJlYWRJZCwNCgkJCQkJUGFnZVNpemU6IDEsDQoJCQkJCVBhZ2VJbmRleDogMA0KCQkJCX0NCgkJCX0pLnRoZW4oZnVuY3Rpb24oZCl7DQoJCQkJcmV0dXJuIGQuVG90YWxDb3VudDsNCgkJCX0pOw0KCQl9DQoJfTsNCg0KCS8vIGV4cGVjdHMgaW4gY29udGV4dDoNCgkvLyAgIHN0YXR1cw0KCS8vICAgcmVwbHlDb3VudA0KCS8vICAgYW5zd2VyQ291bnQNCgkvLyAgIHByZXNlbnRVc2Vycw0KCWZ1bmN0aW9uIHVwZGF0ZURldGFpbHMoY29udGV4dCkgew0KCQl2YXIgd3JhcHBlciA9ICQoY29udGV4dC53cmFwcGVyKTsNCg0KCQl3cmFwcGVyLmZpbmQoJy5hdHRyaWJ1dGUtaXRlbS5zdGF0ZScpDQoJCQkucmVwbGFjZVdpdGgoJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnRlbXBsYXRlKGNvbnRleHQudGVtcGxhdGVzLnN0YXR1cykoY29udGV4dCkpOw0KCQl3cmFwcGVyLmZpbmQoJy5hdHRyaWJ1dGUtaXRlbS51c2VycycpDQoJCQkucmVwbGFjZVdpdGgoJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnRlbXBsYXRlKGNvbnRleHQudGVtcGxhdGVzLnVzZXJzKShjb250ZXh0KSk7DQoJCXdyYXBwZXIuZmluZCgnLmF0dHJpYnV0ZS1pdGVtLmFuc3dlcnMnKQ0KCQkJLnJlcGxhY2VXaXRoKCQudGVsbGlnZW50LmV2b2x1dGlvbi50ZW1wbGF0ZShjb250ZXh0LnRlbXBsYXRlcy5hbnN3ZXJzKShjb250ZXh0KSk7DQoJCXdyYXBwZXIuZmluZCgnLmF0dHJpYnV0ZS1pdGVtLnJlcGxpZXMnKQ0KCQkJLnJlcGxhY2VXaXRoKCQudGVsbGlnZW50LmV2b2x1dGlvbi50ZW1wbGF0ZShjb250ZXh0LnRlbXBsYXRlcy5yZXBsaWVzKShjb250ZXh0KSk7DQoJfQ0KDQoJdmFyIGFwaSA9IHsNCgkJcmVnaXN0ZXI6IGZ1bmN0aW9uKGNvbnRleHQpIHsNCg0KCQkJbWVzc2FnaW5nLnN1YnNjcmliZSgndGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzLnRocmVhZERldGFpbHMudm90ZXRocmVhZCcsIGZ1bmN0aW9uKGRhdGEpIHsNCgkJCQl2YXIgbGluayA9ICQoZGF0YS50YXJnZXQpOw0KCQkJCW1vZGVsLnZvdGVUaHJlYWQoY29udGV4dCwgbGluay5kYXRhKCd0aHJlYWRpZCcpKS50aGVuKGZ1bmN0aW9uKCl7DQoJCQkJCWxpbmsuaGlkZSgpOw0KCQkJCQkkKCcjJyArIGxpbmsuZGF0YSgndW52b3RlbGluaycpKS5zaG93KCk7DQoJCQkJCW1vZGVsLmdldFRocmVhZFZvdGVDb3VudChjb250ZXh0LCBsaW5rLmRhdGEoJ3RocmVhZGlkJykpLnRoZW4oZnVuY3Rpb24oZGF0YSl7DQoJCQkJCQltZXNzYWdpbmcucHVibGlzaCgndWktZm9ydW12b3RlJywgew0KCQkJCQkJCXR5cGU6ICd0aHJlYWQnLA0KCQkJCQkJCWlkOiBsaW5rLmRhdGEoJ3RocmVhZGlkJyksDQoJCQkJCQkJY291bnQ6IGRhdGEsDQoJCQkJCQkJdm90ZWQ6IHRydWUNCgkJCQkJCX0pOw0KCQkJCQl9KTsNCgkJCQl9KTsNCgkJCX0pOw0KDQoJCQltZXNzYWdpbmcuc3Vic2NyaWJlKCd0ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMudGhyZWFkRGV0YWlscy51bnZvdGV0aHJlYWQnLCBmdW5jdGlvbihkYXRhKSB7DQoJCQkJdmFyIGxpbmsgPSAkKGRhdGEudGFyZ2V0KTsNCgkJCQltb2RlbC51bnZvdGVUaHJlYWQoY29udGV4dCwgbGluay5kYXRhKCd0aHJlYWRpZCcpKS50aGVuKGZ1bmN0aW9uKCl7DQoJCQkJCWxpbmsuaGlkZSgpOw0KCQkJCQkkKCcjJyArIGxpbmsuZGF0YSgndm90ZWxpbmsnKSkuc2hvdygpOw0KCQkJCQltb2RlbC5nZXRUaHJlYWRWb3RlQ291bnQoY29udGV4dCwgbGluay5kYXRhKCd0aHJlYWRpZCcpKS50aGVuKGZ1bmN0aW9uKGRhdGEpew0KCQkJCQkJbWVzc2FnaW5nLnB1Ymxpc2goJ3VpLWZvcnVtdm90ZScsIHsNCgkJCQkJCQl0eXBlOiAndGhyZWFkJywNCgkJCQkJCQlpZDogbGluay5kYXRhKCd0aHJlYWRpZCcpLA0KCQkJCQkJCWNvdW50OiBkYXRhLA0KCQkJCQkJCXZvdGVkOiBmYWxzZQ0KCQkJCQkJfSk7DQoJCQkJCX0pOw0KCQkJCX0pOw0KCQkJfSk7DQoNCgkJCW1lc3NhZ2luZy5zdWJzY3JpYmUoJ2ZvcnVtVGhyZWFkLnZvdGVkJywgZnVuY3Rpb24oZGF0YSkgew0KCQkJCWlmKGRhdGEudm90ZVR5cGUgPT0gIkludGVyZXN0Iikgew0KCQkJCQl2YXIgd3JhcHBlciA9ICQoY29udGV4dC53cmFwcGVyKTsNCg0KCQkJCQl2YXIgZm9ydW12b3RlQ29udHJvbCA9IHdyYXBwZXIuZmluZCgnLnVpLWZvcnVtdm90ZXMnKTsNCgkJCQkJaWYoZGF0YS50aHJlYWRJZCA9PSAkKGZvcnVtdm90ZUNvbnRyb2wpLmRhdGEoJ2lkJykpIHsNCgkJCQkJCXZhciBjb3VudCA9IGRhdGEuY291bnQgPiAwID8gJysnICsgZGF0YS5jb3VudCA6IGRhdGEuY291bnQ7DQoJCQkJCQkkKGZvcnVtdm90ZUNvbnRyb2wpLmh0bWwoY291bnQpLmF0dHIoJ2RhdGEtY291bnQnLCBjb3VudCk7DQoJCQkJCQkkKGZvcnVtdm90ZUNvbnRyb2wpLmNsb3Nlc3QoJ2xpJykuYXR0cignZGF0YS1jb3VudCcsIGRhdGEuY291bnQpOw0KCQkJCQl9DQoJCQkJfQ0KCQkJfSk7CQkJDQoNCgkJCWZ1bmN0aW9uIGNhcHR1cmVTdGF0aXN0aWNzQW5kUmVuZGVyKGRhdGEpIHsNCgkJCQljb250ZXh0LnN0YXR1cyA9IGRhdGEuc3RhdHVzOw0KCQkJCWNvbnRleHQucmVwbHlDb3VudCA9IGRhdGEucmVwbHlDb3VudDsNCgkJCQljb250ZXh0LmFuc3dlckNvdW50ID0gZGF0YS5hbnN3ZXJDb3VudDsNCgkJCQl1cGRhdGVEZXRhaWxzKGNvbnRleHQpOw0KCQkJfQ0KDQoJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ubWVzc2FnaW5nLnN1YnNjcmliZSgnZm9ydW1SZXBseS5jcmVhdGVkJywgY2FwdHVyZVN0YXRpc3RpY3NBbmRSZW5kZXIpOw0KCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm1lc3NhZ2luZy5zdWJzY3JpYmUoJ2ZvcnVtUmVwbHkudXBkYXRlZCcsIGNhcHR1cmVTdGF0aXN0aWNzQW5kUmVuZGVyKTsNCgkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5tZXNzYWdpbmcuc3Vic2NyaWJlKCdmb3J1bVJlcGx5LmRlbGV0ZWQnLCBjYXB0dXJlU3RhdGlzdGljc0FuZFJlbmRlcik7DQoJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ubWVzc2FnaW5nLnN1YnNjcmliZSgnZm9ydW1UaHJlYWQudXBkYXRlZCcsIGNhcHR1cmVTdGF0aXN0aWNzQW5kUmVuZGVyKTsNCg0KCQkJdmFyIHByZXNlbmNlVXBkYXRlVGltZW91dDsNCgkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5tZXNzYWdpbmcuc3Vic2NyaWJlKCdmb3J1bVRocmVhZC5wcmVzZW5jZUNoYW5nZWQnLCBmdW5jdGlvbihkYXRhKXsNCgkJCQlpZihkYXRhLmNvbnRlbnRJZCA9PSBjb250ZXh0LmNvbnRlbnRJZCAmJiBkYXRhLmNvbnRlbnRUeXBlSWQgPT0gY29udGV4dC5jb250ZW50VHlwZUlkKSB7DQoJCQkJCWdsb2JhbC5jbGVhclRpbWVvdXQocHJlc2VuY2VVcGRhdGVUaW1lb3V0KTsNCgkJCQkJcHJlc2VuY2VVcGRhdGVUaW1lb3V0ID0gZ2xvYmFsLnNldFRpbWVvdXQoZnVuY3Rpb24oKXsNCgkJCQkJCWpRdWVyeS50ZWxsaWdlbnQuZXZvbHV0aW9uLmdldCh7DQoJCQkJCQkJdXJsOiBqUXVlcnkudGVsbGlnZW50LmV2b2x1dGlvbi5zaXRlLmdldEJhc2VVcmwoKSArICdhcGkuYXNoeC92Mi9wcmVzZW5jZXN1bW1hcnkvY29udGVudC5qc29uJywNCgkJCQkJCQlkYXRhOiB7DQoJCQkJCQkJCUNvbnRlbnRJZDogZGF0YS5jb250ZW50SWQsDQoJCQkJCQkJCUNvbnRlbnRUeXBlSWQ6IGRhdGEuY29udGVudFR5cGVJZA0KCQkJCQkJCX0NCgkJCQkJCX0pLmRvbmUoZnVuY3Rpb24oc3VtbWFyeVJlc3BvbnNlKXsNCgkJCQkJCQljb250ZXh0LnByZXNlbnRVc2VycyA9IHN1bW1hcnlSZXNwb25zZS5wcmVzZW5jZXN1bW1hcnkuUHJlc2VudFVzZXJzOw0KCQkJCQkJCXVwZGF0ZURldGFpbHMoY29udGV4dCk7DQoJCQkJCQl9KTsNCgkJCQkJfSwgMjAgKiAxMDAwKTsNCgkJCQl9DQoJCQl9KTsNCgkJfQ0KCX07DQoNCgkkLnRlbGxpZ2VudCA9ICQudGVsbGlnZW50IHx8IHt9Ow0KCSQudGVsbGlnZW50LmV2b2x1dGlvbiA9ICQudGVsbGlnZW50LmV2b2x1dGlvbiB8fCB7fTsNCgkkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9ICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzIHx8IHt9Ow0KCSQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzLnRocmVhZERldGFpbHMgPSBhcGk7DQoNCn0pKGpRdWVyeSwgd2luZG93KTsNCg==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

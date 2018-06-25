@@ -1,0 +1,96 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Blog_Nav_Title_Name}" version="10.1.8.10498" description="Provides navigation between custom blog curation pages" instanceIdentifier="65f74050348b4bca8511a07683e5d3eb" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="">
+		<contentScript><![CDATA[<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-P6S7VDF');</script>
+<!-- End Google Tag Manager -->
+
+<style>
+## must remain in widget##
+.slider-container {
+    margin-top:-30px;
+}
+
+@media screen and (min-width: 1100px) {
+  .content-fragment.title.no-wrapper, .content-fragment.blog-title.no-wrapper, .content-fragment.custom-title.no-wrapper { margin-top: -70px; }
+}
+
+</style>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-P6S7VDF"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+<div class="blognav-wrapper">
+<div class="blognav" id="ablognav">
+        <a class="home" href="/p/arm-blog"><i class="fa fa-2x fa-home" title="Home"></i></a>
+        
+    <!--<a title="Arm Innovator Program" href="/innovation/" rel="noopener noreferrer" >Innovation</a> -->
+        <a title="Artificial Intelligence blog" href="/p/ai-blog" rel="noopener noreferrer" >Artificial Intelligence</a>
+        <a title="Automotive blog" href="/p/automotive-blog" rel="noopener noreferrer" >Automotive</a>
+        <a title="Healthcare blog" href="/p/healthcare-blog" rel="noopener noreferrer" >Healthcare</a>
+        <a title="Infrastructure blog" href="/p/infrastructure-blog" rel="noopener noreferrer" >Infrastructure</a>
+        <a title="IoT blog" href="/p/iot-blog" rel="noopener noreferrer" >Internet of Things</a>
+        <a title="Machine Learning blog" href="/p/ml-blog" rel="noopener noreferrer" >Machine Learning</a>
+        <a title="Mobile blog" href="/p/mobile-blog" rel="noopener noreferrer" >Mobile</a>
+        <a title="Smart Homes blog" href="/p/smart-homes-blog" rel="noopener noreferrer" >Smart Homes</a>
+        <a title="Wearables blog" href="/p/wearables-blog" rel="noopener noreferrer" >Wearables</a>
+
+  <a href="javascript:void(0);" style="border-bottom: none !important;" class="icon" onclick="blogNavExpand()"><span style="font-size: 15px;">More blogs</span><i style="padding-left: 15px;" class="fa fa-2x fa-navicon"></i></a>
+</div>
+
+<script>
+function blogNavExpand() {
+    var x = document.getElementById("ablognav");
+    if (x.className === "blognav") {
+        x.className += " responsive";
+    } else {
+        x.className = "blognav";
+    }
+}
+</script>
+
+<div class="social-follow">
+    <ul>
+        <li>
+            <a id="Facebook (En) Follow - Arm" class="highlightit" href="https://www.facebook.com/Arm/" alt="Follow on Facebook" target="_blank">
+                <i class="fa fa-2x fa-facebook" aria-hidden="true"></i>
+            </a>
+        </li>
+        <li>
+            <a id="Twitter (En) Follow - Arm" class="highlightit" href="https://twitter.com/Arm" alt="Follow on Twitter" target="_blank">
+                <i class="fa fa-2x fa-twitter" aria-hidden="true"></i>
+            </a>
+        </li>
+        <li>
+            <a id="LinkedIN (En) Follow - Arm" class="highlightit" href="https://www.linkedin.com/company/Arm" alt="Follow on LinkedIn" target="_blank">
+                <i aria-hidden="true" class="fa fa-2x fa-linkedin"></i>
+            </a>
+        </li>
+        <li>
+        
+            <a id="Instagram (En) Follow - Arm" class="highlightit" href="https://www.instagram.com/Arm/" alt="Follow on Instagram" target="_blank">
+                <i aria-hidden="true" class="fa fa-2x fa-instagram"></i>
+            </a>
+        </li>
+        <li>
+            <a id="YouTube (En) Follow - Arm" class="highlightit" href="https://www.youtube.com/Armflix/" alt="Follow on YouTube" target="_blank">
+                <i aria-hidden="true" class="fa fa-2x fa-youtube-play"></i>
+            </a>
+        </li>
+        </ul>
+        <span>Follow us</span>
+    </div>
+    </div>
+<p style="clear: both;"></p>
+]]></contentScript>
+		<headerScript><![CDATA[$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Blog_Nav_Title_Name}'))]]></headerScript>
+		<configuration><![CDATA[<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Blog_Nav_Title_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>]]></configuration>
+		<languageResources><language key="en-us"><resource name="Blog_Nav_Title_Name">Arm - Blog Navigation</resource><resource name="CF_Title">Widget title</resource></language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

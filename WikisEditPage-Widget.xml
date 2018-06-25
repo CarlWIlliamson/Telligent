@@ -1,0 +1,506 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Wikis_PageEdit_Name}" version="10.1.8.10498" description="${resource:Wikis_PageEdit_Description}" instanceIdentifier="f44dd5ccd9034401893a3641b55a620c" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="page-edit">
+		<contentScript><![CDATA[#set($page = false)
+#set($page = $core_v2_wikiPage.Current)
+#set($parentPage = false)
+#set($pageTitle = '')
+#set($pageBody = '')
+#set($pageRevision = -1)
+#set($wiki = $core_v2_wiki.Current)
+#set ($tabsContainerId = $core_v2_widget.UniqueId('tabsContainer'))
+#set ($writeTabId = $core_v2_widget.UniqueId('writeTab'))
+#set ($optionsTabId = $core_v2_widget.UniqueId('optionsTab'))
+#set($parentPage = $core_v2_wikiPage.CurrentParent)
+#if (!$parentPage && $page && $page.ParentPageId > 0)
+	#set($parentPage = $core_v2_wikiPage.Get("%{Id=$page.ParentPageId}"))
+#end
+
+##This logic handles retrieving a current page, a temporarily stored page from the quick post widget, or a stubbed page from an existing wiki page
+#if($page)
+	#set($pageTitle = $page.Title)
+	#set($pageBody = $page.Body('raw'))
+	#set($pageRevision = $page.RevisionNumber)
+#elseif($core_v2_page.GetQueryStringValue('tsid'))
+	#set($tempData = $core_v2_page.ParseQueryString($core_v2_utility.GetTemporaryData($core_v2_page.GetQueryStringValue('tsid'))))
+	#set($pageTitle = '')
+	#set($pageTitle = $tempData.Value('Subject'))
+	#set($pageBody = '')
+	#set($pageBody = $tempData.Value('Body'))
+	#if (!$pageBody || $pageBody.length == 0)
+		#set($pageBody = $tempData.Value('body'))
+	#end
+#else
+	#set($pageTitle = $core_v2_wikiPage.CurrentPageKey)
+#end
+
+#set($thread = false)
+#set($thread = $core_v2_forumThread.Current)
+#if($thread && $core_v2_nodePermission.Get('forums',$thread.ForumId,$core_v2_forumPermissions.ReadForum,"%{PostType='threads',PostId=$thread.Id}").IsAllowed)
+	#set($pageTitle = $thread.Subject)
+	#if($thread.ThreadType == 'Discussion')
+		#if ($thread.Author.ProfileUrl)
+			#set($pageBody="$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Original_Template'), $thread.Subject, $thread.Body('Raw'), $thread.Author.DisplayName, $thread.Url, $thread.Author.ProfileUrl)")
+		#else
+			#set($pageBody="$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Original_Template_Anonymous'), $thread.Subject, $thread.Body('Raw'), $thread.Author.DisplayName, $thread.Url)")
+		#end
+	#else
+		#if ($thread.Author.ProfileUrl)
+			#set($pageBody="$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_OriginalQuestion_Template'), $thread.Subject, $thread.Body('Raw'), $thread.Author.DisplayName, $thread.Url, $thread.Author.ProfileUrl)")
+		#else
+			#set($pageBody="$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_OriginalQuestion_Template_Anonymous'), $thread.Subject, $thread.Body('Raw'), $thread.Author.DisplayName, $thread.Url)")
+		#end
+	#end
+	#if ($thread.File && $thread.File.FileUrl && $thread.File.FileName)
+		#set ($temporaryWikiFileContextId = $core_v2_uploadedFile.CreateContextId())
+		#if ($thread.File.SaveToTemporaryFiles($temporaryWikiFileContextId, $thread.File.FileName))
+			#set ($wikiFile = $core_v2_wikiFiles.Create($wiki.Id, $thread.File.FileName, $temporaryWikiFileContextId))
+			#set ($wikiFileUrl = $core_v2_encoding.HtmlAttributeEncode($wikiFile.FileUrl))
+			#set ($wikiFilePreview = $core_v2_ui.GetPreviewHtml($wikiFile.FileUrl, "%{Width = 40, Height = 40}"))
+			#set ($attachment = $core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Attachment'), $wikiFileUrl, $wikiFilePreview, $wikiFile.FileName))
+			#set ($pageBody = "${pageBody}${attachment}")
+		#end
+	#end
+	#set($forumReplies = $core_v2_forumReply.List($thread.Id, "%{PageSize=100,PageIndex=0}"))
+	#if ($thread.ThreadType == 'Discussion')
+		#foreach ($forumReply in $forumReplies)
+			#if ($forumReply.Author.ProfileUrl)
+				#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Template'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url, $forumReply.Author.ProfileUrl)")
+			#else
+				#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Template_Anonymous'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url)")
+			#end
+			#if ($forumReply.File && $forumReply.File.FileUrl && $forumReply.File.FileName)
+				#set ($temporaryWikiFileContextId = $core_v2_uploadedFile.CreateContextId())
+				#if ($forumReply.File.SaveToTemporaryFiles($temporaryWikiFileContextId, $forumReply.File.FileName))
+					#set ($wikiFile = $core_v2_wikiFiles.Create($wiki.Id, $forumReply.File.FileName, $temporaryWikiFileContextId))
+					#set ($wikiFileUrl = $core_v2_encoding.HtmlAttributeEncode($wikiFile.FileUrl))
+					#set ($wikiFilePreview = $core_v2_ui.GetPreviewHtml($wikiFile.FileUrl, "%{Width = 40, Height = 40}"))
+					#set ($attachment = $core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Attachment'), $wikiFileUrl, $wikiFilePreview, $wikiFile.FileName))
+					#set ($pageBody = "${pageBody}${attachment}")
+				#end
+			#end
+		#end
+	#else
+		#foreach($forumReply in $forumReplies)
+			#if($forumReply.IsAnswer)
+				#if ($forumReply.Author.ProfileUrl)
+					#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Answer_Template'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url, $forumReply.Author.ProfileUrl)")
+				#else
+					#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Answer_Template_Anonymous'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url)")
+				#end
+			#end
+			#if ($forumReply.File && $forumReply.File.FileUrl && $forumReply.File.FileName)
+				#set ($temporaryWikiFileContextId = $core_v2_uploadedFile.CreateContextId())
+				#if ($forumReply.File.SaveToTemporaryFiles($temporaryWikiFileContextId, $forumReply.File.FileName))
+					#set ($wikiFile = $core_v2_wikiFiles.Create($wiki.Id, $forumReply.File.FileName, $temporaryWikiFileContextId))
+					#set ($wikiFileUrl = $core_v2_encoding.HtmlAttributeEncode($wikiFile.FileUrl))
+					#set ($wikiFilePreview = $core_v2_ui.GetPreviewHtml($wikiFile.FileUrl, "%{Width = 40, Height = 40}"))
+					#set ($attachment = $core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Attachment'), $wikiFileUrl, $wikiFilePreview, $wikiFile.FileName))
+					#set ($pageBody = "${pageBody}${attachment}")
+				#end
+			#end
+		#end
+		#foreach($forumReply in $forumReplies)
+			#if ($forumReply.IsSuggestedAnswer)
+				#if ($forumReply.Author.ProfileUrl)
+					#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_SuggestedAnswer_Template'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url, $forumReply.Author.ProfileUrl)")
+				#else
+					#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_SuggestedAnswer_Template_Anonymous'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url)")
+				#end
+			#elseif (!$forumReply.IsAnswer)
+				#if ($forumReply.Author.ProfileUrl)
+					#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Question_Template'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url, $forumReply.Author.ProfileUrl)")
+				#else
+					#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Question_Template_Anonymous'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url)")
+				#end
+			#end
+			#if ($forumReply.File && $forumReply.File.FileUrl && $forumReply.File.FileName)
+				#set ($temporaryWikiFileContextId = $core_v2_uploadedFile.CreateContextId())
+				#if ($forumReply.File.SaveToTemporaryFiles($temporaryWikiFileContextId, $forumReply.File.FileName))
+					#set ($wikiFile = $core_v2_wikiFiles.Create($wiki.Id, $forumReply.File.FileName, $temporaryWikiFileContextId))
+					#set ($wikiFileUrl = $core_v2_encoding.HtmlAttributeEncode($wikiFile.FileUrl))
+					#set ($wikiFilePreview = $core_v2_ui.GetPreviewHtml($wikiFile.FileUrl, "%{Width = 40, Height = 40}"))
+					#set ($attachment = $core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Attachment'), $wikiFileUrl, $wikiFilePreview, $wikiFile.FileName))
+					#set ($pageBody = "${pageBody}${attachment}")
+				#end
+			#end
+		#end
+	#end
+#end
+
+#if($page)
+	#if (!$core_v2_nodePermission.Get('wikis',$wiki.Id,$core_v2_wikiPermissions.ModifyPage,"%{PostType='pages',PostId=$page.Id}").IsAllowed)
+		$core_v2_widget.Hide()
+	#elseif($page.IsLocked && !$core_v2_nodePermission.Get('wikis',$wiki.Id,$core_v2_wikiPermissions.ModifyPage,"%{PostType='pages',PostId=$page.Id}").IsAllowed)
+		$core_v2_widget.Hide()
+	#end
+#elseif(!$core_v2_nodePermission.Get('wikis',$wiki.Id,$core_v2_wikiPermissions.CreatePage).IsAllowed)
+	$core_v2_widget.Hide()
+#end
+
+#set($userCanMovePage = $core_v2_nodePermission.Get('wikis',$wiki.Id,$core_v2_wikiPermissions.MovePage,"%{PostType='pages',PostId=$page.Id}").IsAllowed)
+
+<div class="message warning" id="$core_v2_widget.UniqueId('warning')" style="display: none;"></div>
+
+<fieldset>
+
+	#if ($page)
+		#set ($heading = $page.Title)
+	#else
+		#set ($heading = $core_v2_language.FormatString($core_v2_language.GetResource('NewPage'), $wiki.Name))
+	#end
+	<h1>$heading</h1>
+
+	<div id="$core_v2_encoding.HtmlAttributeEncode($tabsContainerId)">
+		<div id="$core_v2_encoding.HtmlAttributeEncode($writeTabId)">
+			<ul class="field-list">
+				## Only allow a parent to be defined if the page is new or not the default page and the user has move permission
+				#if(!$page || (!$page.IsDefaultPage && $userCanMovePage))
+					<li class="field-item post-parent">
+						<label for="$core_v2_widget.UniqueId('parent')" class="field-item-name">$core_v2_language.GetResource('Wikis_ParentPage')</label>
+						<span class="field-item-description">$core_v2_language.GetResource('Parent_Description')</span>
+						<span class="field-item-input"><input type="text" id="$core_v2_widget.UniqueId('parent')" value="$!parentPage.Id" /></span>
+					</li>
+				#end
+				<li class="field-item required post-name">
+					<label for="$core_v2_widget.UniqueId('title')" class="field-item-name">$core_v2_language.GetResource('Title')</label>
+					<span class="field-item-input">
+						<textarea maxlength="256" rows="1" id="$core_v2_widget.UniqueId('title')" class="scaled" name="$core_v2_widget.UniqueId('title')" size="90">$!core_v2_encoding.HtmlEncode($pageTitle)</textarea>
+					</span>
+					<span class="field-item-validation" style="display: none;"></span>
+				</li>
+				<li class="field-item required post-body">
+					<label for="$core_v2_widget.UniqueId('body')" class="field-item-name">$core_v2_language.GetResource('Body')</label>
+					<span class="field-item-input">$core_v2_editor.Render('body',"%{Width='100%', Value='$!pageBody', ContentTypeId=$core_v2_wikiPage.ContentTypeId}")</span>
+					<span class="field-item-validation" style="display:none;"></span>
+				</li>
+				<li class="field-item post-tags">
+					<label for="$core_v2_widget.UniqueId('tags')" class="field-item-name">$core_v2_language.GetResource('CreateEditPost_Tags')</label>
+					<span class="field-item-input">
+						<input type="text" id="$core_v2_widget.UniqueId('tags')" value="$core_v2_utility.Join(', ', $page.Tags)" size="60" />
+					</span>
+				</li>
+				#if ($core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+					<li class="field-item post-subscribe">
+						<span class="field-item-input">
+							<input type="checkbox" id="$core_v2_widget.UniqueId('subscribe')"#if(!$page || $core_v2_wikiPage.IsSubscribed($page.Id)) checked="checked"#end />
+							<label for="$core_v2_widget.UniqueId('subscribe')">$core_v2_language.GetResource('Wikis_Page_Subscribe')</label>
+						</span>
+					</li>
+				#end
+			</ul>
+		</div>
+		<div id="$core_v2_encoding.HtmlAttributeEncode($optionsTabId)">
+			#if (!$page || !$page.IsDefaultPage)
+				<h3>$core_v2_language.GetResource('Toc_Heading')</h3>
+				<ul class="field-list">
+					#if($userCanMovePage)
+						<li class="field-item post-ordering">
+							<label for="$core_v2_widget.UniqueId('ordering')" class="field-item-name">$core_v2_language.GetResource('Wikis_Order')</label>
+							<span class="field-item-description">$core_v2_language.GetResource('Wikis_Order_Description')</span>
+							<span class="field-item-input">
+								<select id="$core_v2_widget.UniqueId('ordering')" size="10"></select>
+								<a href="#" id="$core_v2_widget.UniqueId('ordering-up')" style="margin-right:1em;">$core_v2_language.GetResource('Order_MoveUp')</a>
+								<a href="#" id="$core_v2_widget.UniqueId('ordering-down')">$core_v2_language.GetResource('Order_MoveDown')</a>
+							</span>
+						</li>
+
+					#end
+					<li class="field-item post-hiding">
+						<span class="field-item-input">
+							<input type="checkbox" id="$core_v2_widget.UniqueId('tochiding')" #if($page && $page.HiddenInTableOfContents) checked="checked" #end />
+							<label for="$core_v2_widget.UniqueId('tochiding')">$core_v2_language.GetResource('Wikis_HideFromToc')</label>
+						</span>
+						<span class="field-item-description">$core_v2_language.GetResource('Wikis_HideFromToc_Description')</span>
+					</li>
+
+				</ul>
+			#end
+
+			<h3>$core_v2_language.GetResource('Meta_Heading')</h3>
+			<ul class="field-list">
+				<li class="field-item meta-title">
+					<label for="$core_v2_widget.UniqueId('metaTitle')" class="field-item-name">$core_v2_language.GetResource('Meta_Title')</label>
+					<span class="field-item-description">$core_v2_language.GetResource('Meta_TitleDescription')</span>
+					<span class="field-item-input">
+						<textarea maxlength="128" rows="1" id="$core_v2_widget.UniqueId('metaTitle')" class="scaled" name="$core_v2_widget.UniqueId('metaTitle')" size="90">$!page.MetaTitle</textarea>
+					</span>
+					 <span class="field-item-description character-count"></span>
+				</li>
+				<li class="field-item meta-keywords">
+					   <label for="$core_v2_widget.UniqueId('metaKeywords')" class="field-item-name">$core_v2_language.GetResource('Meta_Keywords')</label>
+					<span class="field-item-description">$core_v2_language.GetResource('Meta_KeywordsDescription')</span>
+					<span class="field-item-input">
+						<textarea maxlength="512" rows="1" id="$core_v2_widget.UniqueId('metaKeywords')" class="scaled" name="$core_v2_widget.UniqueId('metaKeywords')" size="90">$!page.MetaKeywords</textarea>
+					</span>
+				</li>
+				<li class="field-item">
+					<label class="field-item-name">$core_v2_language.GetResource('Meta_Description')</label>
+					<span class="field-item-description">$core_v2_language.GetResource('Meta_DescriptionDescription')</span>
+					<span class="field-item-input">
+						<textarea maxlength="512" type="text" id="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.UniqueId('metaDescription'))">$!page.MetaDescription</textarea>
+					</span>
+					<span class="field-item-description character-count"></span>
+				</li>
+			</ul>
+		</div>
+	</div>
+
+	<ul class="field-list">
+		<li class="field-item submit-button">
+			<span class="field-item-input">
+				<a id="$core_v2_widget.UniqueId('save')" href="javascript:void(0);" class="button internal-link save-post disabled"><span></span>$core_v2_language.GetResource('Save')</a>
+				<span class="processing" style="visibility: hidden;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+			</span>
+			<span class="field-item-input"><a id="$core_v2_widget.UniqueId('viewchanges')" href="javascript:void(0);" class="internal-link view-post" style="display: none;"><span></span>$core_v2_language.GetResource('Wiki_PageEdit_ViewChanges')</a></span>
+		</li>
+	</ul>
+</fieldset>
+#registerEndOfPageHtml('telligent.evolution.widgets.PageEdit')
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+#end
+#registerEndOfPageHtml()
+	<script type="text/javascript">
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+	jQuery(document).ready(function()
+	{
+		jQuery.telligent.evolution.widgets.pageEdit.register({
+			tags:$('#$core_v2_widget.UniqueId('tags')'),
+			applicationId: '$wiki.applicationId',
+			#if($parentPage)
+				parentPageTitle:'$core_v2_encoding.JavascriptEncode($core_v2_language.Truncate($parentPage.Title, 60, "..."))',
+			#end
+			parent:$('#$core_v2_widget.UniqueId('parent')'),
+			tochiding:$('#$core_v2_widget.UniqueId('tochiding')'),
+			ordering: $('#$core_v2_widget.UniqueId('ordering')'),
+			orderingUp: $('#$core_v2_widget.UniqueId('ordering-up')'),
+			orderingDown: $('#$core_v2_widget.UniqueId('ordering-down')'),
+			getChildrenUrl: '$core_v2_widget.GetExecutedFileUrl('get-children.vm')',
+			subscribe:$('#$core_v2_widget.UniqueId('subscribe')'),
+			lookupPagesUrl:'$core_v2_widget.GetExecutedFileUrl('LookupPages.vm')',
+			subscribeUrl:'$core_v2_widget.GetExecutedFileUrl('Subscribe.vm')',
+			noPageMatchesText:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('WikiPageLookUpTextBox_NoMatches'))',
+			save:jQuery('#$core_v2_widget.UniqueId('save')'),
+			title:jQuery('#$core_v2_widget.UniqueId('title')'),
+			 metaTitle:jQuery('#$core_v2_widget.UniqueId('metaTitle')'),
+			metaKeywords:jQuery('#$core_v2_widget.UniqueId('metaKeywords')'),
+			metaDescription:jQuery('#$core_v2_widget.UniqueId('metaDescription')'),
+			wikiId: $wiki.Id,
+			getBody: function() { return $core_v2_editor.GetContentScript('body'); },
+			#if($page)
+				pageId:$page.Id,
+				parentPageId:$page.ParentPageId,
+				originalRevision:#if($page)$page.RevisionNumber#else-1#end,
+				overwriteText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Wiki_PageEdit_Overwrite'))',
+				lockedText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Wikis_Page_LockMessage'))',
+				viewChanges: $('#$core_v2_widget.UniqueId('viewchanges')'),
+				mergeMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.FormatString($core_v2_language.GetResource('Wikis_Page_MergeMessage'), '{AuthorUrl}', '{AuthorName}', '{MergeUrl}'))',
+				message: $('#$core_v2_widget.UniqueId('warning')'),
+				mergeUrl: '$core_v2_encoding.JavascriptEncode($core_v2_wikiUrls.PageMerge($page.Id, 998877, 778899))',
+				userCanLock :#if($core_v2_nodePermission.Get('wikispages',$page.Id,$core_v2_wikiPermissions.LockPage).IsAllowed) true#else false#end,
+			#else
+				pageId:-1,
+				parentPageId:-1,
+			#end
+			threadId:#if($thread) $thread.Id#else -1#end,
+			wrapperId: '$core_v2_widget.WrapperElementId',
+			titleSelector: '#$core_v2_widget.UniqueId('title')',
+			tabsSelector: '#$core_v2_encoding.JavascriptEncode($tabsContainerId)',
+			writeTabId: '$core_v2_encoding.JavascriptEncode($writeTabId)',
+			writeTabLabel: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Write'))',
+			optionsTabId: '$core_v2_encoding.JavascriptEncode($optionsTabId)',
+			optionsTabLabel: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Options'))',
+			requiredFieldText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('RequiredField'))',
+			pageExistsText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Wiki_WikiPageKeyDuplicate'))',
+			attachBodyChangeHandler: function(h) { $core_v2_editor.GetAttachOnChangeScript('body', 'h') },
+			userCanMovePage: #if($userCanMovePage) true#else false#end,
+	  charactersRemain: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Characters_Remain'))',
+		  charactersOver: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Characters_Over'))',
+		  orderPlaceholder: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Order_Placeholder'))',
+			titleHidden: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Title_Hidden'))',
+			wikiPageContentTypeId: '$core_v2_wikiPage.ContentTypeId.ToString()'
+		});
+	});
+	//</script>
+	#end
+	]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Wikis_PageEdit_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Wikis_PageEdit_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Body">Body</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Characters_Over">character(s) over the recomended length.  For best results this should be shortened.</resource>
+  <resource name="Characters_Remain">character(s)</resource>
+  <resource name="CreateEditPost_Tags">Tags</resource>
+  <resource name="Meta_Description">Description</resource>
+  <resource name="Meta_DescriptionDescription">If specified, search engines will use this description to provide an excerpt of this page.</resource>
+  <resource name="Meta_Heading">Search Engine Optimization</resource>
+  <resource name="Meta_Keywords">Keywords</resource>
+  <resource name="Meta_KeywordsDescription">Comma-separated list of words that uniquely relate to this content. These can be used by search engines to improve search results.</resource>
+  <resource name="Meta_Title">Title</resource>
+  <resource name="Meta_TitleDescription">Adjust the title used by search engines when referencing this content. If not set, the page’s title will be used.</resource>
+  <resource name="NewPage">New Page to {0}</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Order_MoveDown">Move down</resource>
+  <resource name="Order_MoveUp">Move up</resource>
+  <resource name="Order_Placeholder">(This Page)</resource>
+  <resource name="Parent_Description">The parent page for this page in this wiki's table of contents</resource>
+  <resource name="RequiredField">This field is required.</resource>
+  <resource name="Save">Post</resource>
+  <resource name="TagEditor_SelectTags">Select Tags...</resource>
+  <resource name="Title">Title</resource>
+  <resource name="Title_Hidden">&lt;i&gt;Hidden: {0}&lt;/i&gt;</resource>
+  <resource name="Toc_Heading">Table of Contents</resource>
+  <resource name="Wiki_PageEdit_Overwrite">Overwrite</resource>
+  <resource name="Wiki_PageEdit_ViewChanges">View Changes</resource>
+  <resource name="Wiki_Thread_Answer_Template">Verified Answer: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Answer_Template_Anonymous">Verified Answer: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Attachment">&lt;div class="post-attachment-container"&gt;&lt;div class="post-attachment-viewer"&gt;&lt;a href="{0}" class="internal-link download-attachment"&gt;{1}&lt;/a&gt;&lt;/div&gt;&lt;div class="post-attachment"&gt;&lt;span class="value"&gt;&lt;a href="{0}" class="internal-link download-attachment"&gt;{2}&lt;/a&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;</resource>
+  <resource name="Wiki_Thread_Original_Template">&lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Original_Template_Anonymous">&lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_OriginalQuestion_Template">Original Question: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_OriginalQuestion_Template_Anonymous">Original Question: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Question_Template">Question: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Question_Template_Anonymous">Question: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_SuggestedAnswer_Template">Suggested Answer: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_SuggestedAnswer_Template_Anonymous">Suggested Answer: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Template">&lt;strong&gt;{0}&lt;/strong&gt; by &lt;a href="{4}"&gt;{2}&lt;/a&gt;: {1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Template_Anonymous">&lt;strong&gt;{0}&lt;/strong&gt; by {2}: {1}&lt;br/&gt;</resource>
+  <resource name="Wiki_WikiPageKeyDuplicate">A page by this name exists in this wiki already. Please choose another name for this page.</resource>
+  <resource name="WikiPageLookUpTextBox_NoMatches">A matching page could not be found.</resource>
+  <resource name="Wikis_HideFromToc">Hide this page from the table of contents</resource>
+  <resource name="Wikis_HideFromToc_Description">When hidden, the page will not be represented in the wiki's table of contents.</resource>
+  <resource name="Wikis_Order">Order</resource>
+  <resource name="Wikis_Order_Description">Set the order of this page and its siblings within the wiki's table of contents.</resource>
+  <resource name="Wikis_Page_LockMessage">Wiki page is locked and changes are not able to be saved.</resource>
+  <resource name="Wikis_Page_MergeMessage">&lt;a href='{0}' target='_blank' class='internal-link view-user-profile'&gt;&lt;span&gt;&lt;/span&gt;{1}&lt;/a&gt; posted a &lt;a href="#" onclick="{2}" class='internal-link wiki'&gt;&lt;span&gt;&lt;/span&gt;new version&lt;/a&gt; while you were editing.</resource>
+  <resource name="Wikis_Page_Subscribe">Notify me when this page is edited</resource>
+  <resource name="Wikis_PageEdit_Description">Edits a wiki page.</resource>
+  <resource name="Wikis_PageEdit_Name">Wikis - Edit Page</resource>
+  <resource name="Wikis_ParentPage">Parent</resource>
+  <resource name="Write">Write</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Body">正文</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Characters_Over">超过建议的长度的字符数。为获得最佳结果，应缩短字符长度。</resource>
+  <resource name="Characters_Remain">字符</resource>
+  <resource name="CreateEditPost_Tags">标记</resource>
+  <resource name="Meta_Description">描述</resource>
+  <resource name="Meta_DescriptionDescription">如果指定，搜索引擎将使用此描述提供此页面的摘要。</resource>
+  <resource name="Meta_Heading">搜索引擎优化</resource>
+  <resource name="Meta_Keywords">关键字</resource>
+  <resource name="Meta_KeywordsDescription">与此内容唯一相关的逗号分隔词语列表。这些内容可供搜索引擎用于改进搜索结果。</resource>
+  <resource name="Meta_Title">标题</resource>
+  <resource name="Meta_TitleDescription">在引用此内容时，调整搜索引擎使用的标题。如果未设置，则将使用页面的标题。</resource>
+  <resource name="NewPage">将新页面创建到 {0}</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Order_MoveDown">下移</resource>
+  <resource name="Order_MoveUp">上移</resource>
+  <resource name="Order_Placeholder">(此页面)</resource>
+  <resource name="Parent_Description">此页面在该 wiki 的目录中的父级页面</resource>
+  <resource name="RequiredField">此字段是必需的。</resource>
+  <resource name="Save">发布</resource>
+  <resource name="TagEditor_SelectTags">选择标记...</resource>
+  <resource name="Title">标题</resource>
+  <resource name="Title_Hidden">&lt;i&gt;隐藏:{0}&lt;/i&gt;</resource>
+  <resource name="Toc_Heading">目录</resource>
+  <resource name="Wiki_PageEdit_Overwrite">覆盖</resource>
+  <resource name="Wiki_PageEdit_ViewChanges">查看更改</resource>
+  <resource name="Wiki_Thread_Answer_Template">已验证答案: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt;，发布者 &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Answer_Template_Anonymous">已验证答案: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt;，发布者 {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Attachment">&lt;div class="post-attachment-container"&gt;&lt;div class="post-attachment-viewer"&gt;&lt;a href="{0}" class="internal-link download-attachment"&gt;{1}&lt;/a&gt;&lt;/div&gt;&lt;div class="post-attachment"&gt;&lt;span class="value"&gt;&lt;a href="{0}" class="internal-link download-attachment"&gt;{2}&lt;/a&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;</resource>
+  <resource name="Wiki_Thread_Original_Template">&lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; 发布者&lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Original_Template_Anonymous">&lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; 发布者{2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_OriginalQuestion_Template">原始问题: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt;，发布者 &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_OriginalQuestion_Template_Anonymous">原始问题: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt;，发布者 {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Question_Template">问题: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt;，发布者 &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Question_Template_Anonymous">问题: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt;，发布者 {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_SuggestedAnswer_Template">推荐答案: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt;，发布者 &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_SuggestedAnswer_Template_Anonymous">推荐答案: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt;，发布者 {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Template">&lt;strong&gt;{0}&lt;/strong&gt; 发布者 &lt;a href="{4}"&gt;{2}&lt;/a&gt;: {1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Template_Anonymous">&lt;strong&gt;{0}&lt;/strong&gt; 发布者 {2}: {1}&lt;br/&gt;</resource>
+  <resource name="Wiki_WikiPageKeyDuplicate">此 Wiki 中已存在采用该名称的页面。请为此页面选择其他名称。</resource>
+  <resource name="WikiPageLookUpTextBox_NoMatches">找不到匹配的页面。</resource>
+  <resource name="Wikis_HideFromToc">在目录中隐藏此页面</resource>
+  <resource name="Wikis_HideFromToc_Description">隐藏后，将不会在该 wiki 的目录中显示此页面。</resource>
+  <resource name="Wikis_Order">顺序</resource>
+  <resource name="Wikis_Order_Description">设置此页面及其同层页面在该 wiki 的目录中的顺序。</resource>
+  <resource name="Wikis_Page_LockMessage">Wiki 页面已锁定，无法保存更改。</resource>
+  <resource name="Wikis_Page_MergeMessage">在您编辑时，&lt;a href='{0}' target='_blank' class='internal-link view-user-profile'&gt;&lt;span&gt;&lt;/span&gt;{1}&lt;/a&gt; 发布了&lt;a href="#" onclick="{2}" class='internal-link wiki'&gt;&lt;span&gt;&lt;/span&gt;新版本&lt;/a&gt;。</resource>
+  <resource name="Wikis_Page_Subscribe">编辑此页面时通知我</resource>
+  <resource name="Wikis_PageEdit_Description">编辑 Wiki 页面。</resource>
+  <resource name="Wikis_PageEdit_Name">Wiki - 编辑页面</resource>
+  <resource name="Wikis_ParentPage">父级</resource>
+  <resource name="Write">写</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Body">本文</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Characters_Over">字元數超過建議的長度。請將期縮短以取得最佳結果。</resource>
+  <resource name="Characters_Remain">字元</resource>
+  <resource name="CreateEditPost_Tags">標記</resource>
+  <resource name="Meta_Description">描述</resource>
+  <resource name="Meta_DescriptionDescription">若已指定，搜尋引擎將使用此描述以提供此頁面的摘要。</resource>
+  <resource name="Meta_Heading">搜尋引擎最佳化</resource>
+  <resource name="Meta_Keywords">關鍵字</resource>
+  <resource name="Meta_KeywordsDescription">與此內容唯一相關的字詞逗號分隔清單。搜尋引擎會使用這些字詞改善搜尋結果。</resource>
+  <resource name="Meta_Title">標題</resource>
+  <resource name="Meta_TitleDescription">當參照此內容時調整搜尋引擎使用的標題。如果沒有設定，就會使用頁面的標題。</resource>
+  <resource name="NewPage">新增頁面至 {0}</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Order_MoveDown">下移</resource>
+  <resource name="Order_MoveUp">上移</resource>
+  <resource name="Order_Placeholder">(這個頁面)</resource>
+  <resource name="Parent_Description">這個頁面在此 Wiki 目錄中的父頁面</resource>
+  <resource name="RequiredField">這是必填欄位。</resource>
+  <resource name="Save">貼文</resource>
+  <resource name="TagEditor_SelectTags">選取標記...</resource>
+  <resource name="Title">標題</resource>
+  <resource name="Title_Hidden">&lt;i&gt;隱藏:{0}&lt;/i&gt;</resource>
+  <resource name="Toc_Heading">目錄</resource>
+  <resource name="Wiki_PageEdit_Overwrite">覆寫</resource>
+  <resource name="Wiki_PageEdit_ViewChanges">檢視變更</resource>
+  <resource name="Wiki_Thread_Answer_Template">已驗證答案: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; 由 &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Answer_Template_Anonymous">已驗證答案: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; 由 {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Attachment">&lt;div class="post-attachment-container"&gt;&lt;div class="post-attachment-viewer"&gt;&lt;a href="{0}" class="internal-link download-attachment"&gt;{1}&lt;/a&gt;&lt;/div&gt;&lt;div class="post-attachment"&gt;&lt;span class="value"&gt;&lt;a href="{0}" class="internal-link download-attachment"&gt;{2}&lt;/a&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;</resource>
+  <resource name="Wiki_Thread_Original_Template">&lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; 由&lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Original_Template_Anonymous">&lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; 由{2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_OriginalQuestion_Template">原始問題: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; 由 &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_OriginalQuestion_Template_Anonymous">原始問題: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; 由 {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Question_Template">問題: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; 由 &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Question_Template_Anonymous">問題: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; 由 {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_SuggestedAnswer_Template">已建議答案: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; 由 &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_SuggestedAnswer_Template_Anonymous">已建議答案: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; 由 {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Template">&lt;strong&gt;{0}&lt;/strong&gt; 由 &lt;a href="{4}"&gt;{2}&lt;/a&gt;: {1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Template_Anonymous">&lt;strong&gt;{0}&lt;/strong&gt; 由 {2}: {1}&lt;br/&gt;</resource>
+  <resource name="Wiki_WikiPageKeyDuplicate">使用此名稱的頁面已經存在這個 Wiki 中。請針對這個頁面選擇其他名稱。</resource>
+  <resource name="WikiPageLookUpTextBox_NoMatches">找不到相符的頁面。</resource>
+  <resource name="Wikis_HideFromToc">在目錄中隱藏此頁面</resource>
+  <resource name="Wikis_HideFromToc_Description">當隱藏時，頁面將不會顯示在 Wiki 的目錄中。</resource>
+  <resource name="Wikis_Order">順序</resource>
+  <resource name="Wikis_Order_Description">設定此頁面以及它在 Wiki 目錄中同層級的順序。</resource>
+  <resource name="Wikis_Page_LockMessage">Wiki 頁面已鎖定，無法儲存變更。</resource>
+  <resource name="Wikis_Page_MergeMessage">&lt;a href='{0}' target='_blank' class='internal-link view-user-profile'&gt;&lt;span&gt;&lt;/span&gt;{1}&lt;/a&gt; 在您編輯時張貼了&lt;a href="#" onclick="{2}" class='internal-link wiki'&gt;&lt;span&gt;&lt;/span&gt;新的版本&lt;/a&gt;。</resource>
+  <resource name="Wikis_Page_Subscribe">有人編輯此頁面時通知我</resource>
+  <resource name="Wikis_PageEdit_Description">編輯 Wiki 頁面。</resource>
+  <resource name="Wikis_PageEdit_Name">Wiki - 編輯頁面</resource>
+  <resource name="Wikis_ParentPage">父</resource>
+  <resource name="Write">撰寫</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="578aa547a44c45d39159cab85e3002cc" />
+		</requiredContext>
+		<files>
+			<file name="get-children.vm">I3NldCgkcGFnZUlkID0gZmFsc2UpDQojc2V0KCRwYWdlSWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgnX3dfd2lraVBhZ2VJZCcpKSkNCg0KI3NldCgkd2lraUlkID0gZmFsc2UpDQojc2V0KCR3aWtpSWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgnX3dfd2lraUlkJykpKQ0KDQojaWYgKCRwYWdlSWQpDQogICAgI3NldCgkcGFnZXMgPSAkY29yZV92Ml93aWtpVG9jLkxpc3QoJHdpa2lJZCwgJHBhZ2VJZCkpDQojZWxzZQ0KICAgICNzZXQoJHBhZ2VzID0gJGNvcmVfdjJfd2lraVRvYy5MaXN0KCR3aWtpSWQpKQ0KI2VuZA0KDQokY29yZV92Ml9wYWdlLlNldENvbnRlbnRUeXBlKCd0ZXh0L2pzb24nKQ0KDQp7DQogICAgI2lmICgkcGFnZXMuQ291bnQgPD0gMTAwKQ0KICAgICAgICAicGFnZXMiOiBbDQogICAgICAgICAgICAjZm9yZWFjaCgkcGFnZSBpbiAkcGFnZXMpDQogICAgICAgICAgICAgICAgI2VhY2gNCiAgICAgICAgICAgICAgICB7DQogICAgICAgICAgICAgICAgICAgICJpZCI6ICRwYWdlLklkLA0KICAgICAgICAgICAgICAgICAgICAidGl0bGUiOiAiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkcGFnZS5UaXRsZSkiLA0KICAgICAgICAgICAgICAgICAgICAicG9zaXRpb24iOiAjaWYgKCRwYWdlLlBvc2l0aW9uKSAkcGFnZS5Qb3NpdGlvbiAjZWxzZSBudWxsICNlbmQsDQogICAgICAgICAgICAgICAgICAgICJoaWRkZW4iOiAjaWYgKCRwYWdlLkhpZGRlbkluVGFibGVPZkNvbnRlbnRzKSB0cnVlICNlbHNlIGZhbHNlICNlbmQsDQogICAgICAgICAgICAgICAgICAgICJpc0RlZmF1bHQiOiAjaWYoJHBhZ2UuSXNEZWZhdWx0UGFnZSkgdHJ1ZSAjZWxzZSBmYWxzZSAjZW5kDQogICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgICAgICNiZXR3ZWVuDQogICAgICAgICAgICAgICAgLA0KICAgICAgICAgICAgI2VuZA0KICAgICAgICBdDQogICAgI2Vsc2UNCiAgICAgICAgInRvb21hbnkiOiB0cnVlDQogICAgI2VuZA0KfQ==</file>
+			<file name="LookupPages.vm">77u/I3NldCgkcGFyZW50UGFnZUlkVG9FeGNsdWRlID0gZmFsc2UpDQojc2V0KCRwYXJlbnRQYWdlSWRUb0V4Y2x1ZGUgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgnd19QYXJlbnRQYWdlSWRUb0V4Y2x1ZGUnKSkpDQojaWYgKCEkcGFyZW50UGFnZUlkVG9FeGNsdWRlKQ0KCSNzZXQoJHBhcmVudFBhZ2VJZFRvRXhjbHVkZSA9IC0xKQ0KI2VuZA0KI3NldCgkc2VhcmNoVGV4dCA9ICRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgnd19TZWFyY2hUZXh0JykuVG9Mb3dlcigpKQ0KI3NldCgkdG90YWxNYXRjaGVzID0gMCkNCiNzZXQoJGlnbm9yZVVudGlsTGV2ZWwgPSAtMSkNCiRjb3JlX3YyX3BhZ2UuU2V0Q29udGVudFR5cGUoJ2FwcGxpY2F0aW9uL2pzb24nKQ0KDQp7InBhZ2VzIjpbDQojaWYoJGNvcmVfdjJfd2lraS5DdXJyZW50KQ0KCSNmb3JlYWNoKCRwYWdlIGluICRjb3JlX3YyX3V0aWxpdHkuRmxhdHRlbkhpZXJhcmNoeSgkY29yZV92Ml93aWtpVG9jLkxpc3QoJGNvcmVfdjJfd2lraS5DdXJyZW50LklkKSwgJ0NoaWxkcmVuJykpDQoJCSNpZigkdG90YWxNYXRjaGVzIDwgMjApDQoJCQkjaWYgKCRpZ25vcmVVbnRpbExldmVsID4gMCAmJiAkaWdub3JlVW50aWxMZXZlbCA+PSAkcGFnZS5MZXZlbCkjc2V0KCRpZ25vcmVVbnRpbExldmVsID0gLTEpI2VuZA0KCQkJI2lmICgkcGFnZS5JdGVtLklkID09ICRwYXJlbnRQYWdlSWRUb0V4Y2x1ZGUpI3NldCgkaWdub3JlVW50aWxMZXZlbCA9ICRwYWdlLkxldmVsKSNlbmQNCgkJCSNpZiAoJGlnbm9yZVVudGlsTGV2ZWwgPT0gLTEgJiYgJHBhZ2UuSXRlbS5UaXRsZS5Ub0xvd2VyKCkuQ29udGFpbnMoJHNlYXJjaFRleHQpKQ0KCQkJCXsicGFnZUlkIjoiJHBhZ2UuSXRlbS5JZCIsInRpdGxlIjoiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YVNjcmlwdEVuY29kZSgkY29yZV92Ml9sYW5ndWFnZS5UcnVuY2F0ZSgkcGFnZS5JdGVtLlRpdGxlLCA1NSwgIi4uLiIpKSJ9LA0KCQkJCSNzZXQoJHRvdGFsTWF0Y2hlcyA9ICR0b3RhbE1hdGNoZXMgKyAxKQ0KCQkJI2VuZA0KCQkjZW5kDQoJI2VuZA0KI2VuZA0KbnVsbF19</file>
+			<file name="Subscribe.vm">77u/I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkNCgkkY29yZV92Ml9wYWdlLlNldENvbnRlbnRUeXBlKCdhcHBsaWNhdGlvbi9qc29uJykNCg0KCSNzZXQoJHN1YnNjcmliZSA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VCb29sKCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdzdWJzY3JpYmUnKSkpDQoJJGNvcmVfdjJfd2lraVBhZ2UuU2V0U3Vic2NyaWJlZCgkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCd3aWtpUGFnZUlkJykpLCAkc3Vic2NyaWJlKQ0KCXsic3Vic2NyaWJlIjojaWYoJHN1YnNjcmliZSkgdHJ1ZSNlbHNlIGZhbHNlI2VuZH0NCiNlbmQ=</file>
+			<file name="ui.js">KGZ1bmN0aW9uICgkKSB7DQogICAgaWYgKHR5cGVvZiAkLnRlbGxpZ2VudCA9PT0gJ3VuZGVmaW5lZCcpDQogICAgICAgICQudGVsbGlnZW50ID0ge307DQoNCiAgICBpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbiA9PT0gJ3VuZGVmaW5lZCcpDQogICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbiA9IHt9Ow0KDQogICAgaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9PT0gJ3VuZGVmaW5lZCcpDQogICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID0ge307DQoNCiAgICB2YXIgdGFiQ2xpY2sgPSBmdW5jdGlvbiAoY29udGV4dCwgdGFiKSB7DQogICAgICAgIHZhciB0ID0gJCh0YWIpOw0KICAgICAgICB2YXIgd3JhcHBlciA9ICQoJyMnICsgY29udGV4dC5lbGVtZW50SWQpOw0KICAgICAgICAkKCcuZmlsdGVyLW9wdGlvbicsIHdyYXBwZXIpLnJlbW92ZUNsYXNzKCdzZWxlY3RlZCcpOw0KICAgICAgICAkKHQucGFyZW50KCkuZ2V0KDApKS5hZGRDbGFzcygnc2VsZWN0ZWQnKTsNCiAgICAgICAgdmFyIGlkcyA9IHRhYi5pZC5zcGxpdCgnXycpOw0KICAgICAgICB2YXIgZmlsdGVyID0gaWRzW2lkcy5sZW5ndGggLSAxXTsNCiAgICAgICAgY29udGV4dC5zZWxlY3RlZFRhYiA9IGZpbHRlcjsNCg0KICAgICAgICBsb2FkKGNvbnRleHQsIGZpbHRlcik7DQogICAgfSwNCiAgICAgX3RyYWNrQ2hhcnMgPSBmdW5jdGlvbiAoY29udGV4dCwgZmllbGQsIG1heExlbmd0aCkgew0KICAgICAgICAgdmFyIGN1ckxlbiA9IGZpZWxkLnZhbCgpLmxlbmd0aDsNCiAgICAgICAgIHZhciB0b2dvID0gbWF4TGVuZ3RoIC0gY3VyTGVuOw0KICAgICAgICAgdmFyIGxhYmVsID0gZmllbGQucGFyZW50KCkubmV4dCgnc3Bhbi5jaGFyYWN0ZXItY291bnQnKTsNCg0KICAgICAgICAgaWYgKHRvZ28gPj0gMCkgew0KICAgICAgICAgICAgIGxhYmVsLmh0bWwoY3VyTGVuICsgJyAnICsgY29udGV4dC5jaGFyYWN0ZXJzUmVtYWluKTsNCiAgICAgICAgICAgICBsYWJlbC5yZW1vdmVDbGFzcygnZmllbGQtaXRlbS12YWxpZGF0aW9uJyk7DQogICAgICAgICB9DQogICAgICAgICBlbHNlIHsNCiAgICAgICAgICAgICBsYWJlbC5odG1sKCh0b2dvICogLTEpICsgJyAnICsgY29udGV4dC5jaGFyYWN0ZXJzT3Zlcik7DQogICAgICAgICAgICAgbGFiZWwuYWRkQ2xhc3MoJ2ZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpOw0KICAgICAgICAgfQ0KICAgICB9LA0KCQlzdWJtaXRDbGljayA9IGZ1bmN0aW9uIChjb250ZXh0KSB7DQoJCSAgICB2YXIgaW5UYWdzID0gY29udGV4dC50YWdzLnZhbCgpLnNwbGl0KC9bLDtdL2cpOw0KCQkgICAgdmFyIHRhZ3MgPSBbXTsNCgkJICAgIGZvciAodmFyIGkgPSAwOyBpIDwgaW5UYWdzLmxlbmd0aDsgaSsrKSB7DQoJCSAgICAgICAgdmFyIHRhZyA9ICQudHJpbShpblRhZ3NbaV0pOw0KCQkgICAgICAgIGlmICh0YWcpDQoJCSAgICAgICAgICAgIHRhZ3NbdGFncy5sZW5ndGhdID0gdGFnOw0KCQkgICAgfQ0KCQkgICAgdGFncyA9IHRhZ3Muam9pbignLCcpOw0KDQoJCSAgICB2YXIgZGF0YSA9IHsNCgkJICAgICAgICBUaXRsZTogY29udGV4dC50aXRsZS5ldm9sdXRpb25Db21wb3NlcigndmFsJyksDQoJCSAgICAgICAgQm9keTogY29udGV4dC5nZXRCb2R5KCksDQoJCSAgICAgICAgVGFnczogdGFncywNCgkJICAgICAgICBXaWtpSWQ6IGNvbnRleHQud2lraUlkDQoJCSAgICB9Ow0KDQoJCSAgICBpZiAoY29udGV4dC5tZXRhVGl0bGUgJiYgY29udGV4dC5tZXRhVGl0bGUubGVuZ3RoID4gMCkNCgkJICAgICAgICBkYXRhLk1ldGFUaXRsZSA9IGNvbnRleHQubWV0YVRpdGxlLnZhbCgpOw0KCQkgICAgaWYgKGNvbnRleHQubWV0YUtleXdvcmRzICYmIGNvbnRleHQubWV0YUtleXdvcmRzLmxlbmd0aCA+IDApDQoJCSAgICAgICAgZGF0YS5NZXRhS2V5d29yZHMgPSBjb250ZXh0Lm1ldGFLZXl3b3Jkcy52YWwoKTsNCgkJICAgIGlmIChjb250ZXh0Lm1ldGFEZXNjcmlwdGlvbiAmJiBjb250ZXh0Lm1ldGFEZXNjcmlwdGlvbi5sZW5ndGggPiAwKQ0KCQkgICAgICAgIGRhdGEuTWV0YURlc2NyaXB0aW9uID0gY29udGV4dC5tZXRhRGVzY3JpcHRpb24udmFsKCk7DQoJCSAgICAgICAgDQoJCSAgICBpZiAoY29udGV4dC50b2NoaWRpbmcgJiYgY29udGV4dC50b2NoaWRpbmcubGVuZ3RoID4gMCkNCgkJICAgICAgICBkYXRhLkhpZGVJblRhYmxlT2ZDb250ZW50cyA9IGNvbnRleHQudG9jaGlkaW5nLmlzKCc6Y2hlY2tlZCcpOw0KCQkgICAgICAgIA0KCQkgICAgaWYgKGNvbnRleHQuY3VycmVudFBhZ2VPcmRlcmVkSXRlbSAmJiBjb250ZXh0LmNhbk9yZGVyICYmIGNvbnRleHQuY3VycmVudFBhZ2VPcmRlcmVkSXRlbS52YWx1ZS5wb3NpdGlvbiAhPSBjb250ZXh0LmN1cnJlbnRQYWdlT3JkZXJlZEl0ZW0udmFsdWUub3JpZ2luYWxQb3NpdGlvbikgew0KCQkgICAgICAgIGRhdGEuUG9zaXRpb24gPSBjb250ZXh0LmN1cnJlbnRQYWdlT3JkZXJlZEl0ZW0udmFsdWUucG9zaXRpb24gPT09IG51bGwgPyAtMSA6IGNvbnRleHQuY3VycmVudFBhZ2VPcmRlcmVkSXRlbS52YWx1ZS5wb3NpdGlvbjsNCgkJICAgIH0NCg0KCQkgICAgaWYgKGNvbnRleHQudXNlckNhbk1vdmVQYWdlICYmIGNvbnRleHQucGFyZW50KQ0KCQkgICAgICAgIGRhdGEuUGFyZW50UGFnZUlkID0gY29udGV4dC5wYXJlbnQudmFsKCkgPyBjb250ZXh0LnBhcmVudC52YWwoKSA6IC0xOw0KDQoJCSAgICBpZiAoY29udGV4dC50aHJlYWRJZCA+IDApDQoJCSAgICAgICAgZGF0YS5Gb3J1bVRocmVhZElkID0gY29udGV4dC50aHJlYWRJZDsNCg0KCQkgICAgaWYgKGNvbnRleHQucGFnZUlkID4gMCkgew0KCQkgICAgICAgIGRhdGEuSWQgPSBjb250ZXh0LnBhZ2VJZDsNCg0KCQkgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5nZXQoew0KCQkgICAgICAgICAgICB1cmw6ICQudGVsbGlnZW50LmV2b2x1dGlvbi5zaXRlLmdldEJhc2VVcmwoKSArICdhcGkuYXNoeC92Mi93aWtpcy97V2lraUlkfS9wYWdlcy97SWR9Lmpzb24/SW5jbHVkZUZpZWxkcz1XaWtpUGFnZS5SZXZpc2lvbk51bWJlcixVc2VyLFdpa2lQYWdlLklzTG9ja2VkJywNCgkJICAgICAgICAgICAgY2FjaGU6IGZhbHNlLA0KCQkgICAgICAgICAgICBkYXRhOiB7DQoJCSAgICAgICAgICAgICAgICBXaWtpSWQ6IGRhdGEuV2lraUlkLA0KCQkgICAgICAgICAgICAgICAgSWQ6IGRhdGEuSWQNCgkJICAgICAgICAgICAgfSwNCgkJICAgICAgICAgICAgc3VjY2VzczogZnVuY3Rpb24gKHJlc3BvbnNlKSB7DQoJCSAgICAgICAgICAgICAgICBpZiAocmVzcG9uc2UuV2lraVBhZ2UuSXNMb2NrZWQgJiYgIWNvbnRleHQudXNlckNhbkxvY2spIHsNCgkJICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm1lc3NhZ2UudGV4dChjb250ZXh0LmxvY2tlZFRleHQpOw0KCQkgICAgICAgICAgICAgICAgICAgIGNvbnRleHQubWVzc2FnZS5zaG93KCk7DQoJCSAgICAgICAgICAgICAgICAgICAgJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LnNhdmUucGFyZW50KCkpLmNzcygidmlzaWJpbGl0eSIsICJoaWRkZW4iKTsNCgkJICAgICAgICAgICAgICAgICAgICBjb250ZXh0LnNhdmUucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCSAgICAgICAgICAgICAgICAgICAgcmV0dXJuOw0KCQkgICAgICAgICAgICAgICAgfQ0KCQkgICAgICAgICAgICAgICAgZWxzZSB7DQoJCSAgICAgICAgICAgICAgICAgICAgY29udGV4dC5tZXNzYWdlLmhpZGUoKTsNCgkJICAgICAgICAgICAgICAgIH0NCgkJICAgICAgICAgICAgICAgIGlmIChyZXNwb25zZS5XaWtpUGFnZS5SZXZpc2lvbk51bWJlciA9PSBjb250ZXh0Lm9yaWdpbmFsUmV2aXNpb24pIHsNCgkJICAgICAgICAgICAgICAgICAgICBkYXRhLklzTG9ja2VkID0gcmVzcG9uc2UuV2lraVBhZ2UuSXNMb2NrZWQ7DQoJCSAgICAgICAgICAgICAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnB1dCh7DQoJCSAgICAgICAgICAgICAgICAgICAgICAgIHVybDogJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnNpdGUuZ2V0QmFzZVVybCgpICsgJ2FwaS5hc2h4L3YyL3dpa2lzL3tXaWtpSWR9L3BhZ2VzL3tJZH0uanNvbj9JbmNsdWRlRmllbGRzPVdpa2lQYWdlLklkLFdpa2lQYWdlLlVybCcsDQoJCSAgICAgICAgICAgICAgICAgICAgICAgIGRhdGE6IGRhdGEsDQoJCSAgICAgICAgICAgICAgICAgICAgICAgIHN1Y2Nlc3M6IGZ1bmN0aW9uIChyZXNwb25zZSkgew0KCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHVybDogY29udGV4dC5zdWJzY3JpYmVVcmwsDQoJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZGF0YTogeyB3aWtpUGFnZUlkOiByZXNwb25zZS5XaWtpUGFnZS5JZCwgc3Vic2NyaWJlOiBjb250ZXh0LnN1YnNjcmliZS5pcygnOmNoZWNrZWQnKSB9LA0KCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN1Y2Nlc3M6IGZ1bmN0aW9uIChyZXNwb25zZTIpIHsNCgkJICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgX3NldE9yZGVyKGNvbnRleHQpDQoJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAudGhlbihmdW5jdGlvbigpIHsNCgkJICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB3aW5kb3cubG9jYXRpb24gPSByZXNwb25zZS5XaWtpUGFnZS5Vcmw7DQoJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB9KQ0KCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgLmZhaWwoZnVuY3Rpb24oKSB7DQoJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LnNhdmUucGFyZW50KCkpLmNzcygidmlzaWJpbGl0eSIsICJoaWRkZW4iKTsNCgkJICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0LnNhdmUucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB9KQ0KCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0sDQoJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZXJyb3I6IGZ1bmN0aW9uICh4aHIsIGRlc2MsIGV4KSB7DQoJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coZGVzYywgeyB0eXBlOiAnZXJyb3InIH0pOw0KCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAkKCcucHJvY2Vzc2luZycsIGNvbnRleHQuc2F2ZS5wYXJlbnQoKSkuY3NzKCJ2aXNpYmlsaXR5IiwgImhpZGRlbiIpOw0KCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0LnNhdmUucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfQ0KCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgfSk7DQoJCSAgICAgICAgICAgICAgICAgICAgICAgIH0sDQoJCSAgICAgICAgICAgICAgICAgICAgICAgIGVycm9yOiBmdW5jdGlvbiAoeGhyLCBkZXNjLCBleCkgew0KCQkgICAgICAgICAgICAgICAgICAgICAgICAJaWYoeGhyLnJlc3BvbnNlSlNPTi5FcnJvcnMgIT0gbnVsbCAmJiB4aHIucmVzcG9uc2VKU09OLkVycm9ycy5sZW5ndGggPiAwKQ0KCQkJCQkJCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coeGhyLnJlc3BvbnNlSlNPTi5FcnJvcnNbMF0se3R5cGU6J2Vycm9yJ30pOw0KCQkJCQkJCQkJZWxzZQ0KCQkJCQkJCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coZGVzYyx7dHlwZTonZXJyb3InfSk7DQoJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICAkKCcucHJvY2Vzc2luZycsIGNvbnRleHQuc2F2ZS5wYXJlbnQoKSkuY3NzKCJ2aXNpYmlsaXR5IiwgImhpZGRlbiIpOw0KCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5zYXZlLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCQkgICAgICAgICAgICAgICAgICAgICAgICB9DQoJCSAgICAgICAgICAgICAgICAgICAgfSk7DQoJCSAgICAgICAgICAgICAgICB9DQoJCSAgICAgICAgICAgICAgICBlbHNlIHsNCgkJICAgICAgICAgICAgICAgICAgICB2YXIgbWVyZ2VVcmwgPSBjb250ZXh0Lm1lcmdlVXJsLnJlcGxhY2UoLzk5ODg3Ny9nLCBjb250ZXh0Lm9yaWdpbmFsUmV2aXNpb24pLnJlcGxhY2UoLzc3ODg5OS9nLCByZXNwb25zZS5XaWtpUGFnZS5SZXZpc2lvbk51bWJlcik7DQoNCgkJICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm1lc3NhZ2UuaHRtbChjb250ZXh0Lm1lcmdlTWVzc2FnZS5yZXBsYWNlKC97QXV0aG9yVXJsfS9nLCByZXNwb25zZS5XaWtpUGFnZS5Vc2VyLlByb2ZpbGVVcmwpLnJlcGxhY2UoL3tBdXRob3JOYW1lfS9nLCByZXNwb25zZS5XaWtpUGFnZS5Vc2VyLkRpc3BsYXlOYW1lKS5yZXBsYWNlKC97TWVyZ2VVcmx9L2csICd3aW5kb3cub3BlbihcJycgKyBtZXJnZVVybCArICdcJyxcJ21lcmdlXCcsXCd3aWR0aD01MzAsaGVpZ2h0PTUwMCxyZXNpemFibGU9MSxzY3JvbGxiYXJzPTFcJyk7IHJldHVybiBmYWxzZTsnKSkuc2hvdygpOw0KDQoJCSAgICAgICAgICAgICAgICAgICAgY29udGV4dC5zYXZlLmh0bWwoJzxzcGFuPjwvc3Bhbj4nICsgY29udGV4dC5vdmVyd3JpdGVUZXh0KTsNCgkJICAgICAgICAgICAgICAgICAgICAkKCcucHJvY2Vzc2luZycsIGNvbnRleHQuc2F2ZS5wYXJlbnQoKSkuY3NzKCJ2aXNpYmlsaXR5IiwgImhpZGRlbiIpOw0KCQkgICAgICAgICAgICAgICAgICAgIGNvbnRleHQuc2F2ZS5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsNCg0KCQkgICAgICAgICAgICAgICAgICAgIGNvbnRleHQudmlld0NoYW5nZXMudW5iaW5kKCdjbGljaycpOw0KCQkgICAgICAgICAgICAgICAgICAgIGNvbnRleHQudmlld0NoYW5nZXMuY2xpY2soZnVuY3Rpb24gKCkgew0KCQkgICAgICAgICAgICAgICAgICAgICAgICB3aW5kb3cub3BlbihtZXJnZVVybCwgJ21lcmdlJywgJ3dpZHRoPTUzMCxoZWlnaHQ9NTAwLHJlc2l6YWJsZT0xLHNjcm9sbGJhcnM9MScpOw0KCQkgICAgICAgICAgICAgICAgICAgICAgICByZXR1cm4gZmFsc2U7DQoJCSAgICAgICAgICAgICAgICAgICAgfSk7DQoJCSAgICAgICAgICAgICAgICAgICAgY29udGV4dC52aWV3Q2hhbmdlcy5zaG93KCk7DQoNCgkJICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm9yaWdpbmFsUmV2aXNpb24gPSByZXNwb25zZS5XaWtpUGFnZS5SZXZpc2lvbk51bWJlcjsNCg0KCQkgICAgICAgICAgICAgICAgICAgICQoJ2h0bWwsIGJvZHknKS5hbmltYXRlKHsgc2Nyb2xsVG9wOiBjb250ZXh0Lm1lc3NhZ2Uub2Zmc2V0KCkudG9wIC0gMTAwIH0sIDUwMCk7DQoJCSAgICAgICAgICAgICAgICB9DQoJCSAgICAgICAgICAgIH0sDQoJCSAgICAgICAgICAgIGVycm9yOiBmdW5jdGlvbiAoeGhyLCBkZXNjLCBleCkgew0KCQkgICAgICAgICAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyhkZXNjLCB7IHR5cGU6ICdlcnJvcicgfSk7DQoJCSAgICAgICAgICAgICAgICAkKCcucHJvY2Vzc2luZycsIGNvbnRleHQuc2F2ZS5wYXJlbnQoKSkuY3NzKCJ2aXNpYmlsaXR5IiwgImhpZGRlbiIpOw0KCQkgICAgICAgICAgICAgICAgY29udGV4dC5zYXZlLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCQkgICAgICAgICAgICB9DQoJCSAgICAgICAgfSk7DQoJCSAgICB9DQoJCSAgICBlbHNlIHsNCgkJICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ucG9zdCh7DQoJCSAgICAgICAgICAgIHVybDogJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnNpdGUuZ2V0QmFzZVVybCgpICsgJ2FwaS5hc2h4L3YyL3dpa2lzL3tXaWtpSWR9L3BhZ2VzLmpzb24/SW5jbHVkZUZpZWxkcz1XaWtpUGFnZS5JZCxXaWtpUGFnZS5VcmwnLA0KCQkgICAgICAgICAgICBkYXRhOiBkYXRhLA0KCQkgICAgICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsNCgkJICAgICAgICAgICAgICAgIGNvbnRleHQucGFnZUlkID0gcmVzcG9uc2UuV2lraVBhZ2UuSWQ7DQoJCSAgICAgICAgICAgICAgICBpZiAoY29udGV4dC5jdXJyZW50UGFnZU9yZGVyZWRJdGVtKSB7DQoJCSAgICAgICAgICAgICAgICAgICAgY29udGV4dC5jdXJyZW50UGFnZU9yZGVyZWRJdGVtLnZhbHVlLmlkID0gY29udGV4dC5wYWdlSWQ7DQoJCSAgICAgICAgICAgICAgICB9DQoJCSAgICAgICAgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ucG9zdCh7DQoJCSAgICAgICAgICAgICAgICAgICAgdXJsOiBjb250ZXh0LnN1YnNjcmliZVVybCwNCgkJICAgICAgICAgICAgICAgICAgICBkYXRhOiB7IHdpa2lQYWdlSWQ6IHJlc3BvbnNlLldpa2lQYWdlLklkLCBzdWJzY3JpYmU6IGNvbnRleHQuc3Vic2NyaWJlLmlzKCc6Y2hlY2tlZCcpIH0sDQoJCSAgICAgICAgICAgICAgICAgICAgc3VjY2VzczogZnVuY3Rpb24gKHJlc3BvbnNlMikgew0KCQkgICAgICAgICAgICAgICAgICAgICAgICBfc2V0T3JkZXIoY29udGV4dCkNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC50aGVuKGZ1bmN0aW9uKCkgew0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHdpbmRvdy5sb2NhdGlvbiA9IHJlc3BvbnNlLldpa2lQYWdlLlVybDsNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0pDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAuZmFpbChmdW5jdGlvbigpIHsNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAkKCcucHJvY2Vzc2luZycsIGNvbnRleHQuc2F2ZS5wYXJlbnQoKSkuY3NzKCJ2aXNpYmlsaXR5IiwgImhpZGRlbiIpOw0KCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNvbnRleHQuc2F2ZS5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0pOw0KCQkgICAgICAgICAgICAgICAgICAgIH0sDQoJCSAgICAgICAgICAgICAgICAgICAgZXJyb3I6IGZ1bmN0aW9uICh4aHIsIGRlc2MsIGV4KSB7DQoJCSAgICAgICAgICAgICAgICAgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coZGVzYywgeyB0eXBlOiAnZXJyb3InIH0pOw0KCQkgICAgICAgICAgICAgICAgICAgICAgICAkKCcucHJvY2Vzc2luZycsIGNvbnRleHQuc2F2ZS5wYXJlbnQoKSkuY3NzKCJ2aXNpYmlsaXR5IiwgImhpZGRlbiIpOw0KCQkgICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0LnNhdmUucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCSAgICAgICAgICAgICAgICAgICAgfQ0KCQkgICAgICAgICAgICAgICAgfSk7DQoJCSAgICAgICAgICAgIH0sDQoJCSAgICAgICAgICAgIGVycm9yOiBmdW5jdGlvbiAoeGhyLCBkZXNjLCBleCkgew0KCQkgICAgICAgICAgICAgICAgaWYoeGhyLnJlc3BvbnNlSlNPTi5FcnJvcnMgIT0gbnVsbCAmJiB4aHIucmVzcG9uc2VKU09OLkVycm9ycy5sZW5ndGggPiAwKQ0KCQkJCQkJCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coeGhyLnJlc3BvbnNlSlNPTi5FcnJvcnNbMF0se3R5cGU6J2Vycm9yJ30pOw0KCQkJCQkJCQkJZWxzZQ0KCQkJCQkJCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coZGVzYyx7dHlwZTonZXJyb3InfSk7DQoJCSAgICAgICAgICAgICAgICAkKCcucHJvY2Vzc2luZycsIGNvbnRleHQuc2F2ZS5wYXJlbnQoKSkuY3NzKCJ2aXNpYmlsaXR5IiwgImhpZGRlbiIpOw0KCQkgICAgICAgICAgICAgICAgY29udGV4dC5zYXZlLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCQkgICAgICAgICAgICB9DQoJCSAgICAgICAgfSk7DQoJCSAgICB9DQoJCX0sDQoJCV9zZXRPcmRlciA9IGZ1bmN0aW9uKGNvbnRleHQpIHsNCgkJICAgIHJldHVybiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uYmF0Y2goZnVuY3Rpb24oKSB7DQogICAgCQkgICAgaWYgKGNvbnRleHQuY2FuT3JkZXIpIHsNCiAgICAgICAgCQkgICAgdmFyIGl0ZW1Db3VudCA9IGNvbnRleHQub3JkZXJpbmcuZ2xvd09yZGVyZWRMaXN0KCdjb3VudCcpOw0KICAgICAgICAJCSAgICBmb3IgKHZhciBpID0gMDsgaSA8IGl0ZW1Db3VudDsgaSsrKSB7DQogICAgICAgIAkJICAgICAgICB2YXIgaXRlbSA9IGNvbnRleHQub3JkZXJpbmcuZ2xvd09yZGVyZWRMaXN0KCdnZXRCeUluZGV4JywgaSk7DQogICAgICAgIAkJICAgICAgICBpZiAoaXRlbS52YWx1ZS5wb3NpdGlvbiAhPT0gaXRlbS52YWx1ZS5vcmlnaW5hbFBvc2l0aW9uKSB7DQogICAgICAgIAkJICAgICAgICAgICAgaWYgKGNvbnRleHQucGFnZUlkICE9IGl0ZW0udmFsdWUuaWQpIHsNCiAgICAgICAgCQkgICAgICAgICAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnB1dCh7DQogICAgICAgIAkgICAgICAgICAgICAgICAgICAgICAgICB1cmw6ICQudGVsbGlnZW50LmV2b2x1dGlvbi5zaXRlLmdldEJhc2VVcmwoKSArICdhcGkuYXNoeC92Mi93aWtpcy97V2lraUlkfS9wYWdlcy97SWR9Lmpzb24/SW5jbHVkZUZpZWxkcz1XaWtpUGFnZS5JZCxXaWtpUGFnZS5VcmwnLA0KICAgICAgICAJICAgICAgICAgICAgICAgICAgICAgICAgZGF0YTogew0KICAgICAgICAJICAgICAgICAgICAgICAgICAgICAgICAgICAgIFdpa2lJZDogY29udGV4dC53aWtpSWQsDQogICAgICAgIAkgICAgICAgICAgICAgICAgICAgICAgICAgICAgSWQ6IGl0ZW0udmFsdWUuaWQsDQogICAgICAgIAkgICAgICAgICAgICAgICAgICAgICAgICAgICAgUG9zaXRpb246IGl0ZW0udmFsdWUucG9zaXRpb24gPT09IG51bGwgPyAtMSA6IGl0ZW0udmFsdWUucG9zaXRpb24NCiAgICAgICAgCSAgICAgICAgICAgICAgICAgICAgICAgIH0NCiAgICAgICAgCSAgICAgICAgICAgICAgICAgICAgfSk7DQogICAgICAgIAkJICAgICAgICAgICAgfQ0KICAgICAgICAJCSAgICAgICAgfQ0KICAgICAgICAJCSAgICB9DQogICAgCQkgICAgfQ0KCQkgICAgfSwgew0KCQkgICAgICAgc2VxdWVudGlhbDogZmFsc2UgDQoJCSAgICB9KTsNCgkJfSwNCgkJX29yZGVyQ2hhbmdlZCA9IGZ1bmN0aW9uKGNvbnRleHQsIGNoYW5nZWRJdGVtLCBvbGRJbmRleCwgbmV3SW5kZXgpIHsNCgkJICAgIHZhciBpdGVtcyA9IFtdOw0KCQkgICAgdmFyIGl0ZW1Db3VudCA9IGNvbnRleHQub3JkZXJpbmcuZ2xvd09yZGVyZWRMaXN0KCdjb3VudCcpOw0KCQkgICAgdmFyIGFsbEluTmF0dXJhbFBvc2l0aW9uID0gdHJ1ZTsNCgkJICAgIHZhciBpOw0KCQkgICAgZm9yIChpID0gMDsgaSA8IGl0ZW1Db3VudDsgaSsrKSB7DQoJCSAgICAgICAgdmFyIGl0ZW0gPSBjb250ZXh0Lm9yZGVyaW5nLmdsb3dPcmRlcmVkTGlzdCgnZ2V0QnlJbmRleCcsIGkpOw0KCQkgICAgICAgIGl0ZW1zLnB1c2goew0KCQkgICAgICAgICAgICBpdGVtOiBpdGVtLA0KCQkgICAgICAgICAgICBvcmlnaW5hbEluZGV4OiBpDQoJCSAgICAgICAgICAgIH0pOw0KCQkgICAgICAgICAgICANCgkJICAgICAgICBpZiAoaXRlbS52YWx1ZS5uYXR1cmFsUG9zaXRpb24gIT0gaSkgew0KCQkgICAgICAgICAgICBhbGxJbk5hdHVyYWxQb3NpdGlvbiA9IGZhbHNlOw0KCQkgICAgICAgIH0NCgkJICAgIH0NCgkJICAgIA0KCQkgICAgaWYgKGFsbEluTmF0dXJhbFBvc2l0aW9uKSB7ICANCgkJICAgICAgICBmb3IgKGkgPSAwOyBpIDwgaXRlbXMubGVuZ3RoOyBpKyspIHsNCgkJICAgICAgICAgICAgaXRlbXNbaV0uaXRlbS52YWx1ZS5wb3NpdGlvbiA9IG51bGw7DQoJCSAgICAgICAgfQ0KCQkgICAgfSBlbHNlIHsNCgkgICAgICAgICAgICBmb3IgKGkgPSAwOyBpIDwgaXRlbXMubGVuZ3RoOyBpKyspIHsNCgkgICAgICAgICAgICAgICAgaXRlbXNbaV0uaXRlbS52YWx1ZS5wb3NpdGlvbiA9IGk7DQoJCSAgICAgICAgfQ0KCQkgICAgfQ0KCQl9LA0KCQlfc29ydE9yZGVyTGlzdCA9IGZ1bmN0aW9uKGNvbnRleHQpIHsNCgkJICAgIHZhciBpdGVtcyA9IFtdOw0KCQkgICAgdmFyIGl0ZW1Db3VudCA9IGNvbnRleHQub3JkZXJpbmcuZ2xvd09yZGVyZWRMaXN0KCdjb3VudCcpOw0KCQkgICAgZm9yICh2YXIgaSA9IDA7IGkgPCBpdGVtQ291bnQ7IGkrKykgew0KCQkgICAgICAgIHZhciBpdGVtID0gY29udGV4dC5vcmRlcmluZy5nbG93T3JkZXJlZExpc3QoJ2dldEJ5SW5kZXgnLCBpKTsNCgkJICAgICAgICBpdGVtcy5wdXNoKHsNCgkJICAgICAgICAgICAgaXRlbTogaXRlbSwNCgkJICAgICAgICAgICAgb3JpZ2luYWxJbmRleDogaQ0KCQkgICAgICAgICAgICB9KTsNCgkJICAgIH0NCgkJICAgIA0KCQkgICAgaXRlbXMuc29ydChmdW5jdGlvbihhLCBiKSB7DQoJCSAgICAgICBpZiAoYS5pdGVtLnZhbHVlLmlzRGVmYXVsdCA9PSBiLml0ZW0udmFsdWUuaXNEZWZhdWx0KSB7DQogICAgICAgIAkgICAgICAgcmV0dXJuIGEuaXRlbS52YWx1ZS50aXRsZS5sb2NhbGVDb21wYXJlKGIuaXRlbS52YWx1ZS50aXRsZSk7IA0KICAgIAkgICAgICAgIH0gZWxzZSBpZiAoYS5pdGVtLnZhbHVlLmlzRGVmYXVsdCkgew0KICAgIAkgICAgICAgICAgICByZXR1cm4gLTE7DQogICAgCSAgICAgICAgfSBlbHNlIHsNCiAgICAJICAgICAgICAgICAgcmV0dXJuIDE7DQogICAgCSAgICAgICAgfSANCgkJICAgIH0pOw0KCQkgICAgDQoJCSAgICBmb3IgKCBpID0gMDsgaSA8IGl0ZW1Db3VudDsgaSsrKSB7DQoJCSAgICAgICAgaXRlbXNbaV0uaXRlbS52YWx1ZS5uYXR1cmFsUG9zaXRpb24gPSBpOw0KCQkgICAgfQ0KCQkgICAgDQoJCSAgICBpdGVtcy5zb3J0KGZ1bmN0aW9uKGEsIGIpIHsNCgkJICAgICAgIGlmIChhLml0ZW0udmFsdWUucG9zaXRpb24gPT09IG51bGwpIHsNCgkJICAgICAgICAgICBpZiAoYi5pdGVtLnZhbHVlLnBvc2l0aW9uICE9PSBudWxsKSB7DQoJCSAgICAgICAgICAgICAgIHJldHVybiAxOw0KCQkgICAgICAgICAgIH0NCgkJICAgICAgIH0gZWxzZSBpZiAoYi5pdGVtLnZhbHVlLnBvc2l0aW9uID09PSBudWxsKSB7DQoJCSAgICAgICAgICAgcmV0dXJuIC0xOw0KCQkgICAgICAgfSBlbHNlIGlmIChhLml0ZW0udmFsdWUucG9zaXRpb24gIT0gYi5pdGVtLnZhbHVlLnBvc2l0aW9uKSB7DQoJCSAgICAgICAgICAgcmV0dXJuIGEuaXRlbS52YWx1ZS5wb3NpdGlvbiAtIGIuaXRlbS52YWx1ZS5wb3NpdGlvbjsNCgkJICAgICAgIH0NCgkJICAgICAgIA0KCQkgICAgICAgaWYgKGEuaXRlbS52YWx1ZS5pc0RlZmF1bHQgPT0gYi5pdGVtLnZhbHVlLmlzRGVmYXVsdCkgew0KICAgICAgICAJICAgICAgIHJldHVybiBhLml0ZW0udmFsdWUudGl0bGUubG9jYWxlQ29tcGFyZShiLml0ZW0udmFsdWUudGl0bGUpOyANCiAgICAJICAgICAgICB9IGVsc2UgaWYgKGEuaXRlbS52YWx1ZS5pc0RlZmF1bHQpIHsNCiAgICAJICAgICAgICAgICAgcmV0dXJuIC0xOw0KICAgIAkgICAgICAgIH0gZWxzZSB7DQogICAgCSAgICAgICAgICAgIHJldHVybiAxOw0KICAgIAkgICAgICAgIH0NCgkJICAgIH0pOw0KCQkgICAgDQoJCSAgICBmb3IgKGkgPSAwOyBpIDwgaXRlbUNvdW50OyBpKyspIHsNCgkJICAgICAgICBpZiAoaXRlbXNbaV0ub3JpZ2luYWxJbmRleCAhPSBpKSB7DQoJCSAgICAgICAgICAgIGNvbnRleHQub3JkZXJpbmcuZ2xvd09yZGVyZWRMaXN0KCdpbnNlcnQnLCBpdGVtc1tpXS5pdGVtLCBpKTsNCgkJICAgICAgICB9DQoJCSAgICB9DQoJCSAgICANCgkJICAgIGNvbnRleHQub3JkZXJpbmcuZ2xvd09yZGVyZWRMaXN0KCdyZWZyZXNoJyk7DQoJCX0sDQoJCV91cGRhdGVPcmRlckxpc3QgPSBmdW5jdGlvbihjb250ZXh0KSB7DQogICAgICAgICAgICBpZiAoY29udGV4dC5wYXJlbnQpIHsNCiAgICAgICAgICAgICAgICB2YXIgcGFyZW50SWQgPSBjb250ZXh0LnBhcmVudC52YWwoKSA/IGNvbnRleHQucGFyZW50LnZhbCgpIDogLTE7DQogICAgICAgICAgICAgICAgaWYgKHBhcmVudElkICE9IGNvbnRleHQucGFyZW50SWQpIHsNCiAgICAgICAgICAgICAgICAgICAgY29udGV4dC5wYXJlbnRJZCA9IHBhcmVudElkOw0KICAgICAgICAgICAgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24uZ2V0KHsNCiAgICAgICAgICAgICAgICAgICAgICAgIHVybDogY29udGV4dC5nZXRDaGlsZHJlblVybCwNCiAgICAgICAgICAgICAgICAgICAgICAgIGRhdGE6IHsNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBfd193aWtpUGFnZUlkOiBjb250ZXh0LnBhcmVudElkLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgIF93X3dpa2lJZDogY29udGV4dC53aWtpSWQNCiAgICAgICAgICAgICAgICAgICAgICAgIH0NCiAgICAgICAgICAgICAgICAgICAgfSkNCiAgICAgICAgICAgICAgICAgICAgICAgIC5kb25lKGZ1bmN0aW9uKHJlc3BvbnNlKSB7DQogICAgICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm9yZGVyaW5nLmdsb3dPcmRlcmVkTGlzdCgnY2xlYXInKTsNCiAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmIChyZXNwb25zZS50b29tYW55KSB7DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5vcmRlcmluZy5jbG9zZXN0KCcuZmllbGQtaXRlbS5wb3N0LW9yZGVyaW5nJykuY3NzKHsNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcG9zaXRpb246ICdhYnNvbHV0ZScsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHZpc2liaWxpdHk6ICdoaWRkZW4nLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBsZWZ0OiAnLTEwMDBweCcsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHdpZHRoOiAnMTAwcHgnDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfSk7DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5jYW5PcmRlciA9IGZhbHNlOw0KICAgICAgICAgICAgICAgICAgICAgICAgICAgfSBlbHNlIHsNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm9yZGVyaW5nLmNsb3Nlc3QoJy5maWVsZC1pdGVtLnBvc3Qtb3JkZXJpbmcnKS5jc3Moew0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwb3NpdGlvbjogJ3N0YXRpYycsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHZpc2liaWxpdHk6ICd2aXNpYmxlJywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbGVmdDogJzAnLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB3aWR0aDogJ2F1dG8nDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfSk7DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5jYW5PcmRlciA9IHRydWU7DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgdmFyIGZvdW5kID0gZmFsc2U7DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgdmFyIHBhZ2VUaXRsZSA9IGNvbnRleHQudGl0bGUuZXZvbHV0aW9uQ29tcG9zZXIoJ3ZhbCcpOw0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHZhciBvcmlnaW5hbFRpdGxlID0gcGFnZVRpdGxlOw0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmIChwYWdlVGl0bGUgPT09ICcnKSB7DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHBhZ2VUaXRsZSA9IGNvbnRleHQub3JkZXJQbGFjZWhvbGRlcjsNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB9DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmIChjb250ZXh0LnRvY2hpZGluZy5pcygnOmNoZWNrZWQnKSkgew0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcGFnZVRpdGxlID0gY29udGV4dC50aXRsZUhpZGRlbi5yZXBsYWNlKC9cezBcfS9nLCBwYWdlVGl0bGUpOw0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB9DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgdmFyIGN1cnJlbnRQYWdlSXRlbSA9IGNvbnRleHQub3JkZXJpbmcuZ2xvd09yZGVyZWRMaXN0KCdjcmVhdGVJdGVtJywgew0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgdmFsdWU6IHsNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBpZDogY29udGV4dC5wYWdlSWQsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgb3JpZ2luYWxQb3NpdGlvbjogbnVsbCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBuYXR1cmFsUG9zaXRpb246IG51bGwsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcG9zaXRpb246IG51bGwsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgdGl0bGU6IG9yaWdpbmFsVGl0bGUsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaXNEZWZhdWx0OiBmYWxzZQ0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHRleHQ6IHBhZ2VUaXRsZSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGh0bWw6ICc8Yj4nICsgcGFnZVRpdGxlICsgJzwvYj4nDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfSk7DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZm9yICh2YXIgaSA9IDA7IGkgPCByZXNwb25zZS5wYWdlcy5sZW5ndGg7IGkrKykgew0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBpZiAoY29udGV4dC5wYWdlSWQgPT0gcmVzcG9uc2UucGFnZXNbaV0uaWQpIHsNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGZvdW5kID0gdHJ1ZTsNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGN1cnJlbnRQYWdlSXRlbS52YWx1ZS5vcmlnaW5hbFBvc2l0aW9uID0gcmVzcG9uc2UucGFnZXNbaV0ucG9zaXRpb247DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjdXJyZW50UGFnZUl0ZW0udmFsdWUubmF0dXJhbFBvc2l0aW9uID0gbnVsbDsNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGN1cnJlbnRQYWdlSXRlbS52YWx1ZS5wb3NpdGlvbiA9IHJlc3BvbnNlLnBhZ2VzW2ldLnBvc2l0aW9uOw0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY3VycmVudFBhZ2VJdGVtLnZhbHVlLmlzRGVmYXVsdCA9IHJlc3BvbnNlLnBhZ2VzW2ldLmlzRGVmYXVsdDsNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNvbnRleHQub3JkZXJpbmcuZ2xvd09yZGVyZWRMaXN0KCdhZGQnLCBjdXJyZW50UGFnZUl0ZW0pOw0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB9IGVsc2Ugew0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5vcmRlcmluZy5nbG93T3JkZXJlZExpc3QoJ2FkZCcsIGNvbnRleHQub3JkZXJpbmcuZ2xvd09yZGVyZWRMaXN0KCdjcmVhdGVJdGVtJywgew0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHZhbHVlOiB7DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlkOiByZXNwb25zZS5wYWdlc1tpXS5pZCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcG9zaXRpb246IHJlc3BvbnNlLnBhZ2VzW2ldLnBvc2l0aW9uLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBvcmlnaW5hbFBvc2l0aW9uOiByZXNwb25zZS5wYWdlc1tpXS5wb3NpdGlvbiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbmF0dXJhbFBvc2l0aW9uOiBudWxsLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB0aXRsZTogcmVzcG9uc2UucGFnZXNbaV0udGl0bGUsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlzRGVmYXVsdDogcmVzcG9uc2UucGFnZXNbaV0uaXNEZWZhdWx0DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0sDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgdGV4dDogcmVzcG9uc2UucGFnZXNbaV0uaGlkZGVuID8gY29udGV4dC50aXRsZUhpZGRlbi5yZXBsYWNlKC9cezBcfS9nLCByZXNwb25zZS5wYWdlc1tpXS50aXRsZSkgOiByZXNwb25zZS5wYWdlc1tpXS50aXRsZSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBodG1sOiByZXNwb25zZS5wYWdlc1tpXS5oaWRkZW4gPyBjb250ZXh0LnRpdGxlSGlkZGVuLnJlcGxhY2UoL1x7MFx9L2csIHJlc3BvbnNlLnBhZ2VzW2ldLnRpdGxlKSA6IHJlc3BvbnNlLnBhZ2VzW2ldLnRpdGxlDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB9KSk7DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0NCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB9DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaWYgKCFmb3VuZCkgew0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjdXJyZW50UGFnZUl0ZW0udmFsdWUub3JpZ2luYWxQb3NpdGlvbiA9IG51bGw7DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGN1cnJlbnRQYWdlSXRlbS52YWx1ZS5wb3NpdGlvbiA9IG51bGw7DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGN1cnJlbnRQYWdlSXRlbS52YWx1ZS5uYXR1cmFsUG9zaXRpb24gPSBudWxsOw0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm9yZGVyaW5nLmdsb3dPcmRlcmVkTGlzdCgnYWRkJywgY3VycmVudFBhZ2VJdGVtKTsNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB9DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5jdXJyZW50UGFnZU9yZGVyZWRJdGVtID0gY3VycmVudFBhZ2VJdGVtOw0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIF9zb3J0T3JkZXJMaXN0KGNvbnRleHQpOw0KICAgICAgICAgICAgICAgICAgICAgICAgICAgfSAgDQogICAgICAgICAgICAgICAgICAgICAgICB9KTsNCiAgICAgICAgICAgICAgICB9IGVsc2Ugew0KICAgICAgICAgICAgICAgICAgICBpZiAoY29udGV4dC5jdXJyZW50UGFnZU9yZGVyZWRJdGVtKSB7DQogICAgICAgICAgICAgICAgICAgICAgICB2YXIgcGFnZVRpdGxlID0gY29udGV4dC50aXRsZS5ldm9sdXRpb25Db21wb3NlcigndmFsJyk7DQogICAgICAgICAgICAgICAgICAgICAgICB2YXIgb3JpZ2luYWxUaXRsZSA9IHBhZ2VUaXRsZTsNCiAgICAgICAgICAgICAgICAgICAgICAgIGlmIChwYWdlVGl0bGUgPT09ICcnKSB7DQogICAgICAgICAgICAgICAgICAgICAgICAgICBwYWdlVGl0bGUgPSBjb250ZXh0Lm9yZGVyUGxhY2Vob2xkZXI7DQogICAgICAgICAgICAgICAgICAgICAgICB9DQoNCiAgICAgICAgICAgICAgICAgICAgICAgIGNvbnRleHQuY3VycmVudFBhZ2VPcmRlcmVkSXRlbS52YWx1ZS5uYXR1cmFsUG9zaXRpb24gPSBudWxsOw0KICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5jdXJyZW50UGFnZU9yZGVyZWRJdGVtLnZhbHVlLnRpdGxlID0gb3JpZ2luYWxUaXRsZTsNCiAgICAgICAgICAgICAgICAgICAgICAgIA0KICAgICAgICAgICAgICAgICAgICAgICAgaWYgKGNvbnRleHQudG9jaGlkaW5nLmlzKCc6Y2hlY2tlZCcpKSB7DQogICAgICAgICAgICAgICAgICAgICAgICAgICAgcGFnZVRpdGxlID0gY29udGV4dC50aXRsZUhpZGRlbi5yZXBsYWNlKC9cezBcfS9nLCBwYWdlVGl0bGUpOw0KICAgICAgICAgICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgICAgICAgICAgICAgDQogICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0LmN1cnJlbnRQYWdlT3JkZXJlZEl0ZW0uaHRtbCA9ICc8Yj4nICsgcGFnZVRpdGxlICsgJzwvYj4nOw0KICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5jdXJyZW50UGFnZU9yZGVyZWRJdGVtLnRleHQgPSBwYWdlVGl0bGU7DQogICAgICAgICAgICAgICAgICAgICAgICBfc29ydE9yZGVyTGlzdChjb250ZXh0KTsNCiAgICAgICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgICAgIH0NCiAgICAgICAgICAgIH0gDQoJCX07DQoNCiAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cy5wYWdlRWRpdCA9DQoJew0KCSAgICByZWdpc3RlcjogZnVuY3Rpb24gKGNvbnRleHQpIHsNCgkgICAgICAgIGlmIChjb250ZXh0LnRhZ3MpIHsNCgkgICAgICAgICAgICBjb250ZXh0LnRhZ3MuZXZvbHV0aW9uVGFnVGV4dEJveCh7IGFwcGxpY2F0aW9uSWQ6IGNvbnRleHQuYXBwbGljYXRpb25JZCB9KTsNCgkgICAgICAgIH0NCg0KCSAgICAgICAgLy8gdGFiIHNldHVwDQoJICAgICAgICAkKGNvbnRleHQudGFic1NlbGVjdG9yKS5nbG93VGFiYmVkUGFuZXMoew0KCSAgICAgICAgICAgIGNzc0NsYXNzOiAndGFiLXBhbmUnLA0KCSAgICAgICAgICAgIHRhYlNldENzc0NsYXNzOiAndGFiLXNldCB3aXRoLXBhbmVzJywNCgkgICAgICAgICAgICB0YWJDc3NDbGFzc2VzOiBbJ3RhYiddLA0KCSAgICAgICAgICAgIHRhYlNlbGVjdGVkQ3NzQ2xhc3NlczogWyd0YWIgc2VsZWN0ZWQnXSwNCgkgICAgICAgICAgICB0YWJIb3ZlckNzc0NsYXNzZXM6IFsndGFiIGhvdmVyJ10sDQoJICAgICAgICAgICAgZW5hYmxlUmVzaXppbmc6IGZhbHNlLA0KCSAgICAgICAgICAgIHRhYnM6IFsNCgkJICAgICAgICAgICAgW2NvbnRleHQud3JpdGVUYWJJZCwgY29udGV4dC53cml0ZVRhYkxhYmVsLCBudWxsXSwNCgkJICAgICAgICAgICAgW2NvbnRleHQub3B0aW9uc1RhYklkLCBjb250ZXh0Lm9wdGlvbnNUYWJMYWJlbCwgbnVsbF0NCgkgICAgICAgICAgICBdDQoJICAgICAgICB9KTsNCg0KCSAgICAgICAgY29udGV4dC50aXRsZS5ldm9sdXRpb25Db21wb3Nlcih7DQoJICAgICAgICAgICAgcGx1Z2luczogWydoYXNodGFncyddLA0KCSAgICAgICAgICAgIGNvbnRlbnRUeXBlSWQ6IGNvbnRleHQud2lraVBhZ2VDb250ZW50VHlwZUlkDQoJICAgICAgICB9KS5ldm9sdXRpb25Db21wb3Nlcignb25rZXlkb3duJywgZnVuY3Rpb24gKGUpIHsNCgkgICAgICAgICAgICBpZiAoZS53aGljaCA9PT0gMTMpIHsNCgkgICAgICAgICAgICAgICAgcmV0dXJuIGZhbHNlOw0KCSAgICAgICAgICAgIH0gZWxzZSB7DQoJICAgICAgICAgICAgICAgIHJldHVybiB0cnVlOw0KCSAgICAgICAgICAgIH0NCgkgICAgICAgIH0pLm9uKCdjaGFuZ2UnLCBmdW5jdGlvbigpIHsNCgkgICAgICAgICAgICBfdXBkYXRlT3JkZXJMaXN0KGNvbnRleHQpOw0KCSAgICAgICAgfSk7DQoNCgkgICAgICAgIGlmIChjb250ZXh0LnBhcmVudCAmJiBjb250ZXh0Lmxvb2t1cFBhZ2VzVXJsICYmIGNvbnRleHQubm9QYWdlTWF0Y2hlc1RleHQpIHsNCgkgICAgICAgICAgICB2YXIgdGltZW91dCA9IG51bGw7DQoJICAgICAgICAgICAgY29udGV4dC5wYXJlbnQuZ2xvd0xvb2tVcFRleHRCb3goDQoJCQkJew0KCQkJCSAgICAnbWF4VmFsdWVzJzogMSwNCgkJCQkgICAgJ2VtcHR5SHRtbCc6ICcnLA0KCQkJCSAgICAnb25HZXRMb29rVXBzJzogZnVuY3Rpb24gKHRiLCBzZWFyY2hUZXh0KSB7DQoJCQkJICAgICAgICB3aW5kb3cuY2xlYXJUaW1lb3V0KHRpbWVvdXQpOw0KCQkJCSAgICAgICAgaWYgKHNlYXJjaFRleHQgJiYgc2VhcmNoVGV4dC5sZW5ndGggPj0gMikgew0KCQkJCSAgICAgICAgICAgIHRiLmdsb3dMb29rVXBUZXh0Qm94KCd1cGRhdGVTdWdnZXN0aW9ucycsIFt0Yi5nbG93TG9va1VwVGV4dEJveCgnY3JlYXRlTG9va1VwJywgJycsICc8c3BhbiBjbGFzcz0idWktbG9hZGluZyIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48L3NwYW4+JywgJzxzcGFuIGNsYXNzPSJ1aS1sb2FkaW5nIiB3aWR0aD0iNDgiIGhlaWdodD0iNDgiPjwvc3Bhbj4nLCBmYWxzZSldKTsNCgkJCQkgICAgICAgICAgICB0aW1lb3V0ID0gd2luZG93LnNldFRpbWVvdXQoZnVuY3Rpb24gKCkgew0KCQkJCSAgICAgICAgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24uZ2V0KHsNCgkJCQkgICAgICAgICAgICAgICAgICAgIHVybDogY29udGV4dC5sb29rdXBQYWdlc1VybCwNCgkJCQkgICAgICAgICAgICAgICAgICAgIGRhdGE6IHsgd19TZWFyY2hUZXh0OiBzZWFyY2hUZXh0LCB3X1BhcmVudFBhZ2VJZFRvRXhjbHVkZTogKGNvbnRleHQucGFnZUlkID8gY29udGV4dC5wYWdlSWQgOiAtMSkgfSwNCgkJCQkgICAgICAgICAgICAgICAgICAgIHN1Y2Nlc3M6IGZ1bmN0aW9uIChyZXNwb25zZSkgew0KCQkJCSAgICAgICAgICAgICAgICAgICAgICAgIGlmIChyZXNwb25zZSAmJiByZXNwb25zZS5wYWdlcy5sZW5ndGggPiAxKSB7DQoJCQkJICAgICAgICAgICAgICAgICAgICAgICAgICAgIHZhciBzdWdnZXN0aW9ucyA9IFtdOw0KCQkJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICBmb3IgKHZhciBpID0gMDsgaSA8IHJlc3BvbnNlLnBhZ2VzLmxlbmd0aCAtIDE7IGkrKykNCgkJCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN1Z2dlc3Rpb25zW3N1Z2dlc3Rpb25zLmxlbmd0aF0gPSB0Yi5nbG93TG9va1VwVGV4dEJveCgnY3JlYXRlTG9va1VwJywgcmVzcG9uc2UucGFnZXNbaV0ucGFnZUlkLCByZXNwb25zZS5wYWdlc1tpXS50aXRsZSwgcmVzcG9uc2UucGFnZXNbaV0udGl0bGUsIHRydWUpOw0KCQkJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICB0Yi5nbG93TG9va1VwVGV4dEJveCgndXBkYXRlU3VnZ2VzdGlvbnMnLCBzdWdnZXN0aW9ucyk7DQoJCQkJICAgICAgICAgICAgICAgICAgICAgICAgfQ0KCQkJCSAgICAgICAgICAgICAgICAgICAgICAgIGVsc2UNCgkJCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgdGIuZ2xvd0xvb2tVcFRleHRCb3goJ3VwZGF0ZVN1Z2dlc3Rpb25zJywgW3RiLmdsb3dMb29rVXBUZXh0Qm94KCdjcmVhdGVMb29rVXAnLCAnJywgY29udGV4dC5ub1BhZ2VNYXRjaGVzVGV4dCwgY29udGV4dC5ub1BhZ2VNYXRjaGVzVGV4dCwgZmFsc2UpXSk7DQoJCQkJICAgICAgICAgICAgICAgICAgICB9DQoJCQkJICAgICAgICAgICAgICAgIH0pOw0KCQkJCSAgICAgICAgICAgIH0sIDc0OSk7DQoJCQkJICAgICAgICB9DQoJCQkJICAgIH0sDQoJCQkJICAgICdzZWxlY3RlZExvb2tVcHNIdG1sJzogKGNvbnRleHQucGFyZW50UGFnZVRpdGxlID8gW2NvbnRleHQucGFyZW50UGFnZVRpdGxlXSA6IFtdKQ0KCQkJCX0pDQoJCQkJICAgIC5vbignZ2xvd0xvb2tVcFRleHRCb3hDaGFuZ2UnLCBmdW5jdGlvbigpIHsNCgkJCQkgICAgICAgIF91cGRhdGVPcmRlckxpc3QoY29udGV4dCk7DQoJCQkgICAgICAgIH0pOw0KCSAgICAgICAgfQ0KCSAgICAgICAgDQoJICAgICAgICBpZiAoY29udGV4dC5vcmRlcmluZykgew0KCSAgICAgICAgICAgIGNvbnRleHQub3JkZXJpbmcuZ2xvd09yZGVyZWRMaXN0KHsNCgkgICAgICAgICAgICAgICAgaGVpZ2h0OiAyMDANCgkgICAgICAgICAgICB9KTsNCg0KCSAgICAgICAgICAgIF91cGRhdGVPcmRlckxpc3QoY29udGV4dCk7DQoJICAgICAgICAgICAgDQoJICAgICAgICAgICAgaWYgKGNvbnRleHQub3JkZXJpbmdVcCkgew0KCSAgICAgICAgICAgICAgICBjb250ZXh0Lm9yZGVyaW5nVXAub24oJ2NsaWNrJywgZnVuY3Rpb24oKSB7DQoJICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm9yZGVyaW5nLmdsb3dPcmRlcmVkTGlzdCgnbW92ZVVwJyk7DQoJICAgICAgICAgICAgICAgICAgICByZXR1cm4gZmFsc2U7DQoJICAgICAgICAgICAgICAgIH0pOw0KCSAgICAgICAgICAgIH0NCgkgICAgICAgICAgICANCgkgICAgICAgICAgICBpZiAoY29udGV4dC5vcmRlcmluZ0Rvd24pIHsNCgkgICAgICAgICAgICAgICAgY29udGV4dC5vcmRlcmluZ0Rvd24ub24oJ2NsaWNrJywgZnVuY3Rpb24oKSB7DQoJICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm9yZGVyaW5nLmdsb3dPcmRlcmVkTGlzdCgnbW92ZURvd24nKTsNCgkgICAgICAgICAgICAgICAgICAgIHJldHVybiBmYWxzZTsNCgkgICAgICAgICAgICAgICAgfSk7DQoJICAgICAgICAgICAgfQ0KCSAgICAgICAgICAgIA0KCSAgICAgICAgICAgIGlmIChjb250ZXh0LnRvY2hpZGluZykgew0KCSAgICAgICAgICAgICAgICBjb250ZXh0LnRvY2hpZGluZy5vbignY2hhbmdlJywgZnVuY3Rpb24oKSB7DQoJICAgICAgICAgICAgICAgICAgICBfdXBkYXRlT3JkZXJMaXN0KGNvbnRleHQpOw0KCSAgICAgICAgICAgICAgICB9KTsNCgkgICAgICAgICAgICB9DQoJICAgICAgICAgICAgDQoJICAgICAgICAgICAgY29udGV4dC5vcmRlcmluZy5vbignZ2xvd09yZGVyZWRMaXN0SXRlbU1vdmVkJywgZnVuY3Rpb24oZSwgaXRlbSwgb2xkSW5kZXgsIG5ld0luZGV4KSB7DQoJICAgICAgICAgICAgICAgIF9vcmRlckNoYW5nZWQoY29udGV4dCwgaXRlbSwgb2xkSW5kZXgsIG5ld0luZGV4KTsNCgkgICAgICAgICAgICB9KTsNCgkgICAgICAgIH0NCg0KCSAgICAgICAgY29udGV4dC5zYXZlLmNsaWNrKGZ1bmN0aW9uICgpIHsNCgkgICAgICAgICAgICAkKHRoaXMpLmV2b2x1dGlvblZhbGlkYXRpb24oJ3ZhbGlkYXRlJyk7DQoJICAgICAgICAgICAgaWYgKCEkKHRoaXMpLmV2b2x1dGlvblZhbGlkYXRpb24oJ2lzVmFsaWQnKSkgew0KCSAgICAgICAgICAgICAgICByZXR1cm47DQoJICAgICAgICAgICAgfQ0KDQoJICAgICAgICAgICAgc3VibWl0Q2xpY2soY29udGV4dCk7DQoJICAgICAgICB9KTsNCgkgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5uYXZpZ2F0aW9uQ29uZmlybWF0aW9uLmVuYWJsZSgpOw0KCSAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5hdmlnYXRpb25Db25maXJtYXRpb24ucmVnaXN0ZXIoY29udGV4dC5zYXZlKTsNCg0KCSAgICAgICAgaWYgKGNvbnRleHQudmlld2NoYW5nZXMpDQoJICAgICAgICAgICAgY29udGV4dC52aWV3Y2hhbmdlcy5jbGljayhmdW5jdGlvbiAoKSB7IHNob3dNZXJnZShjb250ZXh0KTsgfSk7DQoNCgkgICAgICAgIGNvbnRleHQuc2F2ZS5jbGljayhmdW5jdGlvbiAoKSB7DQoJICAgICAgICAgICAgaWYgKCFjb250ZXh0LnNhdmUuZXZvbHV0aW9uVmFsaWRhdGlvbigndmFsaWRhdGVGaWVsZCcsIGNvbnRleHQudGl0bGVTZWxlY3RvcikgJiYgJC50cmltKGNvbnRleHQudGl0bGUuZXZvbHV0aW9uQ29tcG9zZXIoJ3ZhbCcpKSkNCgkgICAgICAgICAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyhjb250ZXh0LnBhZ2VFeGlzdHNUZXh0LCB7IHR5cGU6ICdlcnJvcicgfSk7DQoJICAgICAgICB9KTsNCg0KCSAgICAgICAgY29udGV4dC5zYXZlLmV2b2x1dGlvblZhbGlkYXRpb24oDQoJCQl7DQoJCQkgICAgdmFsaWRhdGVPbkxvYWQ6IGNvbnRleHQucGFnZUlkIDw9IDAgPyBmYWxzZSA6IG51bGwsDQoJCQkgICAgb25WYWxpZGF0ZWQ6IGZ1bmN0aW9uIChpc1ZhbGlkLCBidXR0b25DbGlja2VkLCBjKSB7DQoJCQkgICAgICAgIGlmIChpc1ZhbGlkKQ0KCQkJICAgICAgICAgICAgY29udGV4dC5zYXZlLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCQkJICAgICAgICBlbHNlDQoJCQkgICAgICAgICAgICBjb250ZXh0LnNhdmUuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCQkgICAgfSwNCgkJCSAgICBvblN1Y2Nlc3NmdWxDbGljazogZnVuY3Rpb24gKGUpIHsNCgkJCSAgICAgICAgJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LnNhdmUucGFyZW50KCkpLmNzcygidmlzaWJpbGl0eSIsICJ2aXNpYmxlIik7DQoJCQkgICAgICAgIGNvbnRleHQuc2F2ZS5hZGRDbGFzcygnZGlzYWJsZWQnKTsNCgkJCSAgICB9DQoJCQl9KTsNCg0KCSAgICAgICAgY29udGV4dC5zYXZlLmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEZpZWxkJywgY29udGV4dC50aXRsZVNlbGVjdG9yLA0KCQkJew0KCQkJICAgIHJlcXVpcmVkOiB0cnVlLA0KCQkJICAgIHdpa2lwYWdlZXhpc3RzOiB7IHdpa2lJZDogY29udGV4dC53aWtpSWQsIHBhZ2VJZDogY29udGV4dC5wYWdlSWQsIHBhcmVudFBhZ2VJZDogZnVuY3Rpb24gKCkgeyByZXR1cm4gY29udGV4dC5wYXJlbnQgJiYgY29udGV4dC5wYXJlbnQudmFsKCkgPyBjb250ZXh0LnBhcmVudC52YWwoKSA6IC0xOyB9IH0sDQoJCQkgICAgbWVzc2FnZXM6DQoJCQkJew0KCQkJCSAgICByZXF1aXJlZDogY29udGV4dC5yZXF1aXJlZEZpZWxkVGV4dCwNCgkJCQkgICAgd2lraXBhZ2VleGlzdHM6IGNvbnRleHQucGFnZUV4aXN0c1RleHQNCgkJCQl9DQoJCQl9LCAnIycgKyBjb250ZXh0LndyYXBwZXJJZCArICcgLmZpZWxkLWl0ZW0ucG9zdC1uYW1lIC5maWVsZC1pdGVtLXZhbGlkYXRpb24nLCBudWxsKTsNCgkgICAgICAgIGNvbnRleHQuc2F2ZS5ldm9sdXRpb25WYWxpZGF0aW9uKCd2YWxpZGF0ZScpOw0KDQoJICAgICAgICB2YXIgZiA9IGNvbnRleHQuc2F2ZS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRDdXN0b21WYWxpZGF0aW9uJywgJ3BhZ2V0ZXh0JywgZnVuY3Rpb24gKCkgew0KCSAgICAgICAgICAgIHJldHVybiBjb250ZXh0LmdldEJvZHkoKS5sZW5ndGggPiAwOw0KCSAgICAgICAgfSwNCgkJCWNvbnRleHQucmVxdWlyZWRGaWVsZFRleHQsICcjJyArIGNvbnRleHQud3JhcHBlcklkICsgJyAuZmllbGQtaXRlbS5wb3N0LWJvZHkgLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicsIG51bGwNCgkJCSk7DQoNCgkgICAgICAgIF90cmFja0NoYXJzKGNvbnRleHQsIGNvbnRleHQubWV0YVRpdGxlLCA1NSk7DQoJICAgICAgICBjb250ZXh0Lm1ldGFUaXRsZS5vbigna2V5dXAnLCBmdW5jdGlvbiAoKSB7DQoJICAgICAgICAgICAgX3RyYWNrQ2hhcnMoY29udGV4dCwgJCh0aGlzKSwgNTUpOw0KCSAgICAgICAgfSk7DQoJICAgICAgICBfdHJhY2tDaGFycyhjb250ZXh0LCBjb250ZXh0Lm1ldGFEZXNjcmlwdGlvbiwgMTUwKTsNCgkgICAgICAgIGNvbnRleHQubWV0YURlc2NyaXB0aW9uLm9uKCdrZXl1cCcsIGZ1bmN0aW9uICgpIHsNCgkgICAgICAgICAgICBfdHJhY2tDaGFycyhjb250ZXh0LCAkKHRoaXMpLCAxNTApOw0KCSAgICAgICAgfSk7DQoNCgkgICAgICAgIGNvbnRleHQuYXR0YWNoQm9keUNoYW5nZUhhbmRsZXIoZik7DQoJICAgIH0NCgl9Ow0KfSkoalF1ZXJ5KTsNCg==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

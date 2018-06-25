@@ -1,0 +1,35 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:GroupDescription_Name}" version="10.1.8.10498" description="${resource:GroupDescription_Description}" instanceIdentifier="65725c77153e42c397b1db50e8816f42" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="group-description">
+		<contentScript><![CDATA[
+#set($group = false)
+#set($group = $core_v2_group.Current)
+#if (!$group || !$group.Description || $group.Description.Trim().Length == 0)
+	$core_v2_widget.Hide()
+#end
+$group.Description
+        ]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:GroupDescription_Name}'))
+        ]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+    <property id="fragmentHeader" resourceName="Title" dataType="string" defaultValue="${resource:GroupDescription_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+        ]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="GroupDescription_Description">Displays the current community's description</resource>
+  <resource name="GroupDescription_Name">Community - Description</resource>
+  <resource name="Title">Widget Title</resource>
+</language>
+<language key="zh-cn">
+  <resource name="GroupDescription_Description">显示当前社区的描述</resource>
+  <resource name="GroupDescription_Name">社区 - 描述</resource>
+  <resource name="Title">小组件标题</resource>
+</language>
+<language key="zh-tw">
+  <resource name="GroupDescription_Description">顯示目前社群的描述</resource>
+  <resource name="GroupDescription_Name">社群 - 描述</resource>
+  <resource name="Title">Widget 標題</resource>
+</language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

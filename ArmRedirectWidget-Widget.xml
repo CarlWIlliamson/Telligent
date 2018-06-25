@@ -1,0 +1,14 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="Arm - Redirect Widget" version="10.1.8.10498" description="" instanceIdentifier="0c8b4abbd0484f33b3a5d8bcf27032d5" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="">
+		<contentScript><![CDATA[#if($core_v2_widget.IsInWidgetPreviewMode)
+    $core_v2_widget.Hide()
+#end
+
+#set ($isUserADRMember = false)
+#set ($isUserADRMember = $core_v2_roleUsers.IsUserInRoles($core_v2_user.Accessing.Username, $core_v2_utility.MakeList("Administrator")))
+
+#if(!$isUserADRMember)
+$core_v2_page.Redirect($core_v2_urls.Home())
+#end]]></contentScript>
+	</scriptedContentFragment>
+</scriptedContentFragments>

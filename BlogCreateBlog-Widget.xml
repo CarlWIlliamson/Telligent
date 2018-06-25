@@ -1,0 +1,124 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Blogs_CreateBlog_Name}" version="10.1.8.10498" description="${resource:Blogs_CreateBlog_Description}" instanceIdentifier="e1f9626ef5474039b7088fdb1a3d15bb" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="create-blog">
+		<contentScript><![CDATA[
+## require non-anonymous user
+#if (!$core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+	$core_v2_authentication.RedirectToLogin()
+#end
+
+## capture a group which is either current or root
+#set ($group = $core_v2_group.Current)
+#if (!$group)
+	#set ($group = $core_v2_group.Root)
+#end
+#set ($defaultGroup = $core_v2_group.Default)
+
+## require proper permissions
+#set ($canCreateBlogInCurrentGroup = $core_v2_nodePermission.Get('groups',$group.Id,$core_v2_groupPermissions.CreateBlog).IsAllowed)
+#set ($canCreateBlogInDefaultGroup = $core_v2_nodePermission.Get('groups',$defaultGroup.Id,$core_v2_groupPermissions.CreateBlog).IsAllowed)
+
+#if (!$canCreateBlogInCurrentGroup && (!$defaultGroup || !$canCreateBlogInDefaultGroup))
+	$core_v2_widget.Hide()
+#end
+
+<fieldset>
+	<h1>$core_v2_language.GetResource('CF_CreateBlog')</h1>
+	<ul class="field-list">
+		<li class="field-item required blog-name">
+			<label for="$core_v2_widget.UniqueId('name')" class="field-item-name">$core_v2_language.GetResource('Weblog_Name')</label>
+			<span class="field-item-description">$core_v2_language.GetResource('Weblog_Name_Desc')</span>
+			<span class="field-item-input"><input name="$core_v2_widget.UniqueId('name')" type="text" size="40" id="$core_v2_widget.UniqueId('name')" /></span>
+			<span class="field-item-validation" style="display:none;"></span>
+		</li>
+		<li class="field-item">
+			<label class="field-item-name" for="$core_v2_widget.UniqueId('group')">$core_v2_language.GetResource('Weblog_Groups')</label>
+			<span class="field-item-description">$core_v2_language.GetResource('Weblog_Groups_Desc')</span>
+			<span class="field-item-input"><input id="$core_v2_widget.UniqueId('group')" name="$core_v2_widget.UniqueId('group')" type="text" style="width:100%;" /></span>
+			<span class="field-item-validation" style="display:none;"></span>
+		</li>
+		<li class="field-item">
+			<a id="$core_v2_widget.UniqueId('create')" class="internal-link create-blog disabled submit-button button" href="#"><span></span>$core_v2_language.GetResource('Create')</a>
+			<span class="processing" style="visibility: hidden;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+		</li>
+	</ul>
+</fieldset>
+
+#registerEndOfPageHtml('telligent.evolution.widgets.createBlog')
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+#end
+#registerEndOfPageHtml()
+	<script type="text/javascript">
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+	jQuery(document).ready(function(j){
+		j.telligent.evolution.widgets.createBlog.register({
+			nameInput: "#$core_v2_widget.UniqueId('name')",
+			groupInput: "#$core_v2_widget.UniqueId('group')",
+			createLink: "#$core_v2_widget.UniqueId('create')",
+			lookupGroupsUrl: "$core_v2_page.AbsoluteUrl('~/api.ashx/v2/groups.json')",
+			createBlogUrl: "$core_v2_page.AbsoluteUrl('~/api.ashx/v2/blogs.json')",
+			noGroupsMatchText: "$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('GroupLookUp_NoMatches'))",
+			groupRequiredMessage: "$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('CreateBlog_NoGroupSelected'))",
+			defaultGroupId: $group.Id,
+			defaultGroupName: '$core_v2_encoding.JavascriptEncode($group.Name)'
+		});
+	});
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+	</script>
+#end
+
+	]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Blogs_CreateBlog_Name}'))
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Blogs_CreateBlog_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+	]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Blogs_CreateBlog_Description">Displays a form used to create a new blog.</resource>
+  <resource name="Blogs_CreateBlog_Name">Blog - Create Blog</resource>
+  <resource name="CF_CreateBlog">Create Blog</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Create">Create</resource>
+  <resource name="CreateBlog_NoGroupSelected">You must select a group for this blog.</resource>
+  <resource name="GroupLookUp_NoMatches">A matching group could not be found.</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Weblog_Groups">Blog Group</resource>
+  <resource name="Weblog_Groups_Desc">Select a group for this blog.</resource>
+  <resource name="Weblog_Name">Blog Name</resource>
+  <resource name="Weblog_Name_Desc">Enter a name for the blog.</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Blogs_CreateBlog_Description">显示用于创建新博客的窗体。</resource>
+  <resource name="Blogs_CreateBlog_Name">博客 - 创建博客</resource>
+  <resource name="CF_CreateBlog">创建博客</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Create">创建</resource>
+  <resource name="CreateBlog_NoGroupSelected">您必须为此博客选择社区。</resource>
+  <resource name="GroupLookUp_NoMatches">找不到匹配的社区。</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Weblog_Groups">博客社区</resource>
+  <resource name="Weblog_Groups_Desc">为此博客选择社区。</resource>
+  <resource name="Weblog_Name">博客名称</resource>
+  <resource name="Weblog_Name_Desc">输入博客名称。</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Blogs_CreateBlog_Description">顯示用來建立新部落格的表單。</resource>
+  <resource name="Blogs_CreateBlog_Name">部落格 - 建立部落格</resource>
+  <resource name="CF_CreateBlog">建立部落格</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Create">建立</resource>
+  <resource name="CreateBlog_NoGroupSelected">您必須選取這個部落格的社群。</resource>
+  <resource name="GroupLookUp_NoMatches">找不到相符的社群。</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Weblog_Groups">部落格社群</resource>
+  <resource name="Weblog_Groups_Desc">選取這個部落格的社群。</resource>
+  <resource name="Weblog_Name">部落格名稱</resource>
+  <resource name="Weblog_Name_Desc">輸入部落格的名稱。</resource>
+</language></languageResources>
+		<files>
+			<file name="ui.js">KGZ1bmN0aW9uKCQpIHsNCg0KCXZhciBzcGlubmVyID0gJzxzcGFuIGNsYXNzPSJ1aS1sb2FkaW5nIiB3aWR0aD0iNDgiIGhlaWdodD0iNDgiPjwvc3Bhbj4nLA0KCQlzZWFyY2hHcm91cHMgPSBmdW5jdGlvbihjb250ZXh0LCB0ZXh0Ym94LCBzZWFyY2hUZXh0KSB7DQoJCQlpZihzZWFyY2hUZXh0ICYmIHNlYXJjaFRleHQubGVuZ3RoID49IDIpIHsNCg0KCQkJCXRleHRib3guZ2xvd0xvb2tVcFRleHRCb3goJ3VwZGF0ZVN1Z2dlc3Rpb25zJywgWw0KCQkJCQl0ZXh0Ym94Lmdsb3dMb29rVXBUZXh0Qm94KCdjcmVhdGVMb29rVXAnLCAnJywgc3Bpbm5lciwgc3Bpbm5lciwgZmFsc2UpDQoJCQkJXSk7DQoNCgkJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24uZ2V0KHsNCgkJCQkJdXJsOiBjb250ZXh0Lmxvb2t1cEdyb3Vwc1VybCwNCgkJCQkJZGF0YTogew0KCQkJCQkJR3JvdXBOYW1lRmlsdGVyOiBzZWFyY2hUZXh0LA0KCQkJCQkJUGVybWlzc2lvbjogJ0dyb3VwX0NyZWF0ZUJsb2cnDQoJCQkJCX0sDQoJCQkJCXN1Y2Nlc3M6IGZ1bmN0aW9uKHJlc3BvbnNlKSB7DQoJCQkJCQlpZiAocmVzcG9uc2UgJiYgcmVzcG9uc2UuR3JvdXBzLmxlbmd0aCA+PSAxKSB7DQoJCQkJCQkJdGV4dGJveC5nbG93TG9va1VwVGV4dEJveCgndXBkYXRlU3VnZ2VzdGlvbnMnLA0KCQkJCQkJCQkkLm1hcChyZXNwb25zZS5Hcm91cHMsIGZ1bmN0aW9uKGdyb3VwLCBpKSB7DQoJCQkJCQkJCQlyZXR1cm4gdGV4dGJveC5nbG93TG9va1VwVGV4dEJveCgnY3JlYXRlTG9va1VwJywgZ3JvdXAuSWQsIGdyb3VwLk5hbWUsIGdyb3VwLk5hbWUsIHRydWUpOw0KCQkJCQkJCQl9KSk7DQoJCQkJCQl9IGVsc2Ugew0KCQkJCQkJCXRleHRib3guZ2xvd0xvb2tVcFRleHRCb3goJ3VwZGF0ZVN1Z2dlc3Rpb25zJywgWw0KCQkJCQkJCQl0ZXh0Ym94Lmdsb3dMb29rVXBUZXh0Qm94KCdjcmVhdGVMb29rVXAnLCAnJywgY29udGV4dC5ub0dyb3Vwc01hdGNoVGV4dCwgY29udGV4dC5ub0dyb3Vwc01hdGNoVGV4dCwgZmFsc2UpDQoJCQkJCQkJXSk7DQoJCQkJCQl9DQoJCQkJCX0NCgkJCQl9KTsNCgkJCX0NCgkJfSwNCgkJc2F2ZUJsb2cgPSBmdW5jdGlvbihjb250ZXh0KSB7DQoJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ucG9zdCh7DQoJCQkJdXJsOiBjb250ZXh0LmNyZWF0ZUJsb2dVcmwsDQoJCQkJZGF0YTogew0KCQkJCQlOYW1lOiBjb250ZXh0Lm5hbWVJbnB1dC52YWwoKSwNCgkJCQkJR3JvdXBJZDogcGFyc2VJbnQoY29udGV4dC5ncm91cElucHV0LnZhbCgpLCAxMCkNCgkJCQl9LA0KCQkJCXN1Y2Nlc3M6IGZ1bmN0aW9uKHJlc3BvbnNlKSB7DQoJCQkJCWlmKHJlc3BvbnNlLkVycm9ycyAmJiByZXNwb25zZS5FcnJvcnMubGVuZ3RoID4gMCkgew0KCQkJCQkJYWxlcnQocmVzcG9uc2UuRXJyb3JzWzBdKTsNCgkJCQkJfSBlbHNlIHsNCgkJCQkJCXdpbmRvdy5sb2NhdGlvbiA9IHJlc3BvbnNlLkJsb2cuVXJsOw0KCQkJCQl9DQoJCQkJfSwNCgkJCQllcnJvcjogZnVuY3Rpb24oeGhyLCBkZXNjLCBleCkgew0KCQkJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ubm90aWZpY2F0aW9ucy5zaG93KGRlc2MsIHt0eXBlOidlcnJvcid9KTsNCgkJCQkJY29udGV4dC5jcmVhdGVMaW5rLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCQkJCX0NCgkJCX0pOw0KCQl9Ow0KDQoJdmFyIGFwaSA9IHsNCgkJcmVnaXN0ZXI6IGZ1bmN0aW9uKGNvbnRleHQpIHsNCgkJCWNvbnRleHQuZ3JvdXBJbnB1dCA9ICQoY29udGV4dC5ncm91cElucHV0KQ0KCQkJCS5nbG93TG9va1VwVGV4dEJveCh7DQoJCQkJCWRlbGltaXRlcjogJywnLA0KCQkJCQlhbGxvd0R1cGxpY2F0ZXM6IHRydWUsDQoJCQkJCW1heFZhbHVlczogMSwNCgkJCQkJb25HZXRMb29rVXBzOiBmdW5jdGlvbih0Yiwgc2VhcmNoVGV4dCkgew0KCQkJCQkJc2VhcmNoR3JvdXBzKGNvbnRleHQsIHRiLCBzZWFyY2hUZXh0KTsNCgkJCQkJfSwNCgkJCQkJZW1wdHlIdG1sOiAnJywNCgkJCQkJc2VsZWN0ZWRMb29rVXBzSHRtbDogW10sDQoJCQkJCWRlbGV0ZUltYWdlVXJsOiAnJ30pOw0KDQoJCQljb250ZXh0Lm5hbWVJbnB1dCA9ICQoY29udGV4dC5uYW1lSW5wdXQpOw0KCQkJY29udGV4dC5jcmVhdGVMaW5rID0gJChjb250ZXh0LmNyZWF0ZUxpbmspDQoJCQkJLmV2b2x1dGlvblZhbGlkYXRpb24oew0KCQkJCQl2YWxpZGF0ZU9uTG9hZCA6IGZhbHNlLA0KCQkJCQlvblZhbGlkYXRlZDogZnVuY3Rpb24oaXNWYWxpZCwgYnV0dG9uQ2xpY2tlZCwgYykgew0KCQkJCQkJaWYgKGlzVmFsaWQpIHsNCgkJCQkJCQljb250ZXh0LmNyZWF0ZUxpbmsucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCQkJCQl9IGVsc2Ugew0KCQkJCQkJCWNvbnRleHQuY3JlYXRlTGluay5hZGRDbGFzcygnZGlzYWJsZWQnKTsNCgkJCQkJCX0NCgkJCQkJfSwNCgkJCQkJb25TdWNjZXNzZnVsQ2xpY2s6IGZ1bmN0aW9uKGUpIHsNCgkJCQkJCWUucHJldmVudERlZmF1bHQoKTsNCgkJCQkJCS8vIHNob3cgdGhlIHByb2Nlc3Npbmcgbm9kZQ0KCQkJCQkJJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LmNyZWF0ZUxpbmsucGFyZW50KCkpLmNzcygidmlzaWJpbGl0eSIsICJ2aXNpYmxlIik7DQoJCQkJCQkvLyBzZXQgZm9ybSBmaWVsZHMgcmVnYXJkaW5nIHRoZSBsb2dpbg0KCQkJCQkJY29udGV4dC5jcmVhdGVMaW5rLmFkZENsYXNzKCdkaXNhYmxlZCcpOw0KCQkJCQkJLy8gc3VibWl0IHRoZSBmb3JtDQoJCQkJCQlzYXZlQmxvZyhjb250ZXh0KTsNCgkJCQkJfX0pDQoJCQkJLmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEZpZWxkJywNCgkJCQkJY29udGV4dC5uYW1lSW5wdXQsDQoJCQkJCXsgcmVxdWlyZWQ6IHRydWUsIG1heGxlbmd0aDogMTI4IH0sDQoJCQkJCWNvbnRleHQubmFtZUlucHV0LmNsb3Nlc3QoJy5maWVsZC1pdGVtJykuZmluZCgnLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpLCBudWxsKQ0KCQkJCS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRGaWVsZCcsDQoJCQkJCWNvbnRleHQuZ3JvdXBJbnB1dCwNCgkJCQkJeyByZXF1aXJlZDogdHJ1ZSwgbWVzc2FnZXM6IHsgcmVxdWlyZWQ6IGNvbnRleHQuZ3JvdXBSZXF1aXJlZE1lc3NhZ2UgfSB9LA0KCQkJCQljb250ZXh0Lmdyb3VwSW5wdXQuY2xvc2VzdCgnLmZpZWxkLWl0ZW0nKS5maW5kKCcuZmllbGQtaXRlbS12YWxpZGF0aW9uJyksIG51bGwpOw0KDQoJCQlpZihjb250ZXh0LmRlZmF1bHRHcm91cE5hbWUgJiYgY29udGV4dC5kZWZhdWx0R3JvdXBJZCA+IDApIHsNCgkJCQl2YXIgaW5pdGlhbExvb2t1cFZhbHVlID0gY29udGV4dC5ncm91cElucHV0Lmdsb3dMb29rVXBUZXh0Qm94KCdjcmVhdGVMb29rVXAnLA0KCQkJCQljb250ZXh0LmRlZmF1bHRHcm91cElkLA0KCQkJCQljb250ZXh0LmRlZmF1bHRHcm91cE5hbWUsDQoJCQkJCWNvbnRleHQuZGVmYXVsdEdyb3VwTmFtZSwNCgkJCQkJdHJ1ZSk7DQoJCQkJY29udGV4dC5ncm91cElucHV0Lmdsb3dMb29rVXBUZXh0Qm94KCdhZGQnLCBpbml0aWFsTG9va3VwVmFsdWUpOw0KCQkJfQ0KCQl9DQoJfTsNCg0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50ID0ge307IH0NCglpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbiA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID0ge307IH0NCglpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9IHt9OyB9DQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMuY3JlYXRlQmxvZyA9IGFwaTsNCg0KfSkoalF1ZXJ5KTsNCg==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

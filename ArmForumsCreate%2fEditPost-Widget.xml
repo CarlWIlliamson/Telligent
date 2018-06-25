@@ -1,0 +1,425 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Forums_CreateEditPost_Name}" version="10.1.8.10498" description="${resource:Forums_CreateEditPost_Description}" instanceIdentifier="95fd3d844d274555874fd7dfbef2ead3" theme="" isCacheable="false" varyCacheByUser="false" showHeaderByDefault="true" cssClass="create-edit-post">
+		<contentScript><![CDATA[#set($forum = false)
+#set($forum = $core_v2_forum.Current)
+
+#set ($supportsQuestionThreads = false)
+#foreach ($threadType in $forum.AllowedThreadTypes)
+	#if ($threadType == 'QuestionAndAnswer')
+		#set($supportsQuestionThreads = true)
+	#end
+#end
+
+#set($threadOrReplyType = 'thread')
+#set($threadOrReply = false)
+#set($replyToThreadOrReply = false)
+#set($replyToThread = false)
+#set($contentTypeId = $core_v2_forumThread.ContentTypeId)
+#if($core_v2_forumReply.Current)
+	#set($threadOrReply = $core_v2_forumReply.Current)
+	#set($threadOrReplyType = 'reply')
+	#set($contentTypeId = $core_v2_forumReply.ContentTypeId)
+	#if (!$core_v2_nodePermission.Get('forums',$forum.Id,$core_v2_forumPermissions.ModifyPost,"%{PostType='replies',PostId=$threadOrReply.Id}").IsAllowed)
+		$core_v2_widget.Hide()
+	#end
+	#set($replyToThread = $core_v2_forumThread.Get($threadOrReply.ThreadId))
+#elseif($core_v2_forumThread.Current)
+	#set($threadOrReply = $core_v2_forumThread.Current)
+	#set($threadOrReplyType = 'thread')
+	#set($contentTypeId = $core_v2_forumThread.ContentTypeId)
+	#if(!$core_v2_nodePermission.Get('forums',$forum.Id,$core_v2_forumPermissions.ModifyPost,"%{PostType='threads',PostId=$threadOrReply.Id}").IsAllowed)
+		$core_v2_widget.Hide()
+	#end
+	#set($replyToThread = $core_v2_forumThread.Current)
+#elseif($core_v2_forumReply.CurrentParent)
+	#set($replyToThreadOrReply = $core_v2_forumReply.CurrentParent)
+	#set($replyToType = 'reply')
+	#set($threadOrReplyType = 'reply')
+	#set($contentTypeId = $core_v2_forumReply.ContentTypeId)
+	#if (!$core_v2_nodePermission.Get("forums", $forum.Id, $core_v2_forumPermissions.CreateReply, "%{PostId=$replyToThreadOrReply.Id, PostType='replies'}").IsAllowed)
+		$core_v2_widget.Hide()
+	#end
+	#set($replyToThread = $core_v2_forumThread.Get($replyToThreadOrReply.ThreadId))
+#elseif ($core_v2_forumThread.CurrentParent)
+	#set($replyToThreadOrReply = $core_v2_forumThread.CurrentParent)
+	#set($replyToType = 'thread')
+	#set($threadOrReplyType = 'reply')
+	#set($contentTypeId = $core_v2_forumReply.ContentTypeId)
+	#if (!$core_v2_nodePermission.Get("forums", $forum.Id, $core_v2_forumPermissions.CreateReply, "%{PostId=$replyToThreadOrReply.Id, PostType='threads'}").IsAllowed)
+		$core_v2_widget.Hide()
+	#end
+	#set($replyToThread = $replyToThreadOrReply)
+#elseif(!$core_v2_nodePermission.Get('forums',$forum.Id,$core_v2_forumPermissions.CreatePost).IsAllowed)
+	$core_v2_widget.Hide()
+#end
+
+#if(!$replyToThreadOrReply)
+	#if($core_v2_forumReply.CurrentParent)
+		#set($replyToThreadOrReply = $core_v2_forumReply.CurrentParent)
+	#elseif ($core_v2_forumThread.CurrentParent)
+		#set($replyToThreadOrReply = $core_v2_forumThread.CurrentParent)
+	#end
+#end
+
+#set($uploadUrl = false)
+#set($uploadUrl = $core_v2_forumUrls.UploadAttachment($forum.Id))
+
+#set($tempData = false)
+#if ($core_v2_page.GetQueryStringValue('tsid'))
+	#set($tempDataString = false)
+	#set($tempDataString = $core_v2_utility.GetTemporaryData($core_v2_page.GetQueryStringValue('tsid')))
+	#if($tempDataString)
+		#set($tempData = $core_v2_page.ParseQueryString($tempDataString))
+	#end
+#end
+
+<fieldset>
+	#if ($threadOrReply)
+		<h1>$threadOrReply.Subject</h1>
+	#elseif ($threadOrReplyType == 'reply')
+		<h1>$core_v2_language.FormatString($core_v2_language.GetResource('ReplyTo'), $replyToThreadOrReply.Subject)</h1>
+	#elseif ($forum.AllowedThreadTypes.Count > 1)
+		<h1>$core_v2_language.FormatString($core_v2_language.GetResource('NewQuestionOrDiscussion'), $forum.Name)</h1>
+	#elseif ($forum.AllowedThreadTypes.get_Item(0) == 'QuestionAndAnswer')
+		<h1>$core_v2_language.FormatString($core_v2_language.GetResource('NewQuestion'), $forum.Name)</h1>
+	#else
+		<h1>$core_v2_language.FormatString($core_v2_language.GetResource('NewDiscussion'), $forum.Name)</h1>
+	#end
+	<ul class="field-list">
+		#if ($threadOrReplyType == 'thread' && $core_v2_forumConfiguration.EnableThreadStatus && $forum.AllowedThreadTypes.Count > 1)
+			#set($threadType = $forum.DefaultThreadType)
+			#set($threadType = $threadOrReply.ThreadType)
+			<li class="field-item post-type">
+				<label for="$core_v2_widget.UniqueId('TypeQuestionAndAnswer')" class="field-item-name">$core_v2_language.GetResource('CreateEditPost_PostType')</label>
+				<span class="field-item-input"><input type="radio" name="$core_v2_widget.UniqueId('ThreadType')" id="$core_v2_widget.UniqueId('TypeQuestionAndAnswer')" value="QuestionAndAnswer"#if($threadType == 'QuestionAndAnswer') checked="checked"#end /><label for="$core_v2_widget.UniqueId('TypeQuestionAndAnswer')">$core_v2_language.GetResource('CreateEditPost_Question')</label></span>
+				<span class="field-item-input"><input type="radio" name="$core_v2_widget.UniqueId('ThreadType')" id="$core_v2_widget.UniqueId('TypeDiscussion')" value="Discussion"#if($threadType == 'Discussion') checked="checked"#end /><label for="$core_v2_widget.UniqueId('TypeDiscussion')">$core_v2_language.GetResource('CreateEditPost_Discussion')</label></span>
+			</li>
+		#end
+
+		#if ($replyToThreadOrReply)
+			<li class="field-item reply-post">
+				<span for="$core_v2_widget.UniqueId('QuoteButton')" class="field-item-name label">
+					$core_v2_language.FormatString($core_v2_language.GetResource('CreateEditPost_ReplyFormat'), $replyToThreadOrReply.Author.DisplayName, $core_v2_language.FormatDateAndTime($replyToThreadOrReply.Date))
+				</span>
+				<span class="field-item-description user-defined-markup" id="$core_v2_widget.UniqueId('QuoteText')">$replyToThreadOrReply.Body('WebQuote')</span>
+				<span class="field-item-input"><a href="#" id="$core_v2_widget.UniqueId('QuoteButton')">$core_v2_language.GetResource('Button_Quote')</a></span>
+			</li>
+		#end
+
+		#if ($threadOrReplyType == 'thread')
+			<li class="field-item post-subject">
+				<label for="$core_v2_widget.UniqueId('PostSubject')" class="field-item-name">$core_v2_language.GetResource('CreateEditPost_Inline7')</label>
+				<span class="field-item-input">
+					<textarea maxlength="256" rows="1" class="scaled" id="$core_v2_widget.UniqueId('PostSubject')">#if($threadOrReply)$!core_v2_encoding.HtmlEncode($threadOrReply.Subject)#elseif($tempData)$!core_v2_encoding.HtmlEncode($tempData.Value('title'))#end</textarea>
+				</span>
+			   <span class="field-item-validation" style="display: none;"></span>
+			</li>
+		#end
+
+		<li class="field-item post-body">
+			<label for="$core_v2_widget.UniqueId('PostBody')" class="field-item-name">$core_v2_language.GetResource('CreateEditPost_Description')</label>
+			<span class="field-item-input">
+				#set($body = '')
+				#if($threadOrReply)
+					#set($body = $threadOrReply.Body('raw'))
+				#elseif($tempData)
+					#set($body = $tempData.Value('body'))
+				#end
+				$core_v2_editor.Render('PostBody', "%{Width='100%', Value=$body, ContentTypeId=$contentTypeId}")
+			</span>
+			<span class="field-item-validation" style="display: none;"></span>
+		</li>
+
+		#if ($threadOrReplyType == 'thread')
+			<li class="field-item post-tags">
+				<label for="$core_v2_widget.UniqueId('TagBox')" class="field-item-name">$core_v2_language.GetResource('CreateEditPost_Tags')</label>
+				<span class="field-item-input">
+					<input id="$core_v2_widget.UniqueId('TagBox')" type="text" value="$core_v2_utility.Join(', ', $threadOrReply.Tags)" size="70" />
+				</span>
+			</li>
+		#end
+
+		#if (!$threadOrReply && $core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+			<li class="field-item post-subscribe">
+				<span class="field-item-input">
+					<input type="checkbox" id="$core_v2_widget.UniqueId('SubscribeToThread')" checked="checked" />
+					<label for="$core_v2_widget.UniqueId('SubscribeToThread')">$core_v2_language.GetResource('CreateEditPost_SubscribeToThread')</label>
+				</span>
+			</li>
+		#end
+
+		#if ($threadOrReply && $core_v2_forumConfiguration.DisplayEditNotes)
+			<li class="field-item edit-notes">
+				<label for="$core_v2_widget.UniqueId('EditNotesBody')" class="field-item-name">$core_v2_language.GetResource('CreateEditPost_EditNotes')</label>
+				<span class="field-item-input">
+					<textarea id="$core_v2_widget.UniqueId('EditNotesBody')" cols="90" rows="5"></textarea>
+				</span>
+				<span class="field-item-validation" style="display: none;"></span>
+			</li>
+			<li class="field-item">
+				<label for="$core_v2_widget.UniqueId('CurrentEditNotesBody')" class="field-item-name">$core_v2_language.GetResource('CreateEditPost_CurrentEditNotes')</label>
+				<span class="field-item-input">
+					<textarea readonly="readonly" id="$core_v2_widget.UniqueId('CurrentEditNotesBody')" cols="90" rows="5">$!threadOrReply.EditNotes</textarea>
+				</span>
+			</li>
+		#end
+
+		## Only show attachment form for threads/replies that already have them
+		#if ($uploadUrl && $!threadOrReply.File && ($core_v2_nodePermission.Get('forums',$forum.Id,$core_v2_forumPermissions.AttachFileLocal).IsAllowed || $core_v2_nodePermission.Get('forums',$forum.Id,$core_v2_forumPermissions.AttachFileRemote).IsAllowed))
+			<li class="field-item post-attachment">
+				<span class="label field-item-name" for="$core_v2_widget.UniqueId('AddUpdateAttachment')">$core_v2_language.GetResource('CreateEditPost_Attachment')</span>
+				<span class="field-item-input add-attachment">
+					<span id="$core_v2_widget.UniqueId('FileName')">$!threadOrReply.File.FileName</span>
+					<a href="#" class="internal-link add-attachment" id="$core_v2_widget.UniqueId('AddUpdateAttachment')">#if ($threadOrReply && $threadOrReply.File) $core_v2_language.GetResource('CreateEditPost_UpdateAttachment')#else $core_v2_language.GetResource('CreateEditPost_AddAttachment')#end</a>
+				</span>
+				<span class="field-item-input remove-attachment"><a href="#" id="$core_v2_widget.UniqueId('RemoveAttachment')">$core_v2_language.GetResource('CreateEditPost_RemoveAttachment')</a></span>
+			</li>
+		#end
+
+		#if ($replyToThreadOrReply)
+			#if($replyToThread && $replyToThread.ThreadType == 'QuestionAndAnswer')
+				<li class="field-item post-answer-type">
+					<span class="field-item-input">
+						<input type="checkbox" id="$core_v2_widget.UniqueId('IsSuggestedAnswer')" #if(($threadOrReply && $threadOrReply.IsSuggestedAnswer) || ($tempData && $tempData.Value('issuggestion') == 'True')) checked="checked"#end />
+						<label for="$core_v2_widget.UniqueId('IsSuggestedAnswer')">$core_v2_language.GetResource('CreateEditPost_MakeSuggestedAnswer')</label>
+					</span>
+				</li>
+			#end
+		#end
+
+		#if ($threadOrReplyType == 'thread' && $core_v2_nodePermission.Get('forums',$forum.Id,$core_v2_forumPermissions.ReviewAbuse).IsAllowed)
+			<li class="field-item post-lock">
+				<span class="field-item-input">
+					<input type="checkbox" id="$core_v2_widget.UniqueId('IsLocked')"#if($threadOrReply.IsLocked) checked="checked"#end #if(!$core_v2_nodePermission.Get('forums',$forum.Id,$core_v2_forumPermissions.PinPost).IsAllowed) readonly="readonly"#end />
+					<label for="$core_v2_widget.UniqueId('IsLocked')">$core_v2_language.GetResource('CreateEditPost_IsLocked')</label>
+				</span>
+			</li>
+		#end
+
+		#if ($threadOrReplyType == 'thread' && $core_v2_nodePermission.Get('forums',$forum.Id,$core_v2_forumPermissions.PinPost).IsAllowed)
+			#set($daysFromToday = 0)
+			#set($daysFromToday = $threadOrReply.StickyDate.Date.Subtract($core_v2_utility.CurrentDate.Date).TotalDays)
+			#if(!$threadOrReply.IsSticky)
+				#set($daysFromToday = 0)
+			#end
+			<li class="field-item post-stickiness">
+				<label for="$core_v2_widget.UniqueId('PinnedPost')" class="field-item-name">$core_v2_language.GetResource('CreateEditPost_Stickiness')</label>
+				<span class="field-item-input">
+					<select class="ui-select" id="$core_v2_widget.UniqueId('PinnedPost')">
+						<option value="0"#if($daysFromToday <= 0) selected="selected"#end>$core_v2_language.GetResource('CreateEditPost_Sticky_0')</option>
+						<option value="1"#if($daysFromToday > 0 && $daysFromToday <= 2) selected="selected"#end>$core_v2_language.GetResource('CreateEditPost_Sticky_1')</option>
+						<option value="3"#if($daysFromToday > 2 && $daysFromToday <= 4) selected="selected"#end>$core_v2_language.GetResource('CreateEditPost_Sticky_3')</option>
+						<option value="7"#if($daysFromToday > 4 && $daysFromToday <= 8) selected="selected"#end>$core_v2_language.GetResource('CreateEditPost_Sticky_7')</option>
+						<option value="14"#if($daysFromToday > 8 && $daysFromToday <= 15) selected="selected"#end>$core_v2_language.GetResource('CreateEditPost_Sticky_14')</option>
+						<option value="30"#if($daysFromToday > 16 && $daysFromToday <= 31) selected="selected"#end>$core_v2_language.GetResource('CreateEditPost_Sticky_30')</option>
+						<option value="90"#if($daysFromToday > 31 && $daysFromToday <= 91) selected="selected"#end>$core_v2_language.GetResource('CreateEditPost_Sticky_90')</option>
+						<option value="180"#if($daysFromToday > 91 && $daysFromToday <= 180) selected="selected"#end>$core_v2_language.GetResource('CreateEditPost_Sticky_180')</option>
+						<option value="360"#if($daysFromToday > 181 && $daysFromToday <= 361) selected="selected"#end>$core_v2_language.GetResource('CreateEditPost_Sticky_360')</option>
+						#if ($core_v2_nodePermission.Get('forums',$forum.Id,$core_v2_forumPermissions.PinPostForever).IsAllowed)
+							<option value="999"#if($daysFromToday > 361) selected="selected"#end>$core_v2_language.GetResource('CreateEditPost_Sticky_999')</option>
+						#end
+					</select>
+				</span>
+			</li>
+		#end
+	</ul>
+</fieldset>
+
+<fieldset class="save-post-form">
+	<ul class="field-list">
+		<li class="field-item create-post">
+			<span class="field-item-input">
+				<a href="#" class="internal-link save-post disabled button">
+					<span></span>$core_v2_language.GetResource('CreateEditPost_PostButton')
+				</a>
+				<span class="processing" style="visibility: hidden;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+			</span>
+		</li>
+	</ul>
+</fieldset>
+
+#registerEndOfPageHtml('telligent.evolution.widgets.createEditPost')
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl("ui.js"))"></script>
+#end
+#registerEndOfPageHtml()
+    ## Added as a part of tag management customizations
+    #set($selectedtags = '')
+    #foreach($t in $threadOrReply.Tags)
+    #each
+        #set($selectedtags = "$selectedtags'$core_v2_encoding.JavascriptEncode($core_v2_encoding.HtmlDecode($t))'")
+    #between
+        #set($selectedtags = "$selectedtags,")
+    #end
+	<script type="text/javascript">
+		jQuery(function(j){
+			j.telligent.evolution.widgets.createEditPost.register({
+				forumId: $forum.Id,
+				applicationId: '$forum.ApplicationId',
+				replyId: #if($threadOrReply && $threadOrReplyType == 'reply') $threadOrReply.Id#else -1#end,
+				threadId: #if($threadOrReply && $threadOrReplyType == 'thread') $threadOrReply.Id#else -1#end,
+				replyToThreadId: #if($replyToThreadOrReply && $replyToType == 'thread') $replyToThreadOrReply.Id#elseif($replyToThreadOrReply && $replyToType == 'reply') $replyToThreadOrReply.ThreadId#elseif($threadOrReplyType == 'reply' && $threadOrReply) $threadOrReply.ThreadId#else -1#end,
+				replyToReplyId: #if($replyToThreadOrReply && $replyToType == 'reply') $replyToThreadOrReply.Id#else -1#end,
+				wrapperId: '$core_v2_widget.WrapperElementId',
+				threadTypeQA: j('#$core_v2_widget.UniqueId('TypeQuestionAndAnswer')'),
+				threadTypeDiscussion: j('#$core_v2_widget.UniqueId('TypeDiscussion')'),
+				quoteText: j('#$core_v2_widget.UniqueId('QuoteText')'),
+				quoteButton: j('#$core_v2_widget.UniqueId('QuoteButton')'),
+				replyToAuthor: #if($replyToThreadOrReply) '$core_v2_encoding.JavascriptEncode($replyToThreadOrReply.Author.DisplayName)' #else ''#end,
+				quoteInvalidSelectionText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('CreateEditPost_InvalidQuoteSelection'))',
+				subjectId: '$core_v2_widget.UniqueId('PostSubject')',
+				subjectRequiredText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('CreateEditPost_MissingSubject'))',
+				getBodyContent: function() { return $core_v2_editor.GetContentScript('PostBody') },
+				saveBodyBookmark: function() { $core_v2_editor.GetBookmarkScript('PostBody') },
+				insertBodyContent: function(html) { $core_v2_editor.GetInsertContentScript('PostBody', 'html') },
+				attachBodyChangeScript: function(f) { $core_v2_editor.GetAttachOnChangeScript('PostBody', 'f'); },
+				focusBodyContent: function() { $core_v2_editor.GetFocusScript('PostBody') },
+				bodyRequiredText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('CreateEditPost_MissingBody'))',
+				
+				tagBox: j('#$core_v2_widget.UniqueId('TagBox')'),
+				selectedTags: [#if($selectedtags)$selectedtags#end], //tag management
+				lookupvm: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('lookuptags.vm'))', //tag management
+				
+				subscribe: j('#$core_v2_widget.UniqueId('SubscribeToThread')'),
+				editNotesId: '$core_v2_widget.UniqueId('EditNotesBody')',
+				editNotesRequired: #if ($core_v2_forumConfiguration.RequireEditNotes) true#else false#end,
+				editNotesRequiredText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('CreateEditPost_EditNotesRequired'))',
+				uploadFileUrl:#if ($uploadUrl) '$core_v2_encoding.JavascriptEncode($uploadUrl)'#else null#end,
+				attachmentFileName: j('#$core_v2_widget.UniqueId('FileName')'),
+				attachmentAddText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('CreateEditPost_AddAttachment'))',
+				attachmentUpdateText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('CreateEditPost_UpdateAttachment'))',
+				attachmentUpdate: j('#$core_v2_widget.UniqueId('AddUpdateAttachment')'),
+				attachmentRemove: j('#$core_v2_widget.UniqueId('RemoveAttachment')'),
+				lock: j('#$core_v2_widget.UniqueId('IsLocked')'),
+				suggestAnswer: j('#$core_v2_widget.UniqueId('IsSuggestedAnswer')'),
+				sticky: j('#$core_v2_widget.UniqueId('PinnedPost')'),
+				saveUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('save.vm'))',
+				saveErrorText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('CreateEditPost_SaveError'))',
+				searchUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('search.vm'))',
+				suggestionHeading: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('suggestionHeading'))',
+				close: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('close'))',
+				applicationId: '$forum.ApplicationId',
+				forumThreadContentType: '$core_v2_forumThread.ContentTypeId',
+				supportsQA: #if ($supportsQuestionThreads) true #else false #end
+			});
+		});
+	</script>
+#end
+		]]></contentScript>
+		<headerScript><![CDATA[
+#set($forum = false)
+#set($forum = $core_v2_forum.Current)
+#if ($forum && $core_v2_widget.GetBoolValue('showForumInHeader', false))
+	<a class="internal-link view-application forum" href="$core_v2_encoding.HtmlAttributeEncode($forum.Url)">$forum.Name</a>
+#else
+	$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Forums_CreateEditPost_Name}'))
+#end
+		]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Forums_CreateEditPost_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="showForumInHeader" resourceName="CF_ShowForumInHeader" dataType="bool" defaultValue="false" />
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Add">Add</resource>
+  <resource name="ask">Ask</resource>
+  <resource name="Attachment_File">Attach a file</resource>
+  <resource name="Attachment_FileOrUrl">Attach a file or URL</resource>
+  <resource name="Attachment_Url">Attach a URL</resource>
+  <resource name="Blog_CreateEditPost_Description">Creates or edits a blog post.</resource>
+  <resource name="Blog_CreateEditPost_Name">Blog - Create/Edit Post</resource>
+  <resource name="Body">Body</resource>
+  <resource name="Button_Quote">Quote</resource>
+  <resource name="CF_ShowForumInHeader">Display forum link in title</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="ChangeFile">Change file</resource>
+  <resource name="Characters_Over">character(s) over the recomended length.  For best results this should shortened.</resource>
+  <resource name="Characters_Remain">character(s)</resource>
+  <resource name="close">Close</resource>
+  <resource name="CreateEditPost_AddAttachment">Add Attachment</resource>
+  <resource name="CreateEditPost_Attachment">File attachment</resource>
+  <resource name="CreateEditPost_CurrentEditNotes">Current Edit Notes</resource>
+  <resource name="CreateEditPost_Description">Description</resource>
+  <resource name="CreateEditPost_Discussion">Discussion</resource>
+  <resource name="CreateEditPost_EditNotes">Edit Notes</resource>
+  <resource name="CreateEditPost_EditNotesRequired">Edit notes are required</resource>
+  <resource name="CreateEditPost_Inline7">Subject</resource>
+  <resource name="CreateEditPost_InvalidQuoteSelection">When selecting text to quote, only text from the original post can be selected. Please correct or remove your text selection.</resource>
+  <resource name="CreateEditPost_IsLocked">Lock (disable replying)</resource>
+  <resource name="CreateEditPost_MakeSuggestedAnswer">Suggest as an answer</resource>
+  <resource name="CreateEditPost_MissingBody">This field is required and quote blocks must match.</resource>
+  <resource name="CreateEditPost_MissingSubject">This field is required.</resource>
+  <resource name="CreateEditPost_PostButton"> Post </resource>
+  <resource name="CreateEditPost_PostType">This is a</resource>
+  <resource name="CreateEditPost_Question">Question</resource>
+  <resource name="CreateEditPost_RemoveAttachment">Remove</resource>
+  <resource name="CreateEditPost_ReplyFormat">{0} wrote the following post at {1}:</resource>
+  <resource name="CreateEditPost_SaveError">An error occurred while attempting to save this post.</resource>
+  <resource name="CreateEditPost_Stickiness">Prioritize at the top of lists</resource>
+  <resource name="CreateEditPost_Sticky_0">(Not prioritized)</resource>
+  <resource name="CreateEditPost_Sticky_1">1 Day</resource>
+  <resource name="CreateEditPost_Sticky_14">2 Weeks</resource>
+  <resource name="CreateEditPost_Sticky_180">6 Months</resource>
+  <resource name="CreateEditPost_Sticky_3">3 Days</resource>
+  <resource name="CreateEditPost_Sticky_30">1 Month</resource>
+  <resource name="CreateEditPost_Sticky_360">1 Year</resource>
+  <resource name="CreateEditPost_Sticky_7">1 Week</resource>
+  <resource name="CreateEditPost_Sticky_90">3 Months</resource>
+  <resource name="CreateEditPost_Sticky_999">Forever</resource>
+  <resource name="CreateEditPost_SubscribeToThread">Notify me when someone replies to this post</resource>
+  <resource name="CreateEditPost_Tags">Tags</resource>
+  <resource name="CreateEditPost_UpdateAttachment">Update</resource>
+  <resource name="Delete">Delete</resource>
+  <resource name="DeleteConfirmation">Are you sure you want to delete this post?</resource>
+  <resource name="DraftSaved">Your draft has been saved. To edit or publish it later, manage the blog and find the post in the posts list.</resource>
+  <resource name="Forums_AskAQuestion">Forums - Ask a Question</resource>
+  <resource name="Forums_AskAQuestion_Description">Creates or finds an existing question thread</resource>
+  <resource name="Forums_CreateEditPost_Description">Creates or edits a forum post.</resource>
+  <resource name="Forums_CreateEditPost_Name">Arm - Forums - Create/Edit Post</resource>
+  <resource name="Meta_Heading">Search Engine Optimization</resource>
+  <resource name="Meta_Keywords">Keywords</resource>
+  <resource name="Meta_KeywordsDescription">Comma-separated list of words that uniquely relate to this content. These can be used by search engines to improve search results.</resource>
+  <resource name="Meta_Title">Title</resource>
+  <resource name="Meta_TitleDescription">Adjust the title used by search engines when referencing this content. If not set, the blog post’s name will be used.  For best results custom titles should be 55 characters or less.</resource>
+  <resource name="NewDiscussion">Start a Discussion in {0}</resource>
+  <resource name="NewPost">New Post to {0}</resource>
+  <resource name="NewQuestion">Ask a Question in {0}</resource>
+  <resource name="NewQuestionOrDiscussion">Ask a Question or Start a Discussion in {0}</resource>
+  <resource name="Options">Options</resource>
+  <resource name="PageEdit_PleaseEnterContent">This field is required.</resource>
+  <resource name="Post_CrossPosting">Post this entry on my other blogs</resource>
+  <resource name="Post_Subscribe">Notify me when someone comments on this post</resource>
+  <resource name="Post_Summary_Description">Post summaries are used when displaying posts in lists or RSS feeds.  Additionally this summary is exposed to search engines and facebook. For best results, custom summaries should be 155 characters or less.</resource>
+  <resource name="PostImage_Description">This image will be used as a thumbnail in blog post list view and as the image exposed to Open Graph. </resource>
+  <resource name="PostImage_File">Post Image</resource>
+  <resource name="PublicationDate">Publication Date</resource>
+  <resource name="Publish">Post</resource>
+  <resource name="question">Ask a question...</resource>
+  <resource name="Remove">Remove</resource>
+  <resource name="RemoveFile">Remove file</resource>
+  <resource name="ReplyTo">Reply to {0}</resource>
+  <resource name="RequiredField">This field is required.</resource>
+  <resource name="SaveDraft">Save as Draft</resource>
+  <resource name="slug_description">The title of your post is used to create the URL. If you want to use different keywords in the URL enter it below.</resource>
+  <resource name="slug_name">Post URL</resource>
+  <resource name="suggestionHeading">The following questions were similar. Do they answer your question?</resource>
+  <resource name="Summary_Automatic">Automatic Summary</resource>
+  <resource name="Summary_Custom">Custom Summary</resource>
+  <resource name="Summary_Name">Post Summary</resource>
+  <resource name="Summary_None">No Post Summary</resource>
+  <resource name="Title">Title</resource>
+  <resource name="UploadFile">Upload file</resource>
+  <resource name="UploadProgress">Uploading ({0}%)...</resource>
+  <resource name="Write">Write</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="ad5b66803de14b2d9ee9cfe27ecea026" />
+		</requiredContext>
+		<files>
+			<file name="lookuptags.vm">I3NldCgkc2VhcmNoVGV4dCA9ICRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgnd19TZWFyY2hUZXh0JykpCiNzZXQoJHRhZ3MgPSAkYXJtX3YxX3RhZ2dpbmcuTG9va1VwVGFncygkc2VhcmNoVGV4dCkpCgokY29yZV92Ml9wYWdlLlNldENvbnRlbnRUeXBlKCdhcHBsaWNhdGlvbi9qc29uJykKeyJjb3VudCI6ICIkdGFncy5Db3VudCIsICJ0YWdzIjpbCiAgICAjaWYoJHRhZ3MpCiAgICAgICAgI2ZvcmVhY2goJHRhZyBpbiAkdGFncykKICAgICAgICAgICAgeyJ0YWciOiIkdGFnIn0sCiAgICAgICAgI2VuZAogICAgI2VuZApudWxsXX0=</file>
+			<file name="save.vm">77u/JGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoNCiNzZXQoJGZvcnVtSWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdmb3J1bUlkJykpKQ0KI3NldCgkZm9ydW0gPSBmYWxzZSkNCiNzZXQoJGZvcnVtID0gJGNvcmVfdjJfZm9ydW0uR2V0KCRmb3J1bUlkKSkNCiNpZighJGZvcnVtKQ0KCSRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcignVGhlIHNwZWNpZmllZCBmb3J1bSBjb3VsZCBub3QgYmUgcmV0cmlldmVkJykNCiNlbmQNCg0KI3NldCgkYm9keSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdCb2R5JykpDQojc2V0KCRvcHRpb25zID0gIiV7Qm9keT0kYm9keX0iKQ0KDQojc2V0KCRpc1F1ZXN0aW9uID0gJy0xJykNCiNzZXQoJGlzUXVlc3Rpb24gPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnSXNRdWVzdGlvbicpKQ0KDQojaWYgKCRjb3JlX3YyX2ZvcnVtQ29uZmlndXJhdGlvbi5FbmFibGVUaHJlYWRTdGF0dXMgJiYgJGZvcnVtLkFsbG93ZWRUaHJlYWRUeXBlcy5Db3VudCA+IDEpDQoJI2lmICgkaXNRdWVzdGlvbiA9PSAnMScpDQoJCSRvcHRpb25zLkFkZCgnSXNRdWVzdGlvbicsICdUcnVlJykNCgkjZWxzZWlmICgkaXNRdWVzdGlvbiA9PSAnMCcpDQoJCSRvcHRpb25zLkFkZCgnSXNRdWVzdGlvbicsICdGYWxzZScpDQoJI2Vsc2UNCgkJI2lmICgkZm9ydW0uRGVmYXVsdFRocmVhZFR5cGUgPT0gJ1F1ZXN0aW9uQW5kQW5zd2VyJykNCgkJCSNzZXQoJGlzUXVlc3Rpb24gPSAnMScpDQoJCQkkb3B0aW9ucy5BZGQoJ0lzUXVlc3Rpb24nLCAnVHJ1ZScpDQoJCSNlbHNlDQoJCQkjc2V0KCRpc1F1ZXN0aW9uID0gJzAnKQ0KCQkJJG9wdGlvbnMuQWRkKCdJc1F1ZXN0aW9uJywgJ0ZhbHNlJykNCgkJI2VuZA0KCSNlbmQNCiNlbHNlaWYgKCRmb3J1bS5EZWZhdWx0VGhyZWFkVHlwZSA9PSAnUXVlc3Rpb25BbmRBbnN3ZXInKQ0KCSNzZXQoJGlzUXVlc3Rpb24gPSAnMScpDQoJJG9wdGlvbnMuQWRkKCdJc1F1ZXN0aW9uJywgJ1RydWUnKQ0KI2Vsc2UNCgkjc2V0KCRpc1F1ZXN0aW9uID0gJzAnKQ0KCSRvcHRpb25zLkFkZCgnSXNRdWVzdGlvbicsICdGYWxzZScpDQojZW5kDQoNCiNzZXQoJHN1YmplY3QgPSBmYWxzZSkNCiNzZXQoJHN1YmplY3QgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnU3ViamVjdCcpKQ0KI2lmKCRzdWJqZWN0KQ0KCSRvcHRpb25zLkFkZCgnU3ViamVjdCcsICRzdWJqZWN0KQ0KI2VuZA0KDQojc2V0KCRlZGl0Tm90ZXMgPSBmYWxzZSkNCiNzZXQoJGVkaXROb3RlcyA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdFZGl0Tm90ZXMnKSkNCiNpZigkZWRpdE5vdGVzKQ0KCSRvcHRpb25zLkFkZCgnRWRpdE5vdGVzJywgJGVkaXROb3RlcykNCiNlbmQNCg0KI3NldCgkdGFncyA9IGZhbHNlKQ0KI3NldCgkdGFncyA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdUYWdzJykpDQojaWYgKCR0YWdzKQ0KCSRvcHRpb25zLkFkZCgnVGFncycsICR0YWdzKQ0KI2VuZA0KDQojc2V0KCRzdWJzY3JpYmUgPSAnLTEnKQ0KI3NldCgkc3Vic2NyaWJlID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ1N1YnNjcmliZScpKSAjIyAxLzAvLTENCiNpZiAoJHN1YnNjcmliZSA9PSAnMCcpDQoJJG9wdGlvbnMuQWRkKCdTdWJzY3JpYmVUb1RocmVhZCcsICdGYWxzZScpDQojZWxzZWlmICgkc3Vic2NyaWJlID09ICcxJykNCgkkb3B0aW9ucy5BZGQoJ1N1YnNjcmliZVRvVGhyZWFkJywgJ1RydWUnKQ0KI2VuZA0KDQojc2V0KCRhdHRhY2htZW50Q2hhbmdlZCA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdBdHRhY2htZW50Q2hhbmdlZCcpKSAjIyAxLzANCiNzZXQoJHJlbW92ZUF0dGFjaG1lbnQgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnUmVtb3ZlQXR0YWNobWVudCcpKSAjIyAxLzANCiNzZXQoJGF0dGFjaG1lbnROYW1lID0gZmFsc2UpDQojc2V0KCRhdHRhY2htZW50TmFtZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdBdHRhY2htZW50TmFtZScpKSAjIyBzZXQgaWYgZmlsZSBpcyB1cGRhdGVkDQojc2V0KCRhdHRhY2htZW50VXJsID0gZmFsc2UpDQojc2V0KCRhdHRhY2htZW50VXJsID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0F0dGFjaG1lbnRVcmwnKSkgIyMgc2V0IGlmIGZpbGUgaXMgdXBkYXRlZCBhbmQgcmVtb3RlDQojc2V0KCRhdHRhY2htZW50SXNSZW1vdGUgPSBmYWxzZSkNCiNzZXQoJGF0dGFjaG1lbnRJc1JlbW90ZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdBdHRhY2htZW50SXNSZW1vdGUnKSkgIyMgc2V0IGlmIGZpbGUgaXMgdXBkYXRlZA0KI3NldCgkYXR0YWNobWVudENvbnRleHRJZCA9IGZhbHNlKQ0KI3NldCgkYXR0YWNobWVudENvbnRleHRJZCA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdBdHRhY2htZW50Q29udGV4dElkJykpICMjIHNldCBpZiBmaWxlIGlzIHVwZGF0ZWQgYW5kIG5vdCByZW1vdGUNCiNpZiAoJGF0dGFjaG1lbnRDaGFuZ2VkID09ICcxJykNCgkjc2V0KCRjb250ZW50VHlwZSA9IGZhbHNlKQ0KCSNpZiAoJGF0dGFjaG1lbnRJc1JlbW90ZSA9PSAnMScpDQoJCSNzZXQoJGNvbnRlbnRUeXBlID0gJGNvcmVfdjJfdWkuR2V0TWltZVR5cGUoJGF0dGFjaG1lbnRVcmwpKQ0KCQkkb3B0aW9ucy5BZGQoJ0ZpbGVVcmwnLCAkYXR0YWNobWVudFVybCkNCgkJJG9wdGlvbnMuQWRkKCdDb250ZW50VHlwZScsICRjb250ZW50VHlwZSkNCgkjZWxzZQ0KCQkjc2V0KCRmaWxlID0gZmFsc2UpDQoJCSNzZXQoJGZpbGUgPSAkY29yZV92Ml91cGxvYWRlZEZpbGUuR2V0KCRhdHRhY2htZW50Q29udGV4dElkLCAkYXR0YWNobWVudE5hbWUpKQ0KCQkjaWYgKCRmaWxlKQ0KCQkJI3NldCgkY29udGVudFR5cGUgPSAkY29yZV92Ml91aS5HZXRNaW1lVHlwZSgkYXR0YWNobWVudE5hbWUpKQ0KCQkJJG9wdGlvbnMuQWRkKCdGaWxlVXBsb2FkQ29udGV4dCcsJGF0dGFjaG1lbnRDb250ZXh0SWQpDQoJCQkkb3B0aW9ucy5BZGQoJ0ZpbGVOYW1lJywkZmlsZS5OYW1lKQ0KCQkJJG9wdGlvbnMuQWRkKCdDb250ZW50VHlwZScsICRjb250ZW50VHlwZSkNCgkJI2VuZA0KCSNlbmQNCiNlbHNlaWYgKCRyZW1vdmVBdHRhY2htZW50ID09ICcxJykNCgkkb3B0aW9ucy5BZGQoJ1JlbW92ZUF0dGFjaG1lbnQnLCB0cnVlKQ0KI2VuZA0KDQojc2V0KCRsb2NrZWQgPSAnLTEnKQ0KI3NldCgkbG9ja2VkID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0lzTG9ja2VkJykpICMjIDEvMC8tMQ0KI2lmICgkbG9ja2VkID09ICcwJykNCgkkb3B0aW9ucy5BZGQoJ0lzTG9ja2VkJywgJ0ZhbHNlJykNCiNlbHNlaWYgKCRsb2NrZWQgPT0gJzEnKQ0KCSRvcHRpb25zLkFkZCgnSXNMb2NrZWQnLCAnVHJ1ZScpDQojZW5kDQoNCiNzZXQoJGlzU3VnZ2VzdGVkQW5zd2VyID0gJy0xJykNCiNzZXQoJGlzU3VnZ2VzdGVkQW5zd2VyID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0lzU3VnZ2VzdGVkQW5zd2VyJykpICMjIDEvMC8tMQ0KI2lmICgkaXNTdWdnZXN0ZWRBbnN3ZXIgPT0gJzAnKQ0KCSRvcHRpb25zLkFkZCgnSXNTdWdnZXN0ZWRBbnN3ZXInLCdGYWxzZScpDQojZWxzZWlmICgkaXNTdWdnZXN0ZWRBbnN3ZXIgPT0gJzEnKQ0KCSRvcHRpb25zLkFkZCgnSXNTdWdnZXN0ZWRBbnN3ZXInLCdUcnVlJykNCiNlbmQNCg0KI3NldCgkaXNBbm9ueW1vdXMgPSAnLTEnKQ0KI3NldCgkaXNBbm9ueW1vdXMgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnSXNBbm9ueW1vdXMnKSkgIyMgMS8wLy0xDQojaWYgKCRpc0Fub255bW91cyA9PSAnMCcpDQoJJG9wdGlvbnMuQWRkKCdJc0Fub255bW91c3QnLCdGYWxzZScpDQojZWxzZWlmICgkaXNBbm9ueW1vdXNQb3N0ID09ICcxJykNCgkkb3B0aW9ucy5BZGQoJ0lzQW5vbnltb3VzJywnVHJ1ZScpDQojZW5kDQoNCiNzZXQoJGhhc1N0aWNreURhdGUgPSAnLTEnKQ0KI3NldCgkaGFzU3RpY2t5RGF0ZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdIYXNTdGlja3lEYXRlJykpICMjIDEvMC8tMQ0KI2lmICgkaGFzU3RpY2t5RGF0ZSA9PSAnMScpDQoJJG9wdGlvbnMuQWRkKCdTdGlja3lEYXRlJywgJGNvcmVfdjJfdXRpbGl0eS5QYXJzZURhdGUoJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ1N0aWNreURhdGUnKSkpDQoJJG9wdGlvbnMuQWRkKCdJc1N0aWNreScsICdUcnVlJykNCiNlbHNlaWYgKCRoYXNTdGlja3lEYXRlID09ICcwJykNCgkkb3B0aW9ucy5BZGQoJ1N0aWNreURhdGUnLCAkY29yZV92Ml91dGlsaXR5LkN1cnJlbnREYXRlKQ0KCSRvcHRpb25zLkFkZCgnSXNTdGlja3knLCAnRmFsc2UnKQ0KI2VuZA0KDQojc2V0KCRyZXBseVRvUmVwbHlJZCA9IGZhbHNlKQ0KI3NldCgkcmVwbHlUb1JlcGx5SWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdSZXBseVRvUmVwbHlJZCcpKSkNCiNpZiAoJHJlcGx5VG9SZXBseUlkICYmICRyZXBseVRvUmVwbHlJZCA+IDApDQoJJG9wdGlvbnMuQWRkKCdGb3J1bVJlcGx5SWQnLCAkcmVwbHlUb1JlcGx5SWQpDQojZW5kDQoNCiNzZXQoJHRocmVhZE9yUmVwbHkgPSBmYWxzZSkNCiNzZXQoJHJlcGx5SWQgPSBmYWxzZSkNCiNzZXQoJHJlcGx5SWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdSZXBseUlkJykpKQ0KI3NldCgkdGhyZWFkSWQgPSBmYWxzZSkNCiNzZXQoJHRocmVhZElkID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUludCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnVGhyZWFkSWQnKSkpDQojc2V0KCRyZXBseVRvVGhyZWFkSWQgPSBmYWxzZSkNCiNzZXQoJHJlcGx5VG9UaHJlYWRJZCA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VJbnQoJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ1JlcGx5VG9UaHJlYWRJZCcpKSkNCiNpZiAoJHJlcGx5SWQgJiYgJHJlcGx5SWQgPiAwKQ0KCSNzZXQoJHRocmVhZE9yUmVwbHkgPSAkY29yZV92Ml9mb3J1bVJlcGx5LlVwZGF0ZSgkcmVwbHlJZCwgJHJlcGx5VG9UaHJlYWRJZCwgJGZvcnVtSWQsICRvcHRpb25zKSkNCiNlbHNlaWYgKCR0aHJlYWRJZCAmJiAkdGhyZWFkSWQgPiAwKQ0KCSNzZXQoJHRocmVhZE9yUmVwbHkgPSAkY29yZV92Ml9mb3J1bVRocmVhZC5VcGRhdGUoJGZvcnVtSWQsICR0aHJlYWRJZCwgJG9wdGlvbnMpKQ0KI2Vsc2VpZiAoJHJlcGx5VG9UaHJlYWRJZCAmJiAkcmVwbHlUb1RocmVhZElkID4gMCkNCgkjc2V0KCR0aHJlYWRPclJlcGx5ID0gJGNvcmVfdjJfZm9ydW1SZXBseS5DcmVhdGUoJHJlcGx5VG9UaHJlYWRJZCwgJGJvZHksICRvcHRpb25zKSkNCiNlbHNlDQoJI3NldCgkdGhyZWFkT3JSZXBseSA9ICRjb3JlX3YyX2ZvcnVtVGhyZWFkLkNyZWF0ZSgkZm9ydW1JZCwgJHN1YmplY3QsICRib2R5LCAkb3B0aW9ucykpDQoJI3NldCgkdGhyZWFkSWQgPSAkdGhyZWFkT3JSZXBseS5JZCkNCiNlbmQNCg0KI2lmKCR0aHJlYWRPclJlcGx5Lkhhc0Vycm9ycygpKQ0KCSRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcigkdGhyZWFkT3JSZXBseS5FcnJvcnMpDQojZW5kDQoNCiNpZiAoISR0aHJlYWRPclJlcGx5LkFwcHJvdmVkKQ0KCXsicmVkaXJlY3RVcmwiOiIkY29yZV92Ml9lbmNvZGluZy5KYXZhc2NyaXB0RW5jb2RlKCRjb3JlX3YyX2ZvcnVtVXJscy5QZW5kaW5nTW9kZXJhdGlvbigkZm9ydW1JZCkpIn0NCiNlbHNlCQkNCgl7InJlZGlyZWN0VXJsIjoiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkdGhyZWFkT3JSZXBseS5VcmwpIn0NCiNlbmQ=</file>
+			<file name="search.vm">77u/JGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoNCiNzZXQgKCRhcHBsaWNhdGlvbklkID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUd1aWQoJGNvcmVfdjJfcGFnZS5HZXRRdWVyeVN0cmluZ1ZhbHVlKCJhcHBsaWNhdGlvbklkIikpKQ0KI3NldCAoJGNvbnRlbnRUeXBlSWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlR3VpZCgkY29yZV92Ml9wYWdlLkdldFF1ZXJ5U3RyaW5nVmFsdWUoImNvbnRlbnRUeXBlSWQiKSkpDQojc2V0ICgkcXVlcnkgPSAkY29yZV92Ml9wYWdlLkdldFF1ZXJ5U3RyaW5nVmFsdWUoInF1ZXJ5IikpDQoNCiNzZXQgKCRzZWFyY2hRdWVyeSA9ICIle30iKQ0KJHNlYXJjaFF1ZXJ5LkFkZCgiUXVlcnkiLCAkcXVlcnkpDQokc2VhcmNoUXVlcnkuQWRkKCJQYWdlU2l6ZSIsIDUpDQokc2VhcmNoUXVlcnkuQWRkKCJQYWdlSW5kZXgiLCAwKQ0KJHNlYXJjaFF1ZXJ5LkFkZCgiQXBwbGljYXRpb25JZCIsICRhcHBsaWNhdGlvbklkKQ0KJHNlYXJjaFF1ZXJ5LkFkZCgiRmlsdGVycyIsICJjb250ZW50dHlwZWlkOjooJHtjb250ZW50VHlwZUlkfSkiKQ0KDQojc2V0ICgkc2VhcmNoUmVzdWx0cyA9ICRjb3JlX3YyX3NlYXJjaFJlc3VsdC5MaXN0KCRzZWFyY2hRdWVyeSkpDQp7DQoJInJlc3VsdHMiOiBbDQoJI2ZvcmVhY2ggKCRyZXN1bHQgaW4gJHNlYXJjaFJlc3VsdHMpDQoJCXsNCgkJCSJ1cmwiOiAiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkcmVzdWx0LlVybCkiLA0KCQkJInZpZXdIdG1sIjogIiRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJHJlc3VsdC5WaWV3SHRtbCgpKSINCgkJfQ0KCSNiZXR3ZWVuDQoJCSwNCgkjZW5kDQoJXQ0KfQ==</file>
+			<file name="ui.js">KGZ1bmN0aW9uKCQpCnsKCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50ID0ge307IH0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSB7fTsgfQoJaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPSB7fTsgfQoKCXZhciBfc2F2ZSA9IGZ1bmN0aW9uKGNvbnRleHQpCgl7CgkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3QoewoJCQl1cmw6IGNvbnRleHQuc2F2ZVVybCwKCQkJZGF0YTogX3BvcHVsYXRlRGF0YShjb250ZXh0KSwKCQkJc3VjY2VzczogZnVuY3Rpb24ocmVzcG9uc2UpCgkJCXsKCQkJCWlmIChyZXNwb25zZS5yZWRpcmVjdFVybCkgewoJCQkJCXdpbmRvdy5sb2NhdGlvbiA9IHJlc3BvbnNlLnJlZGlyZWN0VXJsOwoJCQkJfQoJCQkJZWxzZSBpZiAocmVzcG9uc2UuZXJyb3JzKSB7CgkJCQkJYWxlcnQoY29udGV4dC5zYXZlRXJyb3JUZXh0ICsgJ1xuXG4nICsgcmVzcG9uc2UuZXJyb3JzWzBdLmVycm9yKTsKCgkJCQkJJCgnIycgKyBjb250ZXh0LndyYXBwZXJJZCArICcgYS5zYXZlLXBvc3QnKS5wYXJlbnQoKS5yZW1vdmVDbGFzcygncHJvY2Vzc2luZycpOwoJCQkJCSQoJy5wcm9jZXNzaW5nJywgJCgnIycgKyBjb250ZXh0LndyYXBwZXJJZCArICcgYS5zYXZlLXBvc3QnKS5wYXJlbnQoKSkuY3NzKCJ2aXNpYmlsaXR5IiwgImhpZGRlbiIpOwoJCQkJCSQoJyMnICsgY29udGV4dC53cmFwcGVySWQgKyAnIGEuc2F2ZS1wb3N0JykucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7CgkJCQl9CgkJCX0sCgkJCWRlZmF1bHRFcnJvck1lc3NhZ2U6IGNvbnRleHQuc2F2ZUVycm9yVGV4dCwKCQkJZXJyb3I6IGZ1bmN0aW9uKHhociwgZGVzYywgZXgpCgkJCXsKCQkJCWlmKHhoci5yZXNwb25zZUpTT04uRXJyb3JzICE9IG51bGwgJiYgeGhyLnJlc3BvbnNlSlNPTi5FcnJvcnMubGVuZ3RoID4gMCl7CgkJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyh4aHIucmVzcG9uc2VKU09OLkVycm9yc1swXSx7dHlwZTonZXJyb3InfSk7CgkJCQl9CgkJCQllbHNlewoJCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coZGVzYyx7dHlwZTonZXJyb3InfSk7CgkJCQl9CgkJCQkkKCcjJyArIGNvbnRleHQud3JhcHBlcklkICsgJyBhLnNhdmUtcG9zdCcpLnBhcmVudCgpLnJlbW92ZUNsYXNzKCdwcm9jZXNzaW5nJyk7CgkJCQkkKCcucHJvY2Vzc2luZycsICQoJyMnICsgY29udGV4dC53cmFwcGVySWQgKyAnIGEuc2F2ZS1wb3N0JykucGFyZW50KCkpLmNzcygidmlzaWJpbGl0eSIsICJoaWRkZW4iKTsKCQkJCSQoJyMnICsgY29udGV4dC53cmFwcGVySWQgKyAnIGEuc2F2ZS1wb3N0JykucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7CgkJCX0KCQl9KTsKCX0sCglfcG9wdWxhdGVEYXRhID0gZnVuY3Rpb24oY29udGV4dCkKCXsKCQl2YXIgZGF0YSA9IHsKCQkJQm9keTogY29udGV4dC5nZXRCb2R5Q29udGVudCgpLAoJCQlGb3J1bUlkOiBjb250ZXh0LmZvcnVtSWQKCQl9OwoKCQlpZiAoY29udGV4dC50aHJlYWRUeXBlUUEubGVuZ3RoID4gMCAmJiBjb250ZXh0LnRocmVhZFR5cGVRQS5pcygnOmNoZWNrZWQnKSkKCQl7CgkJCWRhdGEuSXNRdWVzdGlvbiA9IDE7CgkJfQoJCWVsc2UgaWYgKGNvbnRleHQudGhyZWFkVHlwZURpc2N1c3Npb24ubGVuZ3RoID4gMCAmJiBjb250ZXh0LnRocmVhZFR5cGVEaXNjdXNzaW9uLmlzKCc6Y2hlY2tlZCcpKQoJCXsKCQkJZGF0YS5Jc1F1ZXN0aW9uID0gMDsKCQl9CgkJZWxzZQoJCXsKCQkJZGF0YS5Jc1F1ZXN0aW9uID0gLTE7CgkJfQoKCQlpZiAoJCgnIycgKyBjb250ZXh0LnN1YmplY3RJZCkubGVuZ3RoID4gMCkKCQl7CgkJCWRhdGEuU3ViamVjdCA9ICAkKCcjJyArIGNvbnRleHQuc3ViamVjdElkKS5ldm9sdXRpb25Db21wb3NlcigndmFsJyk7CgkJfQoKCQlpZiAoJCgnIycgKyBjb250ZXh0LmVkaXROb3Rlc0lkKS5sZW5ndGggPiAwKQoJCXsKCQkJZGF0YS5FZGl0Tm90ZXMgPSAkKCcjJyArIGNvbnRleHQuZWRpdE5vdGVzSWQpLnZhbCgpOwoJCX0KCgkJaWYgKGNvbnRleHQudGFnQm94Lmxlbmd0aCA+IDApCgkJewoJCQl2YXIgaW5UYWdzID0gY29udGV4dC50YWdCb3gudmFsKCkuc3BsaXQoL1ssO10vZyk7CgkJCXZhciB0YWdzID0gW107CgkJCWZvciAodmFyIGkgPSAwOyBpIDwgaW5UYWdzLmxlbmd0aDsgaSsrKQoJCQl7CgkJCQl2YXIgdGFnID0gJC50cmltKGluVGFnc1tpXSk7CgkJCQlpZiAodGFnKSB7CgkJCQkJdGFnc1t0YWdzLmxlbmd0aF0gPSB0YWc7CgkJCQl9CgkJCX0KCgkJCWRhdGEuVGFncyA9IHRhZ3Muam9pbignLCcpOwoJCX0KCgkJaWYgKGNvbnRleHQuc3Vic2NyaWJlLmxlbmd0aCA+IDApCgkJewoJCQlkYXRhLlN1YnNjcmliZSA9IGNvbnRleHQuc3Vic2NyaWJlLmlzKCc6Y2hlY2tlZCcpID8gMSA6IDA7CgkJfQoJCWVsc2UKCQl7CgkJCWRhdGEuU3Vic2NyaWJlID0gLTE7CgkJfQoKCQlpZiAoY29udGV4dC5maWxlKQoJCXsKCQkJZGF0YS5BdHRhY2htZW50Q2hhbmdlZCA9IDE7CgkJCWlmIChjb250ZXh0LmZpbGUuaXNSZW1vdGUpCgkJCXsKCQkJCWRhdGEuQXR0YWNobWVudE5hbWUgPSBjb250ZXh0LmZpbGUuZmlsZU5hbWU7CgkJCQlkYXRhLkF0dGFjaG1lbnRVcmwgPSBjb250ZXh0LmZpbGUudXJsOwoJCQkJZGF0YS5BdHRhY2htZW50SXNSZW1vdGUgPSAnMSc7CgkJCX0KCQkJZWxzZQoJCQl7CgkJCQlkYXRhLkF0dGFjaG1lbnROYW1lID0gY29udGV4dC5maWxlLmZpbGVOYW1lOwoJCQkJZGF0YS5BdHRhY2htZW50Q29udGV4dElkID0gY29udGV4dC5maWxlLmNvbnRleHRJZDsKCQkJCWRhdGEuQXR0YWNobWVudElzUmVtb3RlID0gJzAnOwoJCQl9CgkJfQoJCWVsc2UgaWYgKGNvbnRleHQucmVtb3ZlQXR0YWNobWVudCkKCQl7CgkJCWRhdGEuUmVtb3ZlQXR0YWNobWVudCA9IDE7CgkJfQoKCQlpZiAoY29udGV4dC5sb2NrLmxlbmd0aCA+IDApCgkJewoJCQlkYXRhLklzTG9ja2VkID0gY29udGV4dC5sb2NrLmlzKCc6Y2hlY2tlZCcpID8gMSA6IDA7CgkJfQoJCWVsc2UKCQl7CgkJCWRhdGEuSXNMb2NrZWQgPSAtMTsKCQl9CgoJCWlmIChjb250ZXh0LnN1Z2dlc3RBbnN3ZXIubGVuZ3RoID4gMCkKCQl7CgkJCWRhdGEuSXNTdWdnZXN0ZWRBbnN3ZXIgPSBjb250ZXh0LnN1Z2dlc3RBbnN3ZXIuaXMoJzpjaGVja2VkJykgPyAxIDogMDsKCQl9CgkJZWxzZQoJCXsKCQkJZGF0YS5Jc1N1Z2dlc3RlZEFuc3dlciA9IC0xOwoJCX0KCgkJaWYgKGNvbnRleHQuc3RpY2t5Lmxlbmd0aCA+IDAgJiYgY29udGV4dC5zdGlja3kudmFsKCkgIT0gJzAnKQoJCXsKCQkJZGF0YS5TdGlja3lEYXRlID0gJC50ZWxsaWdlbnQuZXZvbHV0aW9uLmZvcm1hdERhdGUobmV3IERhdGUoKG5ldyBEYXRlKCkpLmdldFRpbWUoKSArIChwYXJzZUludChjb250ZXh0LnN0aWNreS52YWwoKSwgMTApICogMTAwMCAqIDYwICogNjAgKiAyNCkpKTsKCQkJZGF0YS5IYXNTdGlja3lEYXRlID0gMTsKCQl9CgkJZWxzZQoJCXsKCQkJZGF0YS5IYXNTdGlja3lEYXRlID0gMDsKCQl9CgoJCWlmIChjb250ZXh0LnJlcGx5SWQgPiAwKQoJCXsKCQkJZGF0YS5SZXBseUlkID0gY29udGV4dC5yZXBseUlkOwoJCX0KCgkJaWYgKGNvbnRleHQudGhyZWFkSWQgPiAwKQoJCXsKCQkJZGF0YS5UaHJlYWRJZCA9IGNvbnRleHQudGhyZWFkSWQ7CgkJfQoKCQlpZiAoY29udGV4dC5yZXBseVRvVGhyZWFkSWQgPiAwKQoJCXsKCQkJZGF0YS5SZXBseVRvVGhyZWFkSWQgPSBjb250ZXh0LnJlcGx5VG9UaHJlYWRJZDsKCQl9CgoJCWlmIChjb250ZXh0LnJlcGx5VG9SZXBseUlkID4gMCkKCQl7CgkJCWRhdGEuUmVwbHlUb1JlcGx5SWQgPSBjb250ZXh0LnJlcGx5VG9SZXBseUlkOwoJCX0KCgkJcmV0dXJuIGRhdGE7Cgl9CglfYXR0YWNoSGFuZGxlcnMgPSBmdW5jdGlvbihjb250ZXh0KQoJewoJCWNvbnRleHQuYXR0YWNobWVudFVwZGF0ZS5jbGljayhmdW5jdGlvbigpCgkJewoJCQkkLmdsb3dNb2RhbChjb250ZXh0LnVwbG9hZEZpbGVVcmwsIHsgd2lkdGg6IDUwMCwgaGVpZ2h0OiAzMDAsIG9uQ2xvc2U6IGZ1bmN0aW9uKGZpbGUpCgkJCQl7CgkJCQkJaWYgKGZpbGUpCgkJCQkJewoJCQkJCQljb250ZXh0LmF0dGFjaG1lbnRGaWxlTmFtZS50ZXh0KGZpbGUuZmlsZU5hbWUpOwoJCQkJCQljb250ZXh0LmZpbGVVcGxvYWRlZCA9IHRydWU7CgkJCQkJCWNvbnRleHQuZmlsZSA9IGZpbGU7CgkJCQkJCWNvbnRleHQuYXR0YWNobWVudFJlbW92ZS5zaG93KCk7CgkJCQkJCWNvbnRleHQuYXR0YWNobWVudFVwZGF0ZS50ZXh0KGNvbnRleHQuYXR0YWNobWVudFVwZGF0ZVRleHQpOwoJCQkJCX0KCQkJCX0KCQkJfSk7CgoJCQlyZXR1cm4gZmFsc2U7CgkJfSk7CgoJCWNvbnRleHQuYXR0YWNobWVudFJlbW92ZS5jbGljayhmdW5jdGlvbigpCgkJewoJCQljb250ZXh0LmZpbGVVcGxvYWRlZCA9IGZhbHNlOwoJCQljb250ZXh0LmZpbGUgPSBudWxsOwoJCQljb250ZXh0LmF0dGFjaG1lbnRGaWxlTmFtZS50ZXh0KCcnKTsKCQkJY29udGV4dC5hdHRhY2htZW50UmVtb3ZlLmhpZGUoKTsKCQkJY29udGV4dC5hdHRhY2htZW50VXBkYXRlLnRleHQoY29udGV4dC5hdHRhY2htZW50QWRkVGV4dCk7CgkJCWNvbnRleHQucmVtb3ZlQXR0YWNobWVudCA9IHRydWU7CgoJCQlyZXR1cm4gZmFsc2U7CgkJfSk7CgoJCWlmICghY29udGV4dC5hdHRhY2htZW50RmlsZU5hbWUudGV4dCgpKQoJCXsKCQkJY29udGV4dC5hdHRhY2htZW50UmVtb3ZlLmhpZGUoKTsKCQl9CgoJCXZhciBzYXZlQnV0dG9uID0gJCgnIycgKyBjb250ZXh0LndyYXBwZXJJZCArICcgYS5zYXZlLXBvc3QnKTsKCQkvLyQudGVsbGlnZW50LmV2b2x1dGlvbi5uYXZpZ2F0aW9uQ29uZmlybWF0aW9uLmVuYWJsZSgpOwoJCS8vJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5hdmlnYXRpb25Db25maXJtYXRpb24ucmVnaXN0ZXIoc2F2ZUJ1dHRvbik7CgoJCWlmIChjb250ZXh0LnF1b3RlQnV0dG9uLmxlbmd0aCA+IDApCgkJewoJCQljb250ZXh0LnF1b3RlQnV0dG9uLmNsaWNrKGZ1bmN0aW9uKCkKCQkJewoJCQkJY29udGV4dC5zYXZlQm9keUJvb2ttYXJrKCk7CgkJCQl2YXIgY29udGVudCA9ICQudGVsbGlnZW50Lmdsb3cudXRpbGl0eS5nZXRTZWxlY3RlZEh0bWxJbkVsZW1lbnQoY29udGV4dC5xdW90ZVRleHQuZ2V0KDApLHRydWUsZmFsc2UsY29udGV4dC5xdW90ZUludmFsaWRTZWxlY3Rpb25UZXh0KTsKCQkJCWlmIChjb250ZW50KQoJCQkJewoJCQkJCWNvbnRleHQuaW5zZXJ0Qm9keUNvbnRlbnQoJ1txdW90ZSB1c2VyPSInICsgY29udGV4dC5yZXBseVRvQXV0aG9yICsgJyJdJyArIGNvbnRlbnQgKyAnWy9xdW90ZV0nKTsKCQkJCX0KCgkJCQlyZXR1cm4gZmFsc2U7CgkJCX0pOwoJCX0KCX0sCglfYWRkVmFsaWRhdGlvbiA9IGZ1bmN0aW9uKGNvbnRleHQpCgl7CgkJdmFyIHNhdmVCdXR0b24gPSAkKCcjJyArIGNvbnRleHQud3JhcHBlcklkICsgJyBhLnNhdmUtcG9zdCcpOwoKCQlzYXZlQnV0dG9uLmV2b2x1dGlvblZhbGlkYXRpb24oewoJCQl2YWxpZGF0ZU9uTG9hZDogY29udGV4dC5tZWRpYUlkIDw9IDAgPyBmYWxzZSA6IG51bGwsCgkJCW9uVmFsaWRhdGVkOiBmdW5jdGlvbihpc1ZhbGlkLCBidXR0b25DbGlja2VkLCBjKSB7CgkJCQlpZiAoaXNWYWxpZCkgewoJCQkJCXNhdmVCdXR0b24ucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7CgkJCQl9IGVsc2UgewoJCQkJCXNhdmVCdXR0b24uYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7CgkJCQl9CgkJCX0sCgkJCW9uU3VjY2Vzc2Z1bENsaWNrOiBmdW5jdGlvbihlKSB7CgkJCQlpZiAoIXNhdmVCdXR0b24ucGFyZW50KCkuaGFzQ2xhc3MoJ3Byb2Nlc3NpbmcnKSkKCQkJCXsKCQkJCQlzYXZlQnV0dG9uLnBhcmVudCgpLmFkZENsYXNzKCdwcm9jZXNzaW5nJyk7CgkJCQkJJCgnLnByb2Nlc3NpbmcnLCBzYXZlQnV0dG9uLnBhcmVudCgpKS5jc3MoInZpc2liaWxpdHkiLCAidmlzaWJsZSIpOwoJCQkJCXNhdmVCdXR0b24uYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7CgkJCQkJX3NhdmUoY29udGV4dCk7CgkJCQl9CgoJCQkJcmV0dXJuIGZhbHNlOwoJCQl9CgkJfSk7CgoJCWlmICgkKCcjJyArIGNvbnRleHQuc3ViamVjdElkKS5sZW5ndGggPiAwKQoJCXsKCQkJc2F2ZUJ1dHRvbi5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRGaWVsZCcsICcjJyArIGNvbnRleHQuc3ViamVjdElkLAoJCQkJewoJCQkJCXJlcXVpcmVkOiB0cnVlLAoJCQkJCW1lc3NhZ2VzOiB7IHJlcXVpcmVkOiBjb250ZXh0LnN1YmplY3RSZXF1aXJlZFRleHQgfQoJCQkJfSwKCQkJCScjJyArIGNvbnRleHQud3JhcHBlcklkICsgJyAuZmllbGQtaXRlbS5wb3N0LXN1YmplY3QgLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicKCQkJKTsKCQl9CgoJCWNvbnRleHQuYXR0YWNoQm9keUNoYW5nZVNjcmlwdChzYXZlQnV0dG9uLmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEN1c3RvbVZhbGlkYXRpb24nLCAnYm9keScsIGZ1bmN0aW9uKCkKCQkJewoJCQkJdmFyIGJvZHkgPSBjb250ZXh0LmdldEJvZHlDb250ZW50KCk7CgkJCQl2YXIgYmVnaW5uaW5nTWF0Y2hlcyA9IGJvZHkubWF0Y2goL1xbcXVvdGUoKD86XHMqKXVzZXI9KD86XCJ8JnF1b3Q7fCYjMzQ7KS4qPyg/OlwifCZxdW90O3wmIzM0OykpP1xdL2cpOwoJCQkJdmFyIGVuZGluZ01hdGNoZXMgPSBib2R5Lm1hdGNoKC9cW1wvcXVvdGUoPzpccyopXF0vZyk7CgkJCQlpZiAoKGJlZ2lubmluZ01hdGNoZXMgPT0gbnVsbCkgIT0gKGVuZGluZ01hdGNoZXMgPT0gbnVsbCkpCgkJCQkJcmV0dXJuIGZhbHNlOwoKCQkJCXJldHVybiBib2R5Lmxlbmd0aCA+IDAgJiYgKChiZWdpbm5pbmdNYXRjaGVzID09IG51bGwgJiYgZW5kaW5nTWF0Y2hlcyA9PSBudWxsKSB8fCBiZWdpbm5pbmdNYXRjaGVzLmxlbmd0aCA9PSBlbmRpbmdNYXRjaGVzLmxlbmd0aCk7CgkJCX0sCgkJCWNvbnRleHQuYm9keVJlcXVpcmVkVGV4dCwgJyMnICsgY29udGV4dC53cmFwcGVySWQgKyAnIC5maWVsZC1pdGVtLnBvc3QtYm9keSAuZmllbGQtaXRlbS12YWxpZGF0aW9uJwoJCSkpOwoKCQlpZiAoY29udGV4dC5lZGl0Tm90ZXNSZXF1aXJlZCAmJiAkKCcjJyArIGNvbnRleHQuZWRpdE5vdGVzSWQpLmxlbmd0aCA+IDApCgkJewoJCQlzYXZlQnV0dG9uLmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEZpZWxkJywgJyMnICsgY29udGV4dC5lZGl0Tm90ZXNJZCwKCQkJCXsKCQkJCQlyZXF1aXJlZDogdHJ1ZSwKCQkJCQltZXNzYWdlczogeyByZXF1aXJlZDogY29udGV4dC5lZGl0Tm90ZXNSZXF1aXJlZFRleHQgfQoJCQkJfSwKCQkJCScjJyArIGNvbnRleHQud3JhcHBlcklkICsgJyAuZmllbGQtaXRlbS5lZGl0LW5vdGVzIC5maWVsZC1pdGVtLXZhbGlkYXRpb24nCgkJCSk7CgkJfQoJfSwKCV9zZWFyY2hUaHJlYWRzID0gZnVuY3Rpb24oY29udGV4dCwgcXVlc3Rpb24pIHsKCQlyZXR1cm4gJC50ZWxsaWdlbnQuZXZvbHV0aW9uLmdldCh7CgkJCXVybDogY29udGV4dC5zZWFyY2hVcmwsCgkJCWRhdGE6IHsKCQkJCWZvcnVtSWQ6IGNvbnRleHQuZm9ydW1JZCwKCQkJCWFwcGxpY2F0aW9uSWQ6IGNvbnRleHQuYXBwbGljYXRpb25JZCwKCQkJCWNvbnRlbnRUeXBlSWQ6IGNvbnRleHQuZm9ydW1UaHJlYWRDb250ZW50VHlwZSwKCQkJCXF1ZXJ5OiBxdWVzdGlvbgoJCQl9CgkJfSk7Cgl9OwoKCSQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzLmNyZWF0ZUVkaXRQb3N0ID0gewoJCXJlZ2lzdGVyOiBmdW5jdGlvbihjb250ZXh0KSB7CgkJCXZhciBjb21wb3Nlck9wdGlvbnMgPSB7fTsKCgkJCWlmKGNvbnRleHQuc3VwcG9ydHNRQSkgewoJCQkJY29tcG9zZXJPcHRpb25zID0gewoJCQkJCXBsdWdpbnM6IFsgJ2hhc2h0YWdzJywgJ2F1dG9jb21wbGV0ZScgXSwKCQkJCQlzdWdnZXN0aW9uSGVhZGVyOiBjb250ZXh0LnN1Z2dlc3Rpb25IZWFkaW5nICsgJyA8YSBocmVmPSIjIiBvbmNsaWNrPSIkKGRvY3VtZW50KS50cmlnZ2VyKFwnY2xpY2tcJyk7IHJldHVybiBmYWxzZTsiIHN0eWxlPSJmbG9hdDogcmlnaHQ7Ij4nICsgY29udGV4dC5jbG9zZSArICc8L2E+JywKCQkJCQlvblN1Z2dlc3Rpb25MaXN0OiBmdW5jdGlvbihxdWVyeSwgY29tcGxldGUpIHsKCQkJCQkJX3NlYXJjaFRocmVhZHMoY29udGV4dCwgcXVlcnkpLnRoZW4oZnVuY3Rpb24ocmVzcG9uc2UpewoJCQkJCQkJY29tcGxldGUocmVzcG9uc2UucmVzdWx0cyk7CgkJCQkJCX0pOwoJCQkJCX0sCgkJCQkJb25TdWdnZXN0aW9uU2VsZWN0OiBmdW5jdGlvbihzdWdnZXN0aW9uKSB7CgkJCQkJCWlmKHN1Z2dlc3Rpb24udXJsKSB7CgkJCQkJCQl3aW5kb3cubG9jYXRpb24gPSBzdWdnZXN0aW9uLnVybDsKCQkJCQkJfQoJCQkJCX0KCQkJCX07CgkJCX0gZWxzZSB7CgkJCQljb21wb3Nlck9wdGlvbnMgPSB7CgkJCQkJcGx1Z2luczogWydoYXNodGFncyddCgkJCQl9OwoJCQl9CgoJCQkkKCcjJyArIGNvbnRleHQuc3ViamVjdElkKS5ldm9sdXRpb25Db21wb3Nlcihjb21wb3Nlck9wdGlvbnMpCgkJCQkuZXZvbHV0aW9uQ29tcG9zZXIoJ29ua2V5ZG93bicsIGZ1bmN0aW9uKGUpIHsKCQkJCQlpZihlLndoaWNoID09PSAxMykgewoJCQkJCQlyZXR1cm4gZmFsc2U7CgkJCQkJfSBlbHNlIHsKCQkJCQkJcmV0dXJuIHRydWU7CgkJCQkJfQoJCQkJfSk7CgoJCQkvL2NvbnRleHQudGFnQm94LmV2b2x1dGlvblRhZ1RleHRCb3goe2FwcGxpY2F0aW9uSWQ6Y29udGV4dC5hcHBsaWNhdGlvbklkfSk7CgkJCS8vVGFnIG1hbmFnZW1lbnQgY3VzdG9taXphdGlvbnMKCQkJaWYoY29udGV4dC50YWdCb3gpIHsKCQkJICAgIGNvbnRleHQudGFnQm94Lmdsb3dMb29rVXBUZXh0Qm94KHsKCQkJCSAgICBlbXB0eUh0bWw6ICcnLAoJCQkJICAgIG1heFZhbHVlczogMjAsCgkJCQkgICAgb25HZXRMb29rVXBzOiBmdW5jdGlvbiAodGIsIHNlYXJjaFRleHQpIHsKCQkJCSAgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5nZXQoewoJICAgICAgICAgICAgICAgICAgICAgICAgdXJsOiBjb250ZXh0Lmxvb2t1cHZtLAoJCQkJICAgICAgICAgICAgZGF0YTogeyB3X1NlYXJjaFRleHQ6IHNlYXJjaFRleHQgfSwKCQkJCSAgICAgICAgICAgIHN1Y2Nlc3M6IGZ1bmN0aW9uIChyZXNwb25zZSkgewoJCQkJICAgICAgICAgICAgICAgIHZhciBzZWxlY3Rpb24gPSBbXQogICAgICAgIAkJCQkgICAgICAgIGZvcih2YXIgaSA9IDA7IGkgPCByZXNwb25zZS50YWdzLmxlbmd0aDsgaSsrKXsKICAgICAgICAJCQkJICAgICAgICAgICAgdmFyIGl0ZW0gPSByZXNwb25zZS50YWdzW2ldOwogICAgICAgIAkJCQkgICAgICAgICAgICBpZihpdGVtICYmIGl0ZW0udGFnKXsKICAgICAgICAJCQkJICAgICAgICAgICAgICAgIHNlbGVjdGlvbltzZWxlY3Rpb24ubGVuZ3RoXSA9IGNvbnRleHQudGFnQm94Lmdsb3dMb29rVXBUZXh0Qm94KCdjcmVhdGVMb29rVXAnLCBpdGVtLnRhZywgaXRlbS50YWcsIGl0ZW0udGFnLCB0cnVlKTsKICAgICAgICAJCQkJICAgICAgICAgICAgfQogICAgICAgIAkJCQkgICAgICAgIH0KICAgICAgICAJCQkJICAgICAgICBjb250ZXh0LnRhZ0JveC5nbG93TG9va1VwVGV4dEJveCgndXBkYXRlU3VnZ2VzdGlvbnMnLCBzZWxlY3Rpb24pOwoJCQkJICAgICAgICAgICAgfQoJCQkJICAgICAgICAgfSk7CiAgICAJCQkJfSwKICAgIAkJCQlzZWxlY3RlZExvb2tVcHNIdG1sOiBjb250ZXh0LnNlbGVjdGVkVGFncwoJCQkJfSk7CgkJCX0KCgkJCV9hdHRhY2hIYW5kbGVycyhjb250ZXh0KTsKCQkJX2FkZFZhbGlkYXRpb24oY29udGV4dCk7CgkJfQoJfTsKfSkoalF1ZXJ5KTsK</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>
