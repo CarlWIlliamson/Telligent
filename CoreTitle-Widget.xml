@@ -1,0 +1,237 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_Title_Name}" version="10.1.8.10498" description="${resource:Core_Title_Description}" instanceIdentifier="af9000b6cc8c4f658c2046ffdc09c5db" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="title">
+		<contentScript><![CDATA[#set($page = $core_v2_urls.Current)
+#if ($page == 'Home')
+	#set($title = $core_v2_language.GetResource('Home'))
+#elseif ($page == 'LogIn')
+	#set($title = $core_v2_language.GetResource('Login_Title'))
+#elseif ($page == 'LogOut')
+	#set($title = $core_v2_language.GetResource('Logout_Title'))
+#elseif ($page == 'NotFound')
+	#set($title = $core_v2_language.GetResource('Error_NotFound_Title'))
+#elseif ($page == 'Message')
+	#set($title = $core_v2_message.Current.Name)
+#elseif ($page == 'User')
+	#set($title = $core_v2_language.FormatString($core_v2_language.GetResource('UserProfile_UserProfile_Title'), $core_v2_user.Current.DisplayName))
+#elseif ($page == 'Banned')
+	#set($title = $core_v2_language.GetResource('UserBanned_Title'))
+#elseif ($page == 'Conversation')
+	#set($title = $core_v2_conversation.Current.FirstMessage.Subject)
+#elseif ($page == 'Conversations')
+	#set($title = $core_v2_language.GetResource('ViewUserProfile_AllConversations'))
+#elseif ($page == 'AddUser')
+	#set($title = $core_v2_language.GetResource('register'))
+#elseif ($page == 'ApiKeys')
+	#set($title = $core_v2_language.GetResource('ApiKeys_AuthorizedApplications'))
+#elseif ($page == 'Tags')
+	#set($title = $core_v2_language.GetResource('UserProfile_BrowseByTags_Title'))
+#elseif ($page == 'Search')
+	#set($title = $core_v2_language.GetResource('UserProfile_Search_Title'))
+#elseif ($page == 'Achievements')
+	#set($title = $core_v2_language.GetResource('Achievements'))
+#elseif ($page == 'UserList')
+	#set($title = $core_v2_language.GetResource('UserList_Title'))
+#elseif ($page == 'ChangePassword')
+	#set($title = $core_v2_language.GetResource('EditProfile_PasswordChange'))
+#elseif ($page == 'ForgotPassword')
+	#set($title = $core_v2_language.GetResource('UserProfile_ForgottenPassword_Title'))
+#elseif ($page == 'Invite')
+	#set($title = $core_v2_language.GetResource('UserProfile_InviteUsers_Title'))
+#elseif ($page == 'Settings')
+	#set($title = $core_v2_language.GetResource('UserProfile_Settings_Title'))
+#elseif ($page == 'AcceptInvitation')
+	#set($title = $core_v2_language.GetResource('UserProfile_AcceptInvitation_Title'))
+#elseif ($page == 'AbuseAppeal')
+	#set($title = $core_v2_language.GetResource('Common_AbuseAppeal_Title'))
+#elseif ($page == 'AppealQueue')
+	#set($title = $core_v2_language.GetResource('Common_AppealQueue_Title'))
+#elseif ($page == 'Activities')
+	#set($title = $core_v2_language.FormatString($core_v2_language.GetResource('UserProfile_ActivityList_Title'), $core_v2_user.Current.DisplayName))
+#elseif ($page == 'ActivityMessage')
+    #set ($title = $core_v2_language.Truncate($core_v2_activityStory.Current.PreviewHtml('Web'), 100, '...'))
+#elseif ($page == 'Notifications')
+    #set($title = $core_v2_language.GetResource('Notifications_Title'))
+#elseif ($page == 'Friends')
+	#set($title = $core_v2_language.FormatString($core_v2_language.GetResource('UserProfile_FriendshipList_Title'), $core_v2_user.Current.DisplayName))
+#elseif ($page == 'Favorites')
+	#set($title = $core_v2_language.FormatString($core_v2_language.GetResource('UserProfile_FavorableContentList_Title'), $core_v2_user.Current.DisplayName))
+#elseif ($page == 'UserLikes')
+	#set($title = $core_v2_language.FormatString($core_v2_language.GetResource('UserProfile_Likes_Title'), $core_v2_user.Current.DisplayName))
+#elseif ($page == 'UserAchievements')
+	#set($title = $core_v2_language.FormatString($core_v2_language.GetResource('UserProfile_Achievements_Title'), $core_v2_user.Current.DisplayName))
+#elseif ($page == 'UserMentions')
+	#set($title = $core_v2_language.FormatString($core_v2_language.GetResource('UserProfile_Mentions_Title'), $core_v2_user.Current.DisplayName))
+#elseif ($core_v2_groupUrls.Current == 'UserGroups')
+	#set($title = $core_v2_language.FormatString($core_v2_language.GetResource('UserProfile_GroupList_Title'), $core_v2_user.Current.DisplayName))
+#elseif ($page == 'UserThreads')
+	#set($title = $core_v2_language.FormatString($core_v2_language.GetResource('UserProfile_Threads_Title'), $core_v2_user.Current.DisplayName))
+#elseif ($core_v2_groupUrls.Current == 'Home')
+	#set($title = $core_v2_language.GetResource('Groups'))
+#elseif ($page == 'UserFiles')
+	#if ($core_v2_userFolder.Current)
+		#set($title = "$core_v2_userFolder.Current.Name - $core_v2_language.GetResource('files') - $core_v2_user.Current.DisplayName")
+	#else
+		#set($title = "$core_v2_language.GetResource('files') - $core_v2_user.Current.DisplayName")
+	#end
+#elseif ($page == 'UserFile')
+	#set($title = "$core_v2_userFile.Current.Name - $core_v2_language.GetResource('files') - $core_v2_user.Current.DisplayName")
+#elseif ($page == 'UserFilesSlideshow')
+	#set($title = "$core_v2_language.FormatString($core_v2_language.GetResource('UserProfile_UserFileList_Title'), $core_v2_user.Current.DisplayName) - $core_v2_language.GetResource('UserProfile_Slideshow_Title')")
+#elseif ($page == 'UserConsent')
+    #set($title = $core_v2_language.GetResource('ConsentRequired'))
+#elseif ($core_v2_groupUrls.Current == 'AddGroup')
+	#set($title = $core_v2_language.GetResource('Group_CreateGroup'))
+#elseif ($page == 'Custom' || $page == 'UserCustom')
+	#set($title = $core_v2_widget.ApplyTokens($core_v2_customPage.Current.Title))
+#end
+#if ($title)
+	$core_v2_page.SetTitle($title, true, true)
+	#if ($core_v2_widget.GetBoolValue('visible', false))
+		<h1 class="title">$title</h1>
+	#end
+#else
+	$core_v2_page.SetTitle('', true, true)
+#end
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Core_Title_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Core_Title_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="visible" resourceName="Title_Visible" dataType="bool" defaultValue="False" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Achievements">Achievements</resource>
+  <resource name="ApiKeys_AuthorizedApplications">Authorized Applications</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Common_AbuseAppeal_Title">Submit an Appeal</resource>
+  <resource name="Common_AppealQueue_Title">Abuse Management</resource>
+  <resource name="ConsentRequired">Consent Required</resource>
+  <resource name="Core_Title_Description">Displays the page title, used for common site pages.</resource>
+  <resource name="Core_Title_Name">Core - Title</resource>
+  <resource name="Core_Title_Title_Title">Title</resource>
+  <resource name="EditProfile_PasswordChange">Change Password</resource>
+  <resource name="Error_NotFound_Title">Page Not Found</resource>
+  <resource name="files">Files</resource>
+  <resource name="Group_CreateGroup">Create Group</resource>
+  <resource name="Groups">Groups</resource>
+  <resource name="Home">Home</resource>
+  <resource name="Leaderboards_Title">Leaderboards</resource>
+  <resource name="Login_Title">Sign in</resource>
+  <resource name="Logout_Title">Sign out</resource>
+  <resource name="Notifications_Title">Your Notifications</resource>
+  <resource name="Options">Options</resource>
+  <resource name="register">Join</resource>
+  <resource name="Title_Visible">Show the title in the page</resource>
+  <resource name="UserBanned_Title">User Banned</resource>
+  <resource name="UserList_Title">People Search</resource>
+  <resource name="UserProfile_AcceptInvitation_Title">Accept Invitation</resource>
+  <resource name="UserProfile_Achievements_Title">{0}'s Achievements</resource>
+  <resource name="UserProfile_ActivityList_Title">{0}'s Activity</resource>
+  <resource name="UserProfile_BrowseByTags_Title">Browse By Tags</resource>
+  <resource name="UserProfile_FavorableContentList_Title">{0}'s Bookmarks</resource>
+  <resource name="UserProfile_ForgottenPassword_Title">Forgotten Password</resource>
+  <resource name="UserProfile_FriendshipList_Title">{0}'s ${friends_propercase}</resource>
+  <resource name="UserProfile_GroupList_Title">{0}'s Groups</resource>
+  <resource name="UserProfile_InviteUsers_Title">Invite Users</resource>
+  <resource name="UserProfile_Likes_Title">{0}'s Likes</resource>
+  <resource name="UserProfile_Mentions_Title">{0}'s Mentions</resource>
+  <resource name="UserProfile_Search_Title">Search</resource>
+  <resource name="UserProfile_Settings_Title">Settings</resource>
+  <resource name="UserProfile_Slideshow_Title">Slideshow</resource>
+  <resource name="UserProfile_Threads_Title">{0}'s Questions</resource>
+  <resource name="UserProfile_UserFileList_Title">{0}'s Files</resource>
+  <resource name="UserProfile_UserProfile_Title">{0}'s Profile</resource>
+  <resource name="ViewUserProfile_AllConversations">All Messages</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Achievements">成就</resource>
+  <resource name="ApiKeys_AuthorizedApplications">已授权的应用程序</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Common_AbuseAppeal_Title">提交申诉</resource>
+  <resource name="Common_AppealQueue_Title">不良信息管理</resource>
+  <resource name="Communities">社区</resource>
+  <resource name="Core_Title_Description">显示用于通用网站页面的页面标题。</resource>
+  <resource name="Core_Title_Name">核心 - 标题</resource>
+  <resource name="Core_Title_Title_Title">标题</resource>
+  <resource name="EditProfile_PasswordChange">更改密码</resource>
+  <resource name="Error_NotFound_Title">未找到页面</resource>
+  <resource name="files">文件</resource>
+  <resource name="Group_CreateGroup">创建社区</resource>
+  <resource name="Groups">组</resource>
+  <resource name="Home">首页</resource>
+  <resource name="Leaderboards_Title">排行榜</resource>
+  <resource name="Login_Title">登录</resource>
+  <resource name="Logout_Title">注销</resource>
+  <resource name="Options">选项</resource>
+  <resource name="register">加入</resource>
+  <resource name="Title_Visible">在页面中显示标题</resource>
+  <resource name="UserBanned_Title">用户被封禁</resource>
+  <resource name="UserList_Title">用户搜索</resource>
+  <resource name="UserProfile_AcceptInvitation_Title">接受邀请</resource>
+  <resource name="UserProfile_Achievements_Title">{0} 的成就</resource>
+  <resource name="UserProfile_ActivityList_Title">{0} 的活动</resource>
+  <resource name="UserProfile_BrowseByTags_Title">按标记浏览</resource>
+  <resource name="UserProfile_FavorableContentList_Title">{0} 的书签</resource>
+  <resource name="UserProfile_ForgottenPassword_Title">忘记密码</resource>
+  <resource name="UserProfile_FriendshipList_Title">{0}的${friends_propercase}</resource>
+  <resource name="UserProfile_GroupList_Title">{0} 的社区</resource>
+  <resource name="UserProfile_InviteUsers_Title">邀请用户</resource>
+  <resource name="UserProfile_Likes_Title">{0} 的点赞数</resource>
+  <resource name="UserProfile_Mentions_Title">{0} 的引述</resource>
+  <resource name="UserProfile_Search_Title">搜索</resource>
+  <resource name="UserProfile_Settings_Title">设置</resource>
+  <resource name="UserProfile_Slideshow_Title">幻灯片</resource>
+  <resource name="UserProfile_UserFileList_Title">{0} 的文件</resource>
+  <resource name="UserProfile_UserProfile_Title">{0} 的个人资料</resource>
+  <resource name="ViewUserProfile_AllConversations">所有消息</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Achievements">成就</resource>
+  <resource name="ApiKeys_AuthorizedApplications">授權的應用程式</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Common_AbuseAppeal_Title">提交申訴</resource>
+  <resource name="Common_AppealQueue_Title">不當使用管理</resource>
+  <resource name="Communities">社群</resource>
+  <resource name="Core_Title_Description">顯示頁面標題，用於一般網站頁面。</resource>
+  <resource name="Core_Title_Name">核心 - 標題</resource>
+  <resource name="Core_Title_Title_Title">標題</resource>
+  <resource name="EditProfile_PasswordChange">變更密碼</resource>
+  <resource name="Error_NotFound_Title">找不到頁面</resource>
+  <resource name="files">檔案</resource>
+  <resource name="Group_CreateGroup">建立社群</resource>
+  <resource name="Groups">群組</resource>
+  <resource name="Home">首頁</resource>
+  <resource name="Leaderboards_Title">排行榜</resource>
+  <resource name="Login_Title">登入</resource>
+  <resource name="Logout_Title">登出</resource>
+  <resource name="Options">選項</resource>
+  <resource name="register">加入</resource>
+  <resource name="Title_Visible">在頁面中顯示標題</resource>
+  <resource name="UserBanned_Title">使用者被禁止</resource>
+  <resource name="UserList_Title">人員搜尋</resource>
+  <resource name="UserProfile_AcceptInvitation_Title">接受邀請</resource>
+  <resource name="UserProfile_Achievements_Title">{0} 的成就</resource>
+  <resource name="UserProfile_ActivityList_Title">{0} 的活動</resource>
+  <resource name="UserProfile_BrowseByTags_Title">依標記瀏覽</resource>
+  <resource name="UserProfile_FavorableContentList_Title">{0} 的書籤</resource>
+  <resource name="UserProfile_ForgottenPassword_Title">忘記密碼</resource>
+  <resource name="UserProfile_FriendshipList_Title">{0}的${friends_propercase}</resource>
+  <resource name="UserProfile_GroupList_Title">{0} 的社群</resource>
+  <resource name="UserProfile_InviteUsers_Title">邀請使用者</resource>
+  <resource name="UserProfile_Likes_Title">{0} 的讚</resource>
+  <resource name="UserProfile_Mentions_Title">{0} 的提及項目</resource>
+  <resource name="UserProfile_Search_Title">搜尋</resource>
+  <resource name="UserProfile_Settings_Title">設定</resource>
+  <resource name="UserProfile_Slideshow_Title">投影片放映</resource>
+  <resource name="UserProfile_UserFileList_Title">{0} 的檔案</resource>
+  <resource name="UserProfile_UserProfile_Title">{0} 的個人檔案</resource>
+  <resource name="ViewUserProfile_AllConversations">所有訊息</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="bf16d7f34f0e492ab9853a9926675d8e" />
+		</requiredContext>
+	</scriptedContentFragment>
+</scriptedContentFragments>

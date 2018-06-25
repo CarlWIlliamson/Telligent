@@ -1,0 +1,517 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Blogs_BlogLinks_Name}" version="10.1.8.10498" description="${resource:Blogs_BlogLinks_Description}" instanceIdentifier="aa55795b63a949718dea4032197f3507" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="blog-links">
+		<contentScript><![CDATA[#set($links = $core_v2_page.ParseQueryString($core_v2_widget.GetCustomValue('links','Link=weblogCreate&amp;Link=weblogEdit&amp;Link=weblogEditPost&amp;Link=feature&amp;Link=weblogSubscribe&amp;Link=weblogFavorite&amp;Link=weblogRss&amp;Link=weblogManageCustomPages&amp;Link=weblogEditTheme')))
+#set($hasLinks = false)
+#set($currentGroup = $core_v2_group.Current)
+#set($currentBlog = $core_v2_blog.Current)
+#set($currentBlogPost = $core_v2_blogPost.Current)
+#set($currentBlogComment = $core_v2_blogComment.Current)
+#if($currentBlog)
+	#set($canCreatePost = $core_v2_nodePermission.Get('blogs',$currentBlog.Id,$core_v2_blogPermissions.CreatePost).IsAllowed)
+#end
+
+#set ($collapse = $core_v2_widget.GetBoolValue('collapsed', false))
+
+#set ($blogLinks = $links.Values('Link'))
+#set ($linksToShow = $blogLinks.Count * 2)
+#if ($collapse)
+	#set ($linksToShow = 0)
+#end
+
+#foreach($link in $blogLinks)
+#beforeall
+	<div class="ui-links navigation-list links" data-minlinks="2" data-direction="vertical" data-minlinks="$linksToShow" data-maxlinks="$linksToShow">
+		<ul class="navigation-list">
+#each
+			#set($url = false)
+			#if($link == 'weblogGroupBlogsRss')
+				#if ($currentGroup)
+					#set($url = $core_v2_blogUrls.GroupAggregateRssBlogsOnly($currentGroup.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link rss"><span></span>$core_v2_language.GetResource('Weblog_Link_GroupRss')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogAdministration')
+				#if ($currentBlog)
+					#set($url = $core_v2_blogUrls.Administration($currentBlog.Id))
+				#elseif ($currentGroup)
+					#set($url = $core_v2_blogUrls.GroupAggregateAdministration($currentGroup.Id))
+				#end
+				#if($url)
+					<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link edit-application weblog"><span></span>$core_v2_language.GetResource('Weblog_Link_BlogAdministration')</a></li>
+					#set($hasLinks = true)
+				#end
+			#elseif($link == 'weblogHome')
+				#if ($currentBlog)
+					#set($url = $core_v2_blogUrls.Blog($currentBlog.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link view-application"><span></span>$core_v2_language.GetResource('Home')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogAbout')
+				#if ($currentBlog)
+					#set($url = $core_v2_blogUrls.About($currentBlog.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link view-user-profile"><span></span>$core_v2_language.GetResource('Weblog_Link_AboutAuthor')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogContact')
+				#if ($currentBlog)
+					#set($url = $core_v2_blogUrls.Contact($currentBlog.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link view-contact"><span></span>$core_v2_language.GetResource('Weblog_Link_Contact')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogFavorite')
+				#if ($currentBlog && $core_v2_bookmark.SupportsBookmarks($core_v2_blog.ContentTypeId) && $core_v2_bookmark.CanBookmark($currentBlog.ContentId, $core_v2_blog.ContentTypeId) && $core_v2_bookmark.CanUnBookmark($currentBlog.ContentId, $core_v2_blog.ContentTypeId))
+					<li class="navigation-list-item">$core_v2_ui.Bookmark($currentBlog.ContentId, $core_v2_blog.ContentTypeId)</li>
+					#set($hasLinks = true)
+				#end
+			#elseif($link == 'weblogPostFavorite')
+				#if ($currentBlogPost && $core_v2_bookmark.SupportsBookmarks($core_v2_blogPost.ContentTypeId) && $core_v2_bookmark.CanBookmark($currentBlogPost.ContentId, $core_v2_blogPost.ContentTypeId) && $core_v2_bookmark.CanUnBookmark($currentBlogPost.ContentId, $core_v2_blogPost.ContentTypeId))
+					<li class="navigation-list-item">$core_v2_ui.Bookmark($currentBlogPost.ContentId, $core_v2_blogPost.ContentTypeId)</li>
+					#set($hasLinks = true)
+				#end
+			#elseif($link == 'weblogPostShare')
+				#if ($currentBlogPost)
+					#set($url = $core_v2_blogUrls.ShareBlogPost($currentBlogPost.Id, "%{Modal='False'}"))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlEncode($url)" class="internal-link email-post"><span></span>$core_v2_language.GetResource('Weblog_Link_PostShare')</a></li>
+					#else
+						<li class="navigation-list-item"><a href="mailto:?subject=$currentBlogPost.Title&body=$core_v2_encoding.HtmlAttributeEncode($core_v2_page.AbsoluteUrl($currentBlogPost.Url))" class="internal-link email-post"><span></span>$core_v2_language.GetResource('Weblog_Link_PostShare')</a></li>
+					#end
+					#set($hasLinks = true)
+				#end
+			#elseif($link == 'weblogEditPost')
+				#if ($currentBlogPost && $currentBlogPost.Title)
+					#set($url = $core_v2_blogUrls.EditBlogPost($currentBlogPost.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link edit-post"><span></span>$core_v2_language.GetResource('Weblog_Link_EditPost')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogAddPost')
+				#if ($currentBlog)
+					#set($url = $core_v2_blogUrls.AddBlogPost($currentBlog.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link add-post"><span></span>$core_v2_language.GetResource('Weblog_Quick_Post')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogSendEmail')
+				#if ($currentBlog && $canCreatePost)
+					#set($url = $core_v2_blogUrls.MailingList($currentBlog.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link add-post send-email"><span></span>$core_v2_language.GetResource('Weblog_Link_PostByEmail')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogRss')
+				#if ($currentBlog)
+					#set($url = $core_v2_blogUrls.Rss($currentBlog.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link rss"><span></span>$core_v2_language.GetResource('Weblog_Link_Rss')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogAtom')
+				#if ($currentBlog)
+					#set($url = $core_v2_blogUrls.Atom($currentBlog.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link rss"><span></span>$core_v2_language.GetResource('Weblog_Link_Atom')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogRssComments')
+				#if ($currentBlog)
+					#set($url = $core_v2_blogUrls.CommentsRss($currentBlog.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link rss"><span></span>$core_v2_language.GetResource('Weblog_Link_Rss_AllComments')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogPostRssComments')
+				#if ($currentBlogPost)
+					#set($url = $core_v2_blogUrls.BlogPostCommentsRss($currentBlogPost.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link rss"><span></span>$core_v2_language.GetResource('Weblog_Link_Rss_Comments')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogSubscribe')
+				#if ($currentBlog)
+					## REGISTERED USERS GET STANDARD AJAX SUBSCRIBE/UNSUBSCRIBE LINK
+					#if ($core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+						<li class="navigation-list-item">
+							<a class="weblogSubscribe" data-messagename="widget.${core_v2_widget.WrapperElementId}.weblogSubscribe" data-blogid="$currentBlog.Id" data-subscribed="true" href="#" #if(!$core_v2_blog.IsSubscribed($currentBlog.Id)) style="display:none" #end>$core_v2_language.GetResource('Weblog_Subscribed')</a>
+						</li>
+						<li class="navigation-list-item">
+							<a class="weblogSubscribe" data-messagename="widget.${core_v2_widget.WrapperElementId}.weblogSubscribe" data-blogid="$currentBlog.Id" data-subscribed="false" href="#" #if($core_v2_blog.IsSubscribed($currentBlog.Id)) style="display:none" #end>$core_v2_language.GetResource('Weblog_Unsubscribed')</a>
+						</li>
+						#registerEndOfPageHtml("widget.${core_v2_widget.WrapperElementId}.weblogSubscribe")
+							<script type="text/javascript">
+							jQuery(function(j){
+								function update(value, link) {
+									j.telligent.evolution.post({
+										url: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('subscribe.vm'))',
+										data: {
+											type: 'blog',
+											subscribe: value,
+											blogId: link.data('blogid')
+										},
+										dataType: 'json',
+										success: function(response) {
+											if (response.subscribe) {
+												link.closest('ul').find('a.weblogSubscribe[data-subscribed="false"]').hide();
+												link.closest('ul').find('a.weblogSubscribe[data-subscribed="true"]').show();
+											} else {
+												link.closest('ul').find('a.weblogSubscribe[data-subscribed="false"]').show();
+												link.closest('ul').find('a.weblogSubscribe[data-subscribed="true"]').hide();
+											}
+
+											if (response.warnings && response.warnings.length > 0) {
+												j.telligent.evolution.notifications.show(response.warnings[0], { type: 'warning' });
+											}
+										}
+									});
+								}
+								j.telligent.evolution.messaging.subscribe('widget.${core_v2_widget.WrapperElementId}.weblogSubscribe', function(data){
+									update(!j(data.target).data('subscribed'), j(data.target));
+								});
+							});
+							</script>
+						#end
+						#set($hasLinks = true)
+
+					## ANONYMOUS USERS GET AN EMAIL FORM INPUT
+					#else
+						<li class="navigation-list-item">
+							<a href="#" onclick="jQuery.glowModal('$core_v2_encoding.JavascriptEncode($core_v2_page.AdjustQueryString($core_v2_widget.GetExecutedFileUrl('subscribebyemail.vm'), "BlogId=$currentBlog.Id"))', { width: 400, height: 200 }); return false;">$core_v2_language.GetResource('Subscribe_ByEmail')</a>
+						</li>
+						#if ($core_v2_utility.ParseBool($core_v2_page.GetQueryStringValue('sub')) == true)
+							#registerEndOfPageHtml()
+								<script type="text/javascript">
+									jQuery(function(j){
+										j.telligent.evolution.notifications.show('$core_v2_language.GetResource("Weblog_Subscription_SuccessMessage")', {type: 'success', duration: 10000});
+									});
+								</script>
+							#end
+						#end
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogPostSubscribe')
+				#if ($currentBlogPost && $core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+
+					<li class="navigation-list-item">
+						<a class="weblogPostSubscribe" data-messagename="widget.${core_v2_widget.WrapperElementId}.blogPostSubscribe" data-blogpostid="$currentBlogPost.Id" data-subscribed="true" href="#" #if(!$core_v2_blogPost.IsSubscribed($currentBlogPost.Id,"%{IncludeApplicationSubscriptions='false'}")) style="display:none" #end>$core_v2_language.GetResource('Blog_PostQuestionAnswerView_StopFollowing')</a>
+					</li>
+					<li class="navigation-list-item">
+						<a class="weblogPostSubscribe" data-messagename="widget.${core_v2_widget.WrapperElementId}.blogPostSubscribe" data-blogpostid="$currentBlogPost.Id" data-subscribed="false" href="#" #if($core_v2_blogPost.IsSubscribed($currentBlogPost.Id,"%{IncludeApplicationSubscriptions='false'}")) style="display:none" #end>$core_v2_language.GetResource('Blog_PostQuestionAnswerView_FollowThisQuestion')</a>
+					</li>
+					#registerEndOfPageHtml("widget.${core_v2_widget.WrapperElementId}.blogPostSubscribe")
+						<script type="text/javascript">
+						jQuery(function(j){
+							function update(value, link) {
+								j.telligent.evolution.post({
+									url: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('subscribe.vm'))',
+									data: {
+										type: 'blogPost',
+										subscribe: value,
+										blogPostId: link.data('blogpostid')
+									},
+									dataType: 'json'
+								}).then(function(){
+									if(value) {
+										link.closest('ul').find('a.weblogPostSubscribe[data-subscribed="false"]').hide();
+										link.closest('ul').find('a.weblogPostSubscribe[data-subscribed="true"]').show();
+									} else {
+										link.closest('ul').find('a.weblogPostSubscribe[data-subscribed="false"]').show();
+										link.closest('ul').find('a.weblogPostSubscribe[data-subscribed="true"]').hide();
+									}
+								});
+							}
+							j.telligent.evolution.messaging.subscribe('widget.${core_v2_widget.WrapperElementId}.blogPostSubscribe', function(data){
+								update(!j(data.target).data('subscribed'), j(data.target));
+							});
+						});
+						</script>
+					#end
+
+					#set($hasLinks = true)
+				#end
+			#elseif($link == 'weblogQuickEdit')
+				#if ($currentBlog)
+					#set($url = $core_v2_blogUrls.ControlPanel($currentBlog.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link view-control-panel"><span></span>$core_v2_language.GetResource('Weblog_Quick_Manage')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogManageCustomPages')
+				#if ($currentBlog)
+					#set($url = $core_v2_blogUrls.CustomPages($currentBlog.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link manage-pages weblog"><span></span>$core_v2_language.GetResource('Blogs_BlogLinks_ManageCustomPages')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogEditTheme')
+				#if ($currentBlog)
+					#set($url = $core_v2_blogUrls.EditTheme($currentBlog.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link edit-theme"><span></span>$core_v2_language.GetResource('Blogs_BlogLinks_EditTheme')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogEdit')
+				#if ($currentBlog)
+					#set($url = $core_v2_blogUrls.EditBlog($currentBlog.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link edit-application weblog"><span></span>$core_v2_language.GetResource('Blogs_BlogLinks_EditSettings')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogCreate')
+				#if ($currentGroup)
+					#set($url = $core_v2_blogUrls.AddBlog($currentGroup.Id))
+					#if($url)
+						<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link add-application weblog"><span></span>$core_v2_language.GetResource('CF_BlogCreate')</a></li>
+						#set($hasLinks = true)
+					#end
+				#end
+			#elseif($link == 'weblogPostAbuse')
+				#if ($currentBlogPost && $core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+					<li class="navigation-list-item">
+	    				$core_v2_ui.Moderate($currentBlogPost.ContentId, $core_v2_blogPost.ContentTypeId, "%{ }")
+	    			</li>
+	    			#set($hasLinks = true)
+				#end
+		  #elseif($link == 'feature')
+            #if ($core_v3_feature.CanFeature($currentBlogPost.ContentId, $currentBlogPost.ContentTypeId))
+      			  <li class="navigation-list-item">$core_v2_ui.Feature($currentBlogPost.ContentId, $currentBlogPost.ContentTypeId)</li>
+              #set($hasLinks = true)
+            #end
+        #elseif ($link == 'convert' && $currentBlogPost)
+            #set($convert = false)
+    		#set($convert = $core_v2_ui.ConvertContent($currentBlogPost.ContentId, $currentBlogPost.ContentTypeId))
+    		#if ($convert)
+    		    <li class="navigation-list-item">
+    		        $convert
+    		    </li>
+    		    #set($hasLinks = true)
+    		#end
+		  #end
+#afterall
+	        <li class="navigation-list-item">
+	            <a href="#" data-more>$core_v2_language.GetResource('more')</a>
+	        </li>
+	        <li class="navigation-list-item">
+	            <a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+	        </li>
+		</ul>
+	</div>
+#end
+
+#if($hasLinks == false)
+	$core_v2_widget.Hide()
+#end
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Blogs_BlogLinks_Title_Options}'))
+			]]></headerScript>
+		<configuration><![CDATA[<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Blogs_BlogLinks_Title_Options}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="collapsed" resourceName="collapsed" dataType="bool" defaultValue="false" />
+	<property id="links" resourceName="Blogs_BlogLinks_Links" dataType="custom" defaultValue="Link=weblogCreate&amp;Link=weblogEdit&amp;Link=weblogEditPost&amp;Link=feature&amp;Link=weblogSubscribe&amp;Link=weblogFavorite&amp;Link=weblogRss&amp;Link=weblogManageCustomPages&amp;Link=weblogEditTheme" controlType="Telligent.Evolution.Controls.SortableListControl, Telligent.Evolution.Platform" height="300" key="Link" >
+		<propertyValue value="weblogGroupBlogsRss" resourceName="Weblog_Link_GroupRss_Config" />
+		<propertyValue value="weblogAdministration" resourceName="Weblog_Link_BlogAdministration" />
+		<propertyValue value="weblogHome" resourceName="Home" />
+		<propertyValue value="weblogAbout" resourceName="Weblog_Link_AboutAuthor" />
+		<propertyValue value="weblogContact" resourceName="Weblog_Link_Contact" />
+		<propertyValue value="weblogFavorite" resourceName="Weblog_Link_Favorite" />
+		<propertyValue value="weblogPostFavorite" resourceName="Weblog_Link_FavoritePost" />
+		<propertyValue value="weblogPostShare" resourceName="Weblog_Link_PostShare" />
+		<propertyValue value="weblogEditPost" resourceName="Weblog_Link_EditPost" />
+		<propertyValue value="weblogAddPost" resourceName="Weblog_Quick_Post" />
+		<propertyValue value="weblogSendEmail" resourceName="Weblog_Link_PostByEmail" />
+		<propertyValue value="weblogRss" resourceName="Weblog_Link_Rss" />
+		<propertyValue value="weblogAtom" resourceName="Weblog_Link_Atom" />
+		<propertyValue value="weblogRssComments" resourceName="Weblog_Link_Rss_AllComments" />
+		<propertyValue value="weblogPostRssComments" resourceName="Weblog_Link_Rss_Comments" />
+		<propertyValue value="weblogSubscribe" resourceName="Weblog_Link_EmailSubscriptions" />
+		<propertyValue value="weblogPostSubscribe" resourceName="Weblog_Link_EmailPostSubscriptions" />
+		<propertyValue value="weblogQuickEdit" resourceName="Weblog_Quick_Manage" />
+		<propertyValue value="weblogManageCustomPages" resourceName="Weblog_Link_ManageCustomPages" />
+		<propertyValue value="weblogEditTheme" resourceName="Blogs_BlogLinks_EditTheme" />
+		<propertyValue value="weblogEdit" resourceName="Weblog_Link_ControlPanel" />
+		<propertyValue value="weblogCreate" resourceName="CF_CreateBlog" />
+		<propertyValue value="weblogPostAbuse" resourceName="Weblog_Post_Abuse" />
+		<propertyValue value="feature" resourceName="CF_feature" />
+		<propertyValue value="convert" resourceName="Convert" />
+	</property>
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Blog_PostQuestionAnswerView_FollowThisQuestion">Turn Comment notifications on</resource>
+  <resource name="Blog_PostQuestionAnswerView_StopFollowing">Turn Comment notifications off</resource>
+  <resource name="Blogs_BlogLinks_Description">Displays links used to view recent blog activity or browse all blogs.</resource>
+  <resource name="Blogs_BlogLinks_EditSettings">Administer blog</resource>
+  <resource name="Blogs_BlogLinks_EditTheme">Edit theme</resource>
+  <resource name="Blogs_BlogLinks_Links">Select, rearrange, and enable the links to be displayed</resource>
+  <resource name="Blogs_BlogLinks_ManageCustomPages">Manage pages</resource>
+  <resource name="Blogs_BlogLinks_Name">Blog - Links</resource>
+  <resource name="Blogs_BlogLinks_Title_Options">Options</resource>
+  <resource name="cancel">Cancel</resource>
+  <resource name="CF_BlogCreate">New blog</resource>
+  <resource name="CF_CreateBlog">New blog</resource>
+  <resource name="CF_feature">Feature post</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="collapsed">Collapsed</resource>
+  <resource name="Convert">Move post</resource>
+  <resource name="EmailAddress">Email Address</resource>
+  <resource name="Home">Home</resource>
+  <resource name="more">More</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Subscribe_ByEmail">Subscribe by email</resource>
+  <resource name="Weblog_Link_AboutAuthor">About</resource>
+  <resource name="Weblog_Link_Atom">Atom</resource>
+  <resource name="Weblog_Link_BlogAdministration">Administer blog</resource>
+  <resource name="Weblog_Link_Contact">Contact author</resource>
+  <resource name="Weblog_Link_ControlPanel">Control panel</resource>
+  <resource name="Weblog_Link_EditPost">Edit</resource>
+  <resource name="Weblog_Link_EmailPostSubscriptions">Subscriptions for post</resource>
+  <resource name="Weblog_Link_EmailSubscriptions">Subscriptions for blog</resource>
+  <resource name="Weblog_Link_Favorite">Bookmark blog</resource>
+  <resource name="Weblog_Link_FavoritePost">Bookmark post</resource>
+  <resource name="Weblog_Link_GroupRss">RSS</resource>
+  <resource name="Weblog_Link_GroupRss_Config">Subscribe to RSS (all blogs in group)</resource>
+  <resource name="Weblog_Link_ManageCustomPages">Manage pages</resource>
+  <resource name="Weblog_Link_PostByEmail">New post by email</resource>
+  <resource name="Weblog_Link_PostShare">Share</resource>
+  <resource name="Weblog_Link_Rss">Posts RSS</resource>
+  <resource name="Weblog_Link_Rss_AllComments">All comments RSS</resource>
+  <resource name="Weblog_Link_Rss_Comments">Post comments RSS</resource>
+  <resource name="Weblog_Post_Abuse">Report Abuse</resource>
+  <resource name="Weblog_Quick_Manage">Manage blog</resource>
+  <resource name="Weblog_Quick_Post">New post</resource>
+  <resource name="Weblog_Subscribed">Turn Blog notifications off</resource>
+  <resource name="Weblog_Subscription_AlreadyConfirmed">You will receive email notifications when this blog is updated.</resource>
+  <resource name="Weblog_Subscription_AlreadySubscribed">You're already subscribed, please check your email for a confirmation email.</resource>
+  <resource name="Weblog_Subscription_Subscribe">Subscribe</resource>
+  <resource name="Weblog_Subscription_SuccessMessage">You have successfully subscribed to receive email updates for this blog.</resource>
+  <resource name="Weblog_Subscription_YourSubscribed">Thanks for subscribing, you will receive a confirmation email shortly.</resource>
+  <resource name="Weblog_Unsubscribed">Get notified</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Blog_PostQuestionAnswerView_FollowThisQuestion">打开评论通知</resource>
+  <resource name="Blog_PostQuestionAnswerView_StopFollowing">关闭评论通知</resource>
+  <resource name="Blogs_BlogLinks_Description">显示用于查看最新博客活动或浏览所有博客的链接。</resource>
+  <resource name="Blogs_BlogLinks_EditSettings">管理博客</resource>
+  <resource name="Blogs_BlogLinks_EditTheme">编辑主题</resource>
+  <resource name="Blogs_BlogLinks_Links">选择、重新排列和启用要显示的链接</resource>
+  <resource name="Blogs_BlogLinks_ManageCustomPages">管理页面</resource>
+  <resource name="Blogs_BlogLinks_Name">博客 - 链接</resource>
+  <resource name="Blogs_BlogLinks_Title_Options">选项</resource>
+  <resource name="cancel">取消</resource>
+  <resource name="CF_BlogCreate">新建博客</resource>
+  <resource name="CF_CreateBlog">新建博客</resource>
+  <resource name="CF_feature">专题文章</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="collapsed">已折叠</resource>
+  <resource name="Convert">移动文章</resource>
+  <resource name="EmailAddress">电子邮件地址</resource>
+  <resource name="Home">首页</resource>
+  <resource name="more">更多</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Subscribe_ByEmail">通过电子邮件订阅</resource>
+  <resource name="Weblog_Link_AboutAuthor">关于</resource>
+  <resource name="Weblog_Link_Atom">Atom</resource>
+  <resource name="Weblog_Link_BlogAdministration">管理博客</resource>
+  <resource name="Weblog_Link_Contact">联系作者</resource>
+  <resource name="Weblog_Link_ControlPanel">控制面板</resource>
+  <resource name="Weblog_Link_EditPost">编辑</resource>
+  <resource name="Weblog_Link_EmailPostSubscriptions">文章订阅</resource>
+  <resource name="Weblog_Link_EmailSubscriptions">博客订阅</resource>
+  <resource name="Weblog_Link_Favorite">为博客添加书签</resource>
+  <resource name="Weblog_Link_FavoritePost">为文章添加书签</resource>
+  <resource name="Weblog_Link_GroupRss">所有博客 RSS</resource>
+  <resource name="Weblog_Link_GroupRss_Config">通过 RSS 订阅(社区中的所有博客)</resource>
+  <resource name="Weblog_Link_ManageCustomPages">管理页面</resource>
+  <resource name="Weblog_Link_PostByEmail">通过电子邮件发表新文章</resource>
+  <resource name="Weblog_Link_PostShare">共享</resource>
+  <resource name="Weblog_Link_Rss">文章 RSS</resource>
+  <resource name="Weblog_Link_Rss_AllComments">全部评论 RSS</resource>
+  <resource name="Weblog_Link_Rss_Comments">文章评论 RSS</resource>
+  <resource name="Weblog_Post_Abuse">报告不良信息</resource>
+  <resource name="Weblog_Quick_Manage">管理博客</resource>
+  <resource name="Weblog_Quick_Post">新建文章</resource>
+  <resource name="Weblog_Subscribed">关闭博客通知</resource>
+  <resource name="Weblog_Subscription_AlreadyConfirmed">当此博客更新时，您将收到电子邮件通知。</resource>
+  <resource name="Weblog_Subscription_AlreadySubscribed">您已订阅，请检查邮箱是否收到确认电子邮件。</resource>
+  <resource name="Weblog_Subscription_Subscribe">订阅</resource>
+  <resource name="Weblog_Subscription_SuccessMessage">您已成功订阅接收此博客的电子邮件更新。</resource>
+  <resource name="Weblog_Subscription_YourSubscribed">感谢订阅，您将很快收到确认电子邮件。</resource>
+  <resource name="Weblog_Unsubscribed">打开博客通知</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Blog_PostQuestionAnswerView_FollowThisQuestion">開啟留言通知</resource>
+  <resource name="Blog_PostQuestionAnswerView_StopFollowing">關閉留言通知</resource>
+  <resource name="Blogs_BlogLinks_Description">顯示用來檢視最近部落格活動或瀏覽所有部落格的連結。</resource>
+  <resource name="Blogs_BlogLinks_EditSettings">管理部落格</resource>
+  <resource name="Blogs_BlogLinks_EditTheme">編輯主題</resource>
+  <resource name="Blogs_BlogLinks_Links">選取、重新排列並啟用要顯示的連結</resource>
+  <resource name="Blogs_BlogLinks_ManageCustomPages">管理頁面</resource>
+  <resource name="Blogs_BlogLinks_Name">部落格 - 連結</resource>
+  <resource name="Blogs_BlogLinks_Title_Options">選項</resource>
+  <resource name="cancel">取消</resource>
+  <resource name="CF_BlogCreate">新增部落格</resource>
+  <resource name="CF_CreateBlog">新增部落格</resource>
+  <resource name="CF_feature">精選貼文</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="collapsed">已摺疊</resource>
+  <resource name="Convert">移動貼文</resource>
+  <resource name="EmailAddress">電子郵件地址</resource>
+  <resource name="Home">首頁</resource>
+  <resource name="more">更多</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Subscribe_ByEmail">以電子郵件訂閱</resource>
+  <resource name="Weblog_Link_AboutAuthor">關於</resource>
+  <resource name="Weblog_Link_Atom">Atom</resource>
+  <resource name="Weblog_Link_BlogAdministration">管理部落格</resource>
+  <resource name="Weblog_Link_Contact">連絡作者</resource>
+  <resource name="Weblog_Link_ControlPanel">控制台</resource>
+  <resource name="Weblog_Link_EditPost">編輯</resource>
+  <resource name="Weblog_Link_EmailPostSubscriptions">貼文的訂閱</resource>
+  <resource name="Weblog_Link_EmailSubscriptions">部落格的訂閱</resource>
+  <resource name="Weblog_Link_Favorite">將部落格加入書籤</resource>
+  <resource name="Weblog_Link_FavoritePost">將貼文加入書籤</resource>
+  <resource name="Weblog_Link_GroupRss">所有部落格 RSS</resource>
+  <resource name="Weblog_Link_GroupRss_Config">透過 RSS 訂閱 (社群中的所有部落格)</resource>
+  <resource name="Weblog_Link_ManageCustomPages">管理頁面</resource>
+  <resource name="Weblog_Link_PostByEmail">透過電子郵件新增貼文</resource>
+  <resource name="Weblog_Link_PostShare">分享</resource>
+  <resource name="Weblog_Link_Rss">貼文 RSS</resource>
+  <resource name="Weblog_Link_Rss_AllComments">所有留言 RSS</resource>
+  <resource name="Weblog_Link_Rss_Comments">貼文留言 RSS</resource>
+  <resource name="Weblog_Post_Abuse">回報不當使用</resource>
+  <resource name="Weblog_Quick_Manage">管理部落格</resource>
+  <resource name="Weblog_Quick_Post">新增貼文</resource>
+  <resource name="Weblog_Subscribed">關閉部落格通知</resource>
+  <resource name="Weblog_Subscription_AlreadyConfirmed">您將會在這個部落格更新時收到電子郵件通知。</resource>
+  <resource name="Weblog_Subscription_AlreadySubscribed">您已經訂閱過，請查看您的電子郵件是否有確認電子郵件。</resource>
+  <resource name="Weblog_Subscription_Subscribe">訂閱</resource>
+  <resource name="Weblog_Subscription_SuccessMessage">您已成功訂閱以接收此部落格的電子郵件更新。</resource>
+  <resource name="Weblog_Subscription_YourSubscribed">感謝訂閱，您很快就會收到確認電子郵件。</resource>
+  <resource name="Weblog_Unsubscribed">開啟部落格通知</resource>
+</language></languageResources>
+		<files>
+			<file name="subscribe.vm">77u/I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkNCgkjc2V0KCR0eXBlID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ3R5cGUnKSkNCgkjc2V0KCRzdWJzY3JpYmUgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlQm9vbCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnc3Vic2NyaWJlJykpKQ0KCSRjb3JlX3YyX3BhZ2UuU2V0Q29udGVudFR5cGUoJ2FwcGxpY2F0aW9uL2pzb24nKQ0KCSNzZXQoJHJlc3BvbnNlID0gZmFsc2UpDQoNCgkjaWYgKCR0eXBlID09ICdibG9nJykNCgkJI3NldCgkcmVzcG9uc2UgPSAkY29yZV92Ml9ibG9nLlNldFN1YnNjcmliZWQoJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUludCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnYmxvZ0lkJykpLCAkc3Vic2NyaWJlKSkNCgkJI2lmICgkcmVzcG9uc2UgJiYgJHJlc3BvbnNlLkhhc0Vycm9ycygpKQ0KCQkJJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCRyZXNwb25zZS5FcnJvcnMpDQoJCSNlbmQNCgkJeyJzdWJzY3JpYmUiOiNpZigkc3Vic2NyaWJlKSB0cnVlI2Vsc2UgZmFsc2UjZW5kLCJ3YXJuaW5ncyI6Ww0KCQkJI2ZvcmVhY2ggKCR3YXJuaW5nIGluICRyZXNwb25zZS5XYXJuaW5ncykNCgkJCQkjZWFjaA0KCQkJCQkiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkd2FybmluZy5NZXNzYWdlKSINCgkJCQkjYmV0d2Vlbg0KCQkJCQksDQoJCQkjZW5kDQoJCV19DQoJI2Vsc2VpZiAoJHR5cGUgPT0gJ2Jsb2dBbm9ueW1vdXMnKQ0KCQkjc2V0KCRibG9nSWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdibG9nSWQnKSkpDQoJCSNzZXQoJGVtYWlsID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ2VtYWlsJykpDQoJCSNzZXQoJHN1YnNjcmlwdGlvblJlc3BvbnNlID0gJGNvcmVfdjJfYmxvZy5TdWJzY3JpYmVBbm9ueW1vdXNseSgkYmxvZ0lkLCAkZW1haWwpKQ0KDQoJCSNpZigkc3Vic2NyaXB0aW9uUmVzcG9uc2UgPT0gJ1N1YnNjcmliZWQnKQ0KCQkJI3NldCgkbWVzc2FnZSA9ICRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdXZWJsb2dfU3Vic2NyaXB0aW9uX1lvdXJTdWJzY3JpYmVkJykpDQoJCSNlbHNlaWYoJHN1YnNjcmlwdGlvblJlc3BvbnNlID09ICdBbHJlYWR5U3Vic2NyaWJlZCcpDQoJCQkjc2V0KCRtZXNzYWdlID0gJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1dlYmxvZ19TdWJzY3JpcHRpb25fQWxyZWFkeVN1YnNjcmliZWQnKSkNCgkJI2Vsc2VpZigkc3Vic2NyaXB0aW9uUmVzcG9uc2UgPT0gJ0FscmVhZHlDb25maXJtZWQnKQ0KCQkJI3NldCgkbWVzc2FnZSA9ICRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdXZWJsb2dfU3Vic2NyaXB0aW9uX0FscmVhZHlDb25maXJtZWQnKSkNCgkJI2Vsc2UNCgkJCSNzZXQoJG1lc3NhZ2UgPSAnU3Vic2NyaXB0aW9uIGVycm9yJykNCgkJI2VuZA0KDQoJCXsibWVzc2FnZSI6IiRtZXNzYWdlIn0NCgkjZWxzZWlmICgkdHlwZSA9PSAnYmxvZ1Bvc3QnKQ0KCQkjc2V0KCRyZXNwb25zZSA9ICRjb3JlX3YyX2Jsb2dQb3N0LlNldFN1YnNjcmliZWQoJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUludCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnYmxvZ1Bvc3RJZCcpKSwgJHN1YnNjcmliZSkpDQoJCSNpZiAoJHJlc3BvbnNlICYmICRyZXNwb25zZS5IYXNFcnJvcnMoKSkNCgkJCSRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcigkcmVzcG9uc2UuRXJyb3JzKQ0KCQkjZW5kDQoJCXsic3Vic2NyaWJlIjojaWYoJHN1YnNjcmliZSkgdHJ1ZSNlbHNlIGZhbHNlI2VuZCwid2FybmluZ3MiOlsNCgkJCSNmb3JlYWNoICgkd2FybmluZyBpbiAkcmVzcG9uc2UuV2FybmluZ3MpDQoJCQkJI2VhY2gNCgkJCQkJIiRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJHdhcm5pbmcuTWVzc2FnZSkiDQoJCQkJI2JldHdlZW4NCgkJCQkJLA0KCQkJI2VuZA0KCQldfQ0KCSNlbHNlDQoJCSRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcigiVW5yZWNvZ25pemVkIHN1YnNjcmlwdGlvbiB0eXBlLiIpDQoJI2VuZA0KI2VuZA==</file>
+			<file name="subscribebyemail.vm">I3NldCAoJGJsb2dJZCA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VJbnQoJGNvcmVfdjJfcGFnZS5HZXRRdWVyeVN0cmluZ1ZhbHVlKCdCbG9nSWQnKSkpDQoNCiNzZXQgKCRibG9nID0gZmFsc2UpDQojc2V0ICgkYmxvZyA9ICRjb3JlX3YyX2Jsb2cuR2V0KCIle0lkID0gJGJsb2dJZH0iKSkNCg0KJGNvcmVfdjJfcGFnZS5TZXRUaXRsZSgkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnU3Vic2NyaWJlX0J5RW1haWwnKSwgZmFsc2UsIGZhbHNlKQ0KDQo8IURPQ1RZUEUgaHRtbD4NCjxodG1sIGxhbmc9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGNvcmVfdjJfbGFuZ3VhZ2UuQ29kZSkiICNpZigkY29yZV92Ml9sYW5ndWFnZS5Jc1JpZ2h0VG9MZWZ0KSBjbGFzcz0iZGlyZWN0aW9uLXJ0bCIgc3R5bGU9ImRpcmVjdGlvbjogcnRsOyIgI2Vsc2UgY2xhc3M9ImRpcmVjdGlvbi1sdHIiIHN0eWxlPSJkaXJlY3Rpb246IGx0cjsiICNlbmQ+DQo8aGVhZD4NCgkkY29yZV92Ml9wYWdlLlJlbmRlclRoZW1lSGVhZGVycygiJXtJc01vZGFsID0gJ1RydWUnfSIpDQo8L2hlYWQ+DQo8Ym9keT4NCjxmb3JtPg0KPGRpdiBjbGFzcz0iY29udGVudC1mcmFnbWVudCI+DQoNCgk8ZmllbGRzZXQgY2xhc3M9ImZpZWxkLWxpc3QgZW1haWwtc3Vic2NyaXB0aW9uLWZvcm0iPg0KCQk8dWwgY2xhc3M9ImZpZWxkLWxpc3QiPg0KCQkJPGxpIGNsYXNzPSJmaWVsZC1pdGVtIj4NCgkJCQk8bGFiZWwgZm9yPSIkY29yZV92Ml93aWRnZXQuVW5pcXVlSWQoJ2Jsb2dTdWJzY3JpYmVFbWFpbCcpIiBjbGFzcz0iZmllbGQtaXRlbS1uYW1lIj4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnRW1haWxBZGRyZXNzJyk8L2xhYmVsPg0KCQkJCTxzcGFuIGNsYXNzPSJmaWVsZC1pdGVtLWlucHV0Ij4NCgkJCQkJPGlucHV0IGlkPSIkY29yZV92Ml93aWRnZXQuVW5pcXVlSWQoJ2Jsb2dTdWJzY3JpYmVFbWFpbCcpIiBuYW1lPSJibG9nU3Vic2NyaWJlRW1haWwiIHR5cGU9InRleHQiIC8+DQoJCQkJCTxzcGFuIGNsYXNzPSJmaWVsZC1pdGVtLXZhbGlkYXRpb24iPjwvc3Bhbj4NCgkJCQk8L3NwYW4+DQoJCQk8L2xpPg0KCQkJPGxpIGNsYXNzPSJmaWVsZC1pdGVtIj4NCgkJCQk8c3BhbiBjbGFzcz0iZmllbGQtaXRlbS1pbnB1dCI+DQoJCQkJCTxhIGlkPSIkY29yZV92Ml93aWRnZXQuVW5pcXVlSWQoJ2Jsb2dTdWJzY3JpYmUnKSIgaHJlZj0iIyIgY2xhc3M9ImJ1dHRvbiI+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1dlYmxvZ19TdWJzY3JpcHRpb25fU3Vic2NyaWJlJyk8L2E+DQoJCQkJPC9zcGFuPg0KCQkJPC9saT4NCgkJPC91bD4NCgk8L2ZpZWxkc2V0Pg0KDQoJPHNjcmlwdCB0eXBlPSJ0ZXh0L2phdmFzY3JpcHQiPg0KCQlqUXVlcnkoZnVuY3Rpb24oail7DQoJCQlqKCcjJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdibG9nU3Vic2NyaWJlJyknKS5ldm9sdXRpb25WYWxpZGF0aW9uKHsNCgkJCQl2YWxpZGF0ZU9uTG9hZDogZmFsc2UsDQoJCQkJb25TdWNjZXNzZnVsQ2xpY2s6IGZ1bmN0aW9uKGUpIHsNCgkJCQkJai50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KCQkJCQkJdXJsOiAnJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkY29yZV92Ml93aWRnZXQuR2V0RXhlY3V0ZWRGaWxlVXJsKCdzdWJzY3JpYmUudm0nKSknLA0KCQkJCQkJZGF0YTogew0KCQkJCQkJCXR5cGU6J2Jsb2dBbm9ueW1vdXMnLA0KCQkJCQkJCWVtYWlsOmooJyMkY29yZV92Ml93aWRnZXQuVW5pcXVlSWQoJ2Jsb2dTdWJzY3JpYmVFbWFpbCcpJykudmFsKCksDQoJCQkJCQkJYmxvZ0lkOiRibG9nLklkDQoJCQkJCQl9LA0KCQkJCQkJc3VjY2VzczogZnVuY3Rpb24ocmVzcG9uc2UpIHsNCgkJCQkJCQl3aW5kb3cucGFyZW50LmpRdWVyeS5nbG93TW9kYWwub3BlbmVyKHdpbmRvdykualF1ZXJ5LnRlbGxpZ2VudC5ldm9sdXRpb24ubm90aWZpY2F0aW9ucy5zaG93KHJlc3BvbnNlLm1lc3NhZ2UsIHsgdHlwZTogJ3N1Y2Nlc3MnIH0pOw0KCQkJCQkJCXdpbmRvdy5wYXJlbnQualF1ZXJ5Lmdsb3dNb2RhbC5jbG9zZSgpOw0KCQkJCQkJfQ0KCQkJCQl9KTsNCgkJCQl9DQoJCQl9KQ0KCQkJLmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEZpZWxkJywNCgkJICAgICAgICAgICAgJyMkY29yZV92Ml93aWRnZXQuVW5pcXVlSWQoJ2Jsb2dTdWJzY3JpYmVFbWFpbCcpJywNCgkJICAgICAgICAgICAgew0KCQkgICAgICAgICAgICAgICAgcmVxdWlyZWQ6IHRydWUsDQoJCSAgICAgICAgICAgICAgICBlbWFpbDogdHJ1ZQ0KCQkgICAgICAgICAgICB9LA0KCQkgICAgICAgICAgICBqKCcjJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdibG9nU3Vic2NyaWJlRW1haWwnKScpLmNsb3Nlc3QoJy5maWVsZC1pdGVtJykuZmluZCgnLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpKTsNCgkJfSk7DQoJPC9zY3JpcHQ+DQoNCjwvZGl2Pg0KPC9mb3JtPg0KPC9ib2R5Pg0KPC9odG1sPg0K</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

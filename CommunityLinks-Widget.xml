@@ -1,0 +1,410 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Groups_GroupLinks_Name}" version="10.1.8.10498" description="${resource:Groups_GroupLinks_Description}" instanceIdentifier="0a17667640f8484eaaf66935ecb6ff44" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="group-links">
+		<contentScript><![CDATA[#set ($links = $core_v2_page.ParseQueryString($core_v2_widget.GetCustomValue('links','Link=groupCreateGroup&amp;Link=groupContactOwners&amp;Link=groupInviteUser&amp;Link=groupJoin&amp;Link=groupFavorite&amp;Link=groupEditTheme&amp;Link=groupManageCustomPages&amp;Link=groupManageMembers&amp;Link=groupContactRequests')))
+#set ($hasLinks = false)
+#set ($group = $core_v2_group.Current)
+#set ($user = $core_v2_user.Accessing)
+#set ($canModifyMembership = $core_v2_nodePermission.Get("groups", $group.Id, $core_v2_groupPermissions.ModifyMembership).IsAllowed)
+
+#set ($collapse = $core_v2_widget.GetBoolValue('collapsed', false))
+#set ($groupLinks = $links.Values('Link'))
+
+#set ($linksToShow = $groupLinks.Count)
+#if ($collapse)
+	#set ($linksToShow = 0)
+#end
+
+#set ($redirectToAfterLeave = false)
+#if ($group && $group.GroupType == 'PrivateUnlisted')
+	#set ($redirectToAfterLeave = $core_v2_urls.Home())
+#end
+
+#foreach($link in $groupLinks)
+#beforeall
+	<div class="ui-links navigation-list links" data-direction="vertical" data-minlinks="$linksToShow" data-maxlinks="$linksToShow">
+		<ul class="navigation-list">
+#each
+		#set ($url = false)
+
+		#if ($link == 'groupCreateGroup')
+			#if ($group)
+				#set ($url = $core_v2_groupUrls.AddGroup($group.Id))
+				#if ($url)
+					<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link create-group">$core_v2_language.GetResource('Groups_Links_CreateNewGroup')</a></li>
+					#set ($hasLinks = true)
+				#end
+			#end
+		#elseif ($link == 'groupContactOwners')
+			#if ($group)
+				#set ($url = $core_v2_groupUrls.Contact($group.Id))
+				#if ($url)
+					<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link view-contact">$core_v2_language.GetResource('Hubs_ContactGroupOwners')</a></li>
+					#set ($hasLinks = true)
+				#end
+			#end
+		#elseif ($link == 'groupInviteUser')
+			#if ($group && $canModifyMembership)
+				#set ($url = $core_v2_groupUrls.ManageMembers($group.Id))
+				#if ($url)
+					<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)&action=invite" class="internal-link view-invite">$core_v2_language.GetResource('Groups_Links_InviteAUser')</a></li>
+					#set ($hasLinks = true)
+				#end
+			#end
+		#elseif ($link == 'emailDigest')
+			#if($core_v2_user.IsRegistered($user.Id) && $core_v2_configuration.EnableEmailDigest && $group && $core_v2_nodePermission.Get("groups", $group.Id, $core_v2_groupPermissions.ReadGroup).IsAllowed)
+				<li class="navigation-list-item"><a href="#" onclick="jQuery.glowModal('$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('emaildigest.vm'))', { width: 400, height: 200 }); return false;" class="internal-link manage-email-digest">$core_v2_language.GetResource('Email_Digest_Options')</a></li>
+				#set($hasLinks = true)
+			#end
+		#elseif ($link == 'groupJoin')
+			#if ($group && $group.GroupType != 'Joinless')
+
+				#set ($member = $core_v2_groupUserMember.Get($group.Id, "%{ UserId = $user.Id }"))
+				#set ($canJoinGroup = $core_v2_nodePermission.Get("groups", $group.Id, $core_v2_groupPermissions.JoinGroup).IsAllowed)
+				#set ($canJoinGroupByRequest = $core_v2_nodePermission.Get("groups", $group.Id, $core_v2_groupPermissions.JoinGroupByRequest).IsAllowed)
+
+				#registerEndOfPageHtml('telligent.evolution.widgets.GroupLinks')
+					<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl("ui.js"))"></script>
+				#end
+				#registerEndOfPageHtml()
+					<script type="text/javascript">
+						jQuery(function(j){
+							j.telligent.evolution.widgets.groupLinks.register({
+								groupId: $core_v2_group.Current.Id,
+								userId: $core_v2_user.Accessing.Id,
+								canJoinGroup: #if($canJoinGroup) true,#else false,#end
+								canJoinGroupByRequest: #if($canJoinGroupByRequest) true,#else false,#end
+								joinMessageLinkName: 'widget.${core_v2_widget.WrapperElementId}.join',
+								requestJoinMessageLinkName: 'widget.${core_v2_widget.WrapperElementId}.requestjoin',
+								cancelMessageLinkName: 'widget.${core_v2_widget.WrapperElementId}.canceljoin',
+								requestJoinUrl: #if(!$canJoinGroup) "$core_v2_groupUrls.RequestMembership($group.Id)",#else null,#end
+								cancelConfirmMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource("Hubs_Membership_LeaveConfirm"))',
+								joinedText:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Group_Joined'))',
+								leftText:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Group_Left'))',
+								redirectToAfterLeave: #if (!$redirectToAfterLeave) null #else '$core_v2_encoding.JavascriptEncode($redirectToAfterLeave)' #end
+							});
+						});
+					</script>
+				#end
+
+				#if (!$member.IsRoleMember)
+					#if ($member.MembershipType == "Owner" || $member.MembershipType == "Manager" || $member.MembershipType == "Member" || $member.MembershipType == "PendingMember")
+						#set ($canLeaveGroup = $member.MembershipType != "Owner" || $core_v2_groupUserMember.List($groupId, "%{MembershipType = 'Owner', PageSize = 1}").TotalCount > 1)
+						#if ($canLeaveGroup)
+							<li class="navigation-list-item leave-group">
+								<a href="#" class="internal-link leave-group" data-messagename="widget.${core_v2_widget.WrapperElementId}.canceljoin">
+									#if ($member.MembershipType == "PendingMember")
+										$core_v2_language.GetResource("Hubs_CancelJoinRequest")
+									#else
+										$core_v2_language.GetResource("Hubs_LeaveGroup")
+									#end
+								</a>
+							</li>
+							#set($hasLinks = true)
+						#end
+					#elseif ($canJoinGroupByRequest || $canJoinGroup)
+						#if ($group.GroupType == "PublicOpen")
+							<li class="navigation-list-item join-group">
+								<a href="#" class="internal-link join-group" data-messagename="widget.${core_v2_widget.WrapperElementId}.join">
+									$core_v2_language.GetResource('Hubs_JoinGroup')
+								</a>
+							</li>
+							#set($hasLinks = true)
+						#elseif ($group.GroupType == "PublicClosed")
+							<li class="navigation-list-item">
+								<a href="#" class="internal-link join-group" data-messagename="widget.${core_v2_widget.WrapperElementId}.requestjoin">
+									$core_v2_language.GetResource('Hubs_ApplyToJoin')
+								</a>
+							</li>
+							#set($hasLinks = true)
+						#end
+					#end
+				#end
+
+			#end
+		#elseif ($link == 'groupEdit')
+			#if ($group)
+				#set ($url = $core_v2_groupUrls.Edit($group.Id))
+				#if ($url)
+					<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link edit-group">$core_v2_language.GetResource('Hubs_EditHub')</a></li>
+					#set ($hasLinks = true)
+				#end
+			#end
+		#elseif ($link == 'groupEditTheme')
+			#if ($group)
+				#set ($url = $core_v2_groupUrls.EditTheme($group.Id))
+				#if ($url)
+					<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link edit-theme">$core_v2_language.GetResource('Groups_Links_EditThisTheme')</a></li>
+					#set ($hasLinks = true)
+				#end
+			#end
+		#elseif ($link == 'groupManageCustomPages')
+			#if ($group)
+				#set ($url = $core_v2_groupUrls.ManageCustomPages($group.Id))
+				#if ($url)
+					<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link manage-pages">$core_v2_language.GetResource('Groups_Links_ManageCustomPages')</a></li>
+					#set ($hasLinks = true)
+				#end
+			#end
+		#elseif ($link == 'groupMentions')
+			#if ($group)
+				#set ($url = $core_v2_groupUrls.MentionList($group.Id))
+				#if ($url)
+					<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link group-mention-list">$core_v2_language.GetResource('Groups_Links_MentionList')</a></li>
+					#set ($hasLinks = true)
+				#end
+			#end
+		#elseif ($link == 'groupManageMembers')
+			#if ($group && $canModifyMembership)
+				#set ($url = $core_v2_groupUrls.ManageMembers($group.Id))
+				#if ($url)
+					#set ($pendingMemberCount = $core_v2_groupUserMember.List($group.Id, "%{ MembershipType = 'PendingMember', PageSize = 1, PageIndex = 0 }").TotalCount)
+					<li class="navigation-list-item">
+						#if ($pendingMemberCount > 0)
+							#set ($url = "$url&filter=requests")
+							#set ($linkText = $core_v2_language.FormatString($core_v2_language.GetResource('CF_ManageMembers_Pending'), $pendingMemberCount.ToString()))
+							<a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link edit-group-membership pending">$linkText</a>
+						#else
+							<a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link edit-group-membership">
+								#if ($group.GroupType == 'Joinless')
+									$core_v2_language.GetResource('CF_ManageGroupOwners')
+								#else
+									$core_v2_language.GetResource('CF_ManageMembers')
+								#end
+							</a>
+						#end
+					</li>
+					#set ($hasLinks = true)
+				#end
+			#end
+		#elseif ($link == 'groupContactRequests')
+			#if ($group && $canModifyMembership)
+				#set ($url = $core_v2_groupUrls.ContactRequests($group.Id))
+				#if ($url)
+					#set ($contactRequestCount = $core_v2_groupContactRequest.List($core_v2_group.Current.Id).TotalCount)
+					<li class="navigation-list-item">
+						#if ($contactRequestCount > 0)
+							#set ($linkText = $core_v2_language.FormatString($core_v2_language.GetResource('Hubs_ContactRequest_Unread'), $contactRequestCount.ToString()))
+							<a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link view-contact-requests unread">$linkText</a>
+						#else
+							<a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link view-contact-requests">$core_v2_language.GetResource('Hubs_ContactRequest')</a>
+						#end
+					</li>
+					#set ($hasLinks = true)
+				#end
+			#end
+		#elseif ($link == 'groupFavorite')
+			#if ($group && $core_v2_bookmark.SupportsBookmarks($core_v2_group.ContentTypeId) && $core_v2_bookmark.CanBookmark($group.ContentId, $core_v2_group.ContentTypeId) && $core_v2_bookmark.CanUnBookmark($group.ContentId, $core_v2_group.ContentTypeId))
+				<li class="navigation-list-item">$core_v2_ui.Bookmark($group.ContentId, $core_v2_group.ContentTypeId)</li>
+				#set($hasLinks = true)
+			#end
+		#elseif ($link == 'groupReviewAppeals')
+			#if ($group)
+				#set ($url = $core_v2_urls.AppealQueue("%{ ContainerId = $group.ContainerId }"))
+				#if ($url)
+					<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link group-review-appeal-list">$core_v2_language.GetResource('Groups_Links_ReviewAppeals')</a></li>
+					#set ($hasLinks = true)
+				#end
+			#end
+		#elseif ($link == 'groupRss')
+			#if ($group)
+				#set ($url = $core_v2_groupUrls.Rss($group.Id))
+				#if ($url)
+					<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link group-rss">$core_v2_language.GetResource('Groups_Links_GroupRss')</a></li>
+					#set ($hasLinks = true)
+				#end
+			#end
+		#end
+#afterall
+			<li class="navigation-list-item">
+				<a href="#" data-more>$core_v2_language.GetResource('more')</a>
+			</li>
+			<li class="navigation-list-item">
+				<a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+			</li>
+		</ul>
+	</div>
+#end
+
+#if (!$hasLinks)
+	$core_v2_widget.Hide()
+#end
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Groups_GroupLinks_Name}'))
+		]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="linkArea" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Groups_GroupLinks_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="collapsed" resourceName="collapsed" dataType="bool" defaultValue="false" />
+	<property id="links" resourceName="Wikis_WikiLinks_Links" dataType="custom" defaultValue="Link=groupCreateGroup&amp;Link=groupContactOwners&amp;Link=groupInviteUser&amp;Link=groupJoin&amp;Link=groupFavorite&amp;Link=groupEditTheme&amp;Link=groupManageCustomPages&amp;Link=groupManageMembers&amp;Link=groupContactRequests&amp;Link=groupReviewAppeals" controlType="Telligent.Evolution.Controls.SortableListControl, Telligent.Evolution.Platform" height="300" key="Link" >
+		<propertyValue value="groupCreateGroup" resourceName="Groups_Links_CreateNewGroup" />
+		<propertyValue value="groupContactOwners" resourceName="Hubs_ContactGroupOwners" />
+		<propertyValue value="groupInviteUser" resourceName="CF_InviteUser_ShowLink" />
+		<propertyValue value="groupJoin" resourceName="CF_JoinGroup_ShowLink" />
+		<propertyValue value="groupFavorite" resourceName="CF_FavoriteGroup_ShowLink" />
+		<propertyValue value="groupEdit" resourceName="CF_EditGroup_ShowLink" />
+		<propertyValue value="groupEditTheme" resourceName="CF_EditTheme_ShowLink" />
+		<propertyValue value="groupManageCustomPages" resourceName="CF_ManageCustomPages_ShowLink" />
+		<propertyValue value="groupManageMembers" resourceName="CF_ManageMembers_ShowLink" />
+		<propertyValue value="groupContactRequests" resourceName="CF_ContactRequests_ShowLink" />
+		<propertyValue value="groupMentions" resourceName="Groups_Links_MentionList" />
+		<propertyValue value="groupReviewAppeals" resourceName="Groups_Links_ReviewAppeals" />
+		<propertyValue value="emailDigest" resourceName="Groups_Links_EmailDigest" />
+		<propertyValue value="groupRss" resourceName="Groups_Links_GroupRss" />
+	</property>
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="cancel">Cancel</resource>
+  <resource name="CF_ContactRequests_ShowLink">Contact requests</resource>
+  <resource name="CF_EditGroup_ShowLink">Manage community</resource>
+  <resource name="CF_EditTheme_ShowLink">Edit theme</resource>
+  <resource name="CF_FavoriteGroup_ShowLink">Bookmark community</resource>
+  <resource name="CF_InviteUser_ShowLink">Invite people</resource>
+  <resource name="CF_JoinGroup_ShowLink">Join community</resource>
+  <resource name="CF_ManageCustomPages_ShowLink">Manage pages</resource>
+  <resource name="CF_ManageGroupOwners">Manage owners</resource>
+  <resource name="CF_ManageMembers">Manage members</resource>
+  <resource name="CF_ManageMembers_Pending">Manage members ({0})</resource>
+  <resource name="CF_ManageMembers_ShowLink">Manage members</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="collapsed">Collapsed</resource>
+  <resource name="Daily">Daily</resource>
+  <resource name="Email_Digest_Options">Get email digest</resource>
+  <resource name="EmailDigest_Message_Daily">You are now subscribed to the daily digest.</resource>
+  <resource name="EmailDigest_Message_UnsubscribedGroup">You are now unsubscribed from email digest for this community.</resource>
+  <resource name="EmailDigest_Message_Weekly">You are now subscribed to the weekly digest.</resource>
+  <resource name="Frequency">Frequency</resource>
+  <resource name="Group_Joined">You have joined this community.</resource>
+  <resource name="Group_Left">You have left this community.</resource>
+  <resource name="Groups_GroupLinks_Description">Common action links related to any community such as membership and administration.</resource>
+  <resource name="Groups_GroupLinks_Name">Community - Links</resource>
+  <resource name="Groups_Links_CreateNewGroup">New community</resource>
+  <resource name="Groups_Links_EditThisTheme">Edit theme</resource>
+  <resource name="Groups_Links_EmailDigest">Email digest options</resource>
+  <resource name="Groups_Links_GroupRss">Community RSS</resource>
+  <resource name="Groups_Links_InviteAUser">Invite people</resource>
+  <resource name="Groups_Links_ManageCustomPages">Manage pages</resource>
+  <resource name="Groups_Links_MentionList">Mentions</resource>
+  <resource name="Groups_Links_ReviewAppeals">Review appeals</resource>
+  <resource name="Hubs_ApplyToJoin">Request membership</resource>
+  <resource name="Hubs_CancelJoinRequest">Cancel join request</resource>
+  <resource name="Hubs_ContactGroupOwners">Contact owners</resource>
+  <resource name="Hubs_ContactRequest">Contact requests</resource>
+  <resource name="Hubs_ContactRequest_Unread">Contact requests ({0})</resource>
+  <resource name="Hubs_EditHub">Manage community</resource>
+  <resource name="Hubs_JoinGroup">Join</resource>
+  <resource name="Hubs_LeaveGroup">Leave</resource>
+  <resource name="Hubs_Membership_LeaveConfirm">Are you sure you want to leave this community?</resource>
+  <resource name="more">More</resource>
+  <resource name="NotSubscribed">Not Subscribed</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Save">Save</resource>
+  <resource name="Weekly">Weekly</resource>
+  <resource name="Wikis_WikiLinks_Links">Select, rearrange, and enable the links to be displayed</resource>
+</language>
+<language key="zh-cn">
+  <resource name="cancel">取消</resource>
+  <resource name="CF_ContactRequests_ShowLink">联系人请求</resource>
+  <resource name="CF_EditGroup_ShowLink">管理社区</resource>
+  <resource name="CF_EditTheme_ShowLink">编辑主题</resource>
+  <resource name="CF_FavoriteGroup_ShowLink">为社区添加书签</resource>
+  <resource name="CF_InviteUser_ShowLink">邀请用户</resource>
+  <resource name="CF_JoinGroup_ShowLink">加入社区</resource>
+  <resource name="CF_ManageCustomPages_ShowLink">管理页面</resource>
+  <resource name="CF_ManageGroupOwners">管理所有者</resource>
+  <resource name="CF_ManageMembers">管理成员</resource>
+  <resource name="CF_ManageMembers_Pending">管理成员({0})</resource>
+  <resource name="CF_ManageMembers_ShowLink">管理成员</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="collapsed">已折叠</resource>
+  <resource name="Daily">每日</resource>
+  <resource name="Email_Digest_Options">电子邮件摘要选项</resource>
+  <resource name="EmailDigest_Message_Daily">您现在已订阅每日摘要。</resource>
+  <resource name="EmailDigest_Message_UnsubscribedGroup">您现在已取消订阅%E6%AD%A4社区的电子邮件%E6%91%98要%E3%80%82</resource>
+  <resource name="EmailDigest_Message_Weekly">您现在已订阅每周摘要。</resource>
+  <resource name="Frequency">频率</resource>
+  <resource name="Group_Joined">您已加入此社区。</resource>
+  <resource name="Group_Left">您已退出此社区。</resource>
+  <resource name="Groups_GroupLinks_Description">与任何社区(如成员资格和管理)相关的通用操作链接。</resource>
+  <resource name="Groups_GroupLinks_Name">社区 - 链接</resource>
+  <resource name="Groups_Links_CreateNewGroup">新建社区</resource>
+  <resource name="Groups_Links_EditThisTheme">编辑主题</resource>
+  <resource name="Groups_Links_EmailDigest">电子邮件摘要选项</resource>
+  <resource name="Groups_Links_GroupRss"></resource>
+  <resource name="Groups_Links_InviteAUser">邀请</resource>
+  <resource name="Groups_Links_ManageCustomPages">管理页面</resource>
+  <resource name="Groups_Links_MentionList">引述</resource>
+  <resource name="Groups_Links_ReviewAppeals">审查申诉</resource>
+  <resource name="Hubs_ApplyToJoin">请求成员资格</resource>
+  <resource name="Hubs_CancelJoinRequest">取消加入请求</resource>
+  <resource name="Hubs_ContactGroupOwners">联系所有者</resource>
+  <resource name="Hubs_ContactRequest">联系人请求</resource>
+  <resource name="Hubs_ContactRequest_Unread">联系人请求({0})</resource>
+  <resource name="Hubs_EditHub">管理社区</resource>
+  <resource name="Hubs_JoinGroup">加入</resource>
+  <resource name="Hubs_LeaveGroup">退出</resource>
+  <resource name="Hubs_Membership_LeaveConfirm">是否确定要退出此社区?</resource>
+  <resource name="more">更多</resource>
+  <resource name="NotSubscribed">未订阅</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Save">保存</resource>
+  <resource name="Weekly">每周</resource>
+  <resource name="Wikis_WikiLinks_Links">选择、重新排列和启用要显示的链接</resource>
+</language>
+<language key="zh-tw">
+  <resource name="cancel">取消</resource>
+  <resource name="CF_ContactRequests_ShowLink">連絡人要求</resource>
+  <resource name="CF_EditGroup_ShowLink">管理社群</resource>
+  <resource name="CF_EditTheme_ShowLink">編輯主題</resource>
+  <resource name="CF_FavoriteGroup_ShowLink">將社群加入書籤</resource>
+  <resource name="CF_InviteUser_ShowLink">邀請人員</resource>
+  <resource name="CF_JoinGroup_ShowLink">加入社群</resource>
+  <resource name="CF_ManageCustomPages_ShowLink">管理頁面</resource>
+  <resource name="CF_ManageGroupOwners">管理擁有者</resource>
+  <resource name="CF_ManageMembers">管理成員</resource>
+  <resource name="CF_ManageMembers_Pending">管理成員 ({0})</resource>
+  <resource name="CF_ManageMembers_ShowLink">管理成員</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="collapsed">已摺疊</resource>
+  <resource name="Daily">每日</resource>
+  <resource name="Email_Digest_Options">電子郵件摘要選項</resource>
+  <resource name="EmailDigest_Message_Daily">您現在已訂閱每日摘要。</resource>
+  <resource name="EmailDigest_Message_UnsubscribedGroup">您現在已取消訂閱此社群的電子郵件摘要。</resource>
+  <resource name="EmailDigest_Message_Weekly">您現在已訂閱每週摘要。</resource>
+  <resource name="Frequency">頻率</resource>
+  <resource name="Group_Joined">您已加入此社群。</resource>
+  <resource name="Group_Left">您已離開此社群。</resource>
+  <resource name="Groups_GroupLinks_Description">與任何社群相關的一般動作連結，例如成員資格和管理。</resource>
+  <resource name="Groups_GroupLinks_Name">社群 - 連結</resource>
+  <resource name="Groups_Links_CreateNewGroup">新增社群</resource>
+  <resource name="Groups_Links_EditThisTheme">編輯主題</resource>
+  <resource name="Groups_Links_EmailDigest">電子郵件摘要選項</resource>
+  <resource name="Groups_Links_GroupRss"></resource>
+  <resource name="Groups_Links_InviteAUser">邀請</resource>
+  <resource name="Groups_Links_ManageCustomPages">管理頁面</resource>
+  <resource name="Groups_Links_MentionList">提及項目</resource>
+  <resource name="Groups_Links_ReviewAppeals">檢閱申訴</resource>
+  <resource name="Hubs_ApplyToJoin">要求成員資格</resource>
+  <resource name="Hubs_CancelJoinRequest">取消加入要求</resource>
+  <resource name="Hubs_ContactGroupOwners">連絡擁有者</resource>
+  <resource name="Hubs_ContactRequest">連絡人要求</resource>
+  <resource name="Hubs_ContactRequest_Unread">連絡人要求 ({0})</resource>
+  <resource name="Hubs_EditHub">管理社群</resource>
+  <resource name="Hubs_JoinGroup">加入</resource>
+  <resource name="Hubs_LeaveGroup">離開</resource>
+  <resource name="Hubs_Membership_LeaveConfirm">您確定要離開此社群嗎?</resource>
+  <resource name="more">更多</resource>
+  <resource name="NotSubscribed">未訂閱</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Save">儲存</resource>
+  <resource name="Weekly">每週</resource>
+  <resource name="Wikis_WikiLinks_Links">選取、重新排列並啟用要顯示的連結</resource>
+</language></languageResources>
+		<files>
+			<file name="emaildigest.vm">JGNvcmVfdjJfcGFnZS5TZXRUaXRsZSgkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnRW1haWxfRGlnZXN0X09wdGlvbnMnKSwgZmFsc2UsIGZhbHNlKQ0KDQo8IURPQ1RZUEUgaHRtbD4NCjxodG1sIGxhbmc9IiRjb3JlX3YyX2VuY29kaW5nLkh0bWxBdHRyaWJ1dGVFbmNvZGUoJGNvcmVfdjJfbGFuZ3VhZ2UuQ29kZSkiICNpZigkY29yZV92Ml9sYW5ndWFnZS5Jc1JpZ2h0VG9MZWZ0KSBjbGFzcz0iZGlyZWN0aW9uLXJ0bCIgc3R5bGU9ImRpcmVjdGlvbjogcnRsOyIgI2Vsc2UgY2xhc3M9ImRpcmVjdGlvbi1sdHIiIHN0eWxlPSJkaXJlY3Rpb246IGx0cjsiICNlbmQ+DQo8aGVhZD4NCgkkY29yZV92Ml9wYWdlLlJlbmRlclRoZW1lSGVhZGVycygiJXtJc01vZGFsID0gJ1RydWUnfSIpDQo8L2hlYWQ+DQo8Ym9keT4NCjxmb3JtPg0KPGRpdiBjbGFzcz0iY29udGVudC1mcmFnbWVudCI+DQoNCgkjc2V0KCRncm91cCA9ICRjb3JlX3YyX2dyb3VwLkN1cnJlbnQpDQoJI3NldCgkc3Vic2NyaXB0aW9uID0gJGNvcmVfdjJfZW1haWxEaWdlc3QuR2V0QnlHcm91cCgkZ3JvdXAuSWQpKQ0KCTxmaWVsZHNldD4NCgkJPHVsIGNsYXNzPSJmaWVsZC1saXN0Ij4NCgkJCTxsaSBjbGFzcz0iZmllbGQtaXRlbSI+DQoJCQkJPGxhYmVsIGNsYXNzPSJmaWVsZC1pdGVtLW5hbWUiIGZvcj0iJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdlbWFpbGRpZ2VzdCcpIj4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnRnJlcXVlbmN5Jyk8L2xhYmVsPg0KCQkJCTxzcGFuIGNsYXNzPSJmaWVsZC1pdGVtLWlucHV0Ij4NCgkJCQkJPHNlbGVjdCBpZD0iJGNvcmVfdjJfd2lkZ2V0LlVuaXF1ZUlkKCdlbWFpbGRpZ2VzdCcpIiBkYXRhLWNvbnRleHQ9Imdyb3VwIiBkYXRhLWNvbnRleHRpZD0iJGdyb3VwLklkIiBkYXRhLXN1YnNjcmlwdGlvbmlkPSIjaWYoJHN1YnNjcmlwdGlvbikgJHN1YnNjcmlwdGlvbi5JZCNlbHNlIC0xI2VuZCIgY2xhc3M9ImVtYWlsLWRpZ2VzdCB1aS1zZWxlY3QiPg0KCQkJCQkJPG9wdGlvbiB2YWx1ZT0iMCIgI2lmKCEkc3Vic2NyaXB0aW9uIHx8ICgkc3Vic2NyaXB0aW9uLkZyZXF1ZW5jeUluRGF5cyAhPSAxICYmICRzdWJzY3JpcHRpb24uRnJlcXVlbmN5SW5kYXlzICE9IDcpKSBzZWxlY3RlZCNlbmQ+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ05vdFN1YnNjcmliZWQnKTwvb3B0aW9uPg0KCQkJCQkJPG9wdGlvbiB2YWx1ZT0iMSIgI2lmKCRzdWJzY3JpcHRpb24gJiYgJHN1YnNjcmlwdGlvbi5GcmVxdWVuY3lJbkRheXMgPT0gMSkgc2VsZWN0ZWQjZW5kPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdEYWlseScpPC9vcHRpb24+DQoJCQkJCQk8b3B0aW9uIHZhbHVlPSI3IiAjaWYoJHN1YnNjcmlwdGlvbiAmJiAkc3Vic2NyaXB0aW9uLkZyZXF1ZW5jeUluRGF5cyA9PSA3KSBzZWxlY3RlZCNlbmQ+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1dlZWtseScpPC9vcHRpb24+DQoJCQkJCTwvc2VsZWN0Pg0KCQkJCTwvc3Bhbj4NCgkJCTwvbGk+DQoJCQk8bGkgY2xhc3M9ImZpZWxkLWl0ZW0iPg0KCQkJCTxzcGFuIGNsYXNzPSJmaWVsZC1pdGVtLWlucHV0Ij4NCgkJCQkJPGEgaHJlZj0iIyIgY2xhc3M9ImJ1dHRvbiBzdWJtaXQiPiRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdTYXZlJyk8L2E+DQoJCQkJPC9zcGFuPg0KCQkJPC9saT4NCgkJPC91bD4NCgk8L2ZpZWxkc2V0Pg0KDQoJI3JlZ2lzdGVyRW5kT2ZQYWdlSHRtbCgpDQoJCTxzY3JpcHQgdHlwZT0idGV4dC9qYXZhc2NyaXB0Ij4NCgkJCWpRdWVyeShmdW5jdGlvbihqKSB7DQoJCQkJaignYS5zdWJtaXQnKS5vbignY2xpY2snLCBmdW5jdGlvbigpIHsNCgkJCQkJdmFyIGUgPSBqKCdzZWxlY3QuZW1haWwtZGlnZXN0Jyk7DQoJCQkJCWoudGVsbGlnZW50LmV2b2x1dGlvbi5wb3N0KHsNCgkJCQkJCXVybDogJyRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJGNvcmVfdjJfd2lkZ2V0LkdldEV4ZWN1dGVkRmlsZVVybCgnZW1haWxkaWdlc3R1cGRhdGUudm0nKSknLA0KCQkJCQkJZGF0YTogeyANCgkJCQkJCQlzdWJzY3JpcHRpb25JZDogZS5kYXRhKCdzdWJzY3JpcHRpb25pZCcpLA0KCQkJCQkJCWZyZXF1ZW5jeTogZS52YWwoKSwNCgkJCQkJCQljb250ZXh0OiBlLmRhdGEoJ2NvbnRleHQnKSwNCgkJCQkJCQljb250ZXh0SWQ6IGUuZGF0YSgnY29udGV4dGlkJykNCgkJCQkJCX0sDQoJCQkJCQlzdWNjZXNzOiBmdW5jdGlvbihkKSB7DQoJCQkJCQkJaWYgKGQud2FybmluZ3MgJiYgZC53YXJuaW5ncy5sZW5ndGggPiAwKSB7DQoJCQkJCQkJCXdpbmRvdy5wYXJlbnQualF1ZXJ5Lmdsb3dNb2RhbC5vcGVuZXIod2luZG93KS5qUXVlcnkudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coZC53YXJuaW5nc1swXSwge3R5cGU6ICd3YXJuaW5nJywgZHVyYXRpb246IDUwMDB9KTsNCgkJCQkJCQl9IGVsc2UgaWYgKGQubWVzc2FnZSkgIHsNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgd2luZG93LnBhcmVudC5qUXVlcnkuZ2xvd01vZGFsLm9wZW5lcih3aW5kb3cpLmpRdWVyeS50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyhkLm1lc3NhZ2UsIHt0eXBlOiAnc3VjY2VzcycsIGR1cmF0aW9uOiA1MDAwfSk7DQoJCQkJCQkJfQ0KCQkJCQkJCXdpbmRvdy5wYXJlbnQualF1ZXJ5Lmdsb3dNb2RhbC5jbG9zZSh3aW5kb3cpOw0KCQkJCQkJfQkNCgkJCQkJfSk7DQoJCQkJfSk7DQoJCQl9KTsNCgkJPC9zY3JpcHQ+DQoJI2VuZA0KDQo8L2Rpdj4NCjwvZm9ybT4NCjwvYm9keT4NCjwvaHRtbD4JCQ==</file>
+			<file name="emaildigestupdate.vm">77u/I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkNCgkjc2V0ICgkc3Vic2NyaXB0aW9uSWQgPSAtMSkNCgkjc2V0ICgkc3Vic2NyaXB0aW9uSWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdzdWJzY3JpcHRpb25JZCcpKSkNCgkjc2V0ICgkZnJlcXVlbmN5ID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUludCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnZnJlcXVlbmN5JykpKQ0KCSNzZXQgKCRjb250ZXh0ID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ2NvbnRleHQnKSkNCgkjc2V0ICgkY29udGV4dElkID0gLTEpDQoJI3NldCAoJGNvbnRleHRJZCA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VJbnQoJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ2NvbnRleHRJZCcpKSkNCiAgICAjaWYgKCRmcmVxdWVuY3kgPT0gMCkNCiAgICAgICAgI3NldCgkbWVzc2FnZSA9ICIkY29yZV92Ml9lbmNvZGluZy5KYXZhc2NyaXB0RW5jb2RlKCRjb3JlX3YyX2xhbmd1YWdlLkdldFJlc291cmNlKCdFbWFpbERpZ2VzdF9NZXNzYWdlX1Vuc3Vic2NyaWJlZEdyb3VwJykpIikNCiAgICAjZWxzZWlmICAoJGZyZXF1ZW5jeSA9PSAxKQ0KICAgICAgICAjc2V0KCRtZXNzYWdlID0gIiRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ0VtYWlsRGlnZXN0X01lc3NhZ2VfRGFpbHknKSkiKQ0KICAgICNlbHNlaWYgICgkZnJlcXVlbmN5ID09IDcpDQogICAgICAgICNzZXQoJG1lc3NhZ2UgPSAiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgnRW1haWxEaWdlc3RfTWVzc2FnZV9XZWVrbHknKSkiKQ0KICAgICNlbmQNCgkkY29yZV92Ml9wYWdlLlNldENvbnRlbnRUeXBlKCdhcHBsaWNhdGlvbi9qc29uJykNCg0KCXsNCgkjaWYoJGZyZXF1ZW5jeSA9PSAwICYmICRzdWJzY3JpcHRpb25JZCA+IDApDQoJCSNzZXQoJGRlbGV0ZUluZm8gPSAkY29yZV92Ml9lbWFpbERpZ2VzdC5EZWxldGUoJHN1YnNjcmlwdGlvbklkKSkNCgkJI3NldCgkd2FybmluZ3MgPSAkZGVsZXRlSW5mby5XYXJuaW5ncykNCgkJInN1Y2Nlc3MiIDogInRydWUiLA0KCQkiYWN0aW9uIiA6ICJkZWxldGUiLA0KICAgICAgICAibWVzc2FnZSIgOiAiJG1lc3NhZ2UiDQoJI2Vsc2VpZigkZnJlcXVlbmN5ID4gMCAmJiAkc3Vic2NyaXB0aW9uSWQgPiAwKQ0KCQkjc2V0KCRzdWIgPSAkY29yZV92Ml9lbWFpbERpZ2VzdC5VcGRhdGUoJHN1YnNjcmlwdGlvbklkLCAkZnJlcXVlbmN5KSkNCgkJI3NldCgkd2FybmluZ3MgPSAkc3ViLldhcm5pbmdzKQ0KCQkic3VjY2VzcyIgOiAidHJ1ZSIsDQoJCSJhY3Rpb24iIDogInVwZGF0ZSIsDQogICAgICAgICJtZXNzYWdlIiA6ICIkbWVzc2FnZSINCgkjZWxzZWlmKCRmcmVxdWVuY3kgPiAwICYmICRzdWJzY3JpcHRpb25JZCA8PSAwKQ0KCQkjc2V0KCRzdWIgPSAkY29yZV92Ml9lbWFpbERpZ2VzdC5DcmVhdGUoJGNvbnRleHQsICRjb250ZXh0SWQsICRmcmVxdWVuY3kpKQ0KCQkjc2V0KCR3YXJuaW5ncyA9ICRzdWIuV2FybmluZ3MpDQoJCSJzdWNjZXNzIiA6ICJ0cnVlIiwNCgkJImFjdGlvbiIgOiAiY3JlYXRlIiwNCiAgICAgICAgIm1lc3NhZ2UiIDogIiRtZXNzYWdlIiwNCgkJInN1YnNjcmlwdGlvbklkIiA6ICIkc3ViLklkIg0KCSNlbHNlDQoJCSJzdWNjZXNzIiA6ICJ0cnVlIiwNCgkJImFjdGlvbiIgOiAibm9uZSINCgkjZW5kDQoJLCAid2FybmluZ3MiOlsNCgkJI2ZvcmVhY2ggKCR3YXJuaW5nIGluICR3YXJuaW5ncykNCgkJCSNlYWNoDQoJCQkJIiRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJHdhcm5pbmcuTWVzc2FnZSkiDQoJCQkjYmV0d2Vlbg0KCQkJCSwNCgkJI2VuZA0KCV19DQojZW5kDQo=</file>
+			<file name="ui.js">KGZ1bmN0aW9uKCQsIGdsb2JhbCwgdW5kZWYpew0KDQoJJC50ZWxsaWdlbnQgPSAkLnRlbGxpZ2VudCB8fCB7fTsNCgkkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSAkLnRlbGxpZ2VudC5ldm9sdXRpb24gfHwge307DQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPSAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyB8fCB7fTsNCg0KCSQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzLmdyb3VwTGlua3MgPSB7DQoJCXJlZ2lzdGVyOiBmdW5jdGlvbihvcHRpb25zKSB7DQoJCQl2YXIgam9pbk9wdGlvbnMgPSB7DQoJCQkJdXJsOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvZ3JvdXBzL3tHcm91cElkfS9tZW1iZXJzL3VzZXJzLmpzb24nLA0KCQkJCWRhdGE6IHsNCgkJCQkJR3JvdXBJZDogb3B0aW9ucy5ncm91cElkLA0KCQkJCQlVc2VySWQ6IG9wdGlvbnMudXNlcklkDQoJCQkJfSwNCgkJCQlzdWNjZXNzOiBmdW5jdGlvbigpIHsNCgkJCQkJYWxlcnQob3B0aW9ucy5qb2luZWRUZXh0KTsNCgkJCQkJZ2xvYmFsLmxvY2F0aW9uLnJlbG9hZCgpOw0KCQkJCX0NCgkJCX07DQoNCgkJCS8vIGFjdGl2YXRlIGdyb3VwIGpvaW5pbmcgYnV0dG9ucw0KCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm1lc3NhZ2luZy5zdWJzY3JpYmUob3B0aW9ucy5qb2luTWVzc2FnZUxpbmtOYW1lLCBmdW5jdGlvbigpIHsNCgkJCQlqb2luT3B0aW9ucy5kYXRhLkdyb3VwTWVtYmVyc2hpcFR5cGUgPSAnTWVtYmVyJzsNCgkJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ucG9zdChqb2luT3B0aW9ucyk7DQoJCQkJcmV0dXJuIGZhbHNlOw0KCQkJfSk7DQoNCgkJCS8vIHJlcXVlc3Qgam9pbg0KCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm1lc3NhZ2luZy5zdWJzY3JpYmUob3B0aW9ucy5yZXF1ZXN0Sm9pbk1lc3NhZ2VMaW5rTmFtZSwgZnVuY3Rpb24oKSB7DQoJCQkJaWYgKG9wdGlvbnMuY2FuSm9pbkdyb3VwKSB7DQoJCQkJCWpvaW5PcHRpb25zLmRhdGEuR3JvdXBNZW1iZXJzaGlwVHlwZSA9ICdQZW5kaW5nTWVtYmVyJzsNCgkJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoam9pbk9wdGlvbnMpOw0KCQkJCX0gZWxzZSB7DQoJCQkJCVRlbGxpZ2VudF9Nb2RhbC5PcGVuKG9wdGlvbnMucmVxdWVzdEpvaW5VcmwsIDU1MCwgMzAwLCBmdW5jdGlvbigpIHsgZ2xvYmFsLmxvY2F0aW9uLnJlbG9hZCgpOyB9KTsNCgkJCQl9DQoJCQkJcmV0dXJuIGZhbHNlOw0KCQkJfSk7DQoNCgkJCS8vIGFjdGl2YXRlIG1lbWJlcnNoaXAgY2FuY2VsbGF0aW9uIGxpbmtzDQoJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ubWVzc2FnaW5nLnN1YnNjcmliZShvcHRpb25zLmNhbmNlbE1lc3NhZ2VMaW5rTmFtZSwgZnVuY3Rpb24oKSB7DQoJCQkJaWYoY29uZmlybShvcHRpb25zLmNhbmNlbENvbmZpcm1NZXNzYWdlKSkgew0KCQkJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24uZGVsKHsNCgkJCQkJCXVybDogJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnNpdGUuZ2V0QmFzZVVybCgpICsgJ2FwaS5hc2h4L3YyL2dyb3Vwcy97R3JvdXBJZH0vbWVtYmVycy91c2Vycy97VXNlcklkfS5qc29uJywNCgkJCQkJCWRhdGE6IHsNCgkJCQkJCQlHcm91cElkOiBvcHRpb25zLmdyb3VwSWQsDQoJCQkJCQkJVXNlcklkOiBvcHRpb25zLnVzZXJJZA0KCQkJCQkJfSwNCgkJCQkJCXN1Y2Nlc3M6IGZ1bmN0aW9uKCl7DQoJCQkJCQkJYWxlcnQob3B0aW9ucy5sZWZ0VGV4dCk7DQoJCQkJCQkJaWYob3B0aW9ucy5yZWRpcmVjdFRvQWZ0ZXJMZWF2ZSkgew0KCQkJCQkJCQlnbG9iYWwubG9jYXRpb24uaHJlZiA9IG9wdGlvbnMucmVkaXJlY3RUb0FmdGVyTGVhdmU7DQoJCQkJCQkJfSBlbHNlIHsNCgkJCQkJCQkJZ2xvYmFsLmxvY2F0aW9uLmhyZWYgPSBnbG9iYWwubG9jYXRpb24uaHJlZi5yZXBsYWNlKCdyZXF1ZXN0bWVtYmVyc2hpcD10cnVlJywnJyk7DQoJCQkJCQkJfQ0KCQkJCQkJfQ0KCQkJCQl9KTsNCgkJCQl9DQoJCQkJcmV0dXJuIGZhbHNlOw0KCQkJfSk7DQoJCX0NCgl9Ow0KDQp9KShqUXVlcnksIHdpbmRvdyk7DQo=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>
