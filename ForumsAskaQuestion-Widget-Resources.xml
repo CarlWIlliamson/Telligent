@@ -1,0 +1,38 @@
+<scriptedContentFragmentLanguageResources>
+	<theme version="10.1.8.10498">
+		<scriptedContentFragment name="Forums - Ask a Question" instanceIdentifier="f3810cda32ed45db871f26fcdd08b46f">
+			<languageResources>
+				<language key="en-us">
+					<resource name="ask">Ask</resource>
+					<resource name="CF_Title">Widget Title</resource>
+					<resource name="close">Close</resource>
+					<resource name="Forums_AskAQuestion">Forums - Ask a Question</resource>
+					<resource name="Forums_AskAQuestion_Description">Creates or finds an existing question thread</resource>
+					<resource name="Options">Options</resource>
+					<resource name="question">Ask a question...</resource>
+					<resource name="suggestionHeading">The following questions were similar. Do they answer your question?</resource>
+				</language>
+				<language key="zh-cn">
+					<resource name="ask">提问</resource>
+					<resource name="CF_Title">小组件标题</resource>
+					<resource name="close">关闭</resource>
+					<resource name="Forums_AskAQuestion">论坛 - 提问</resource>
+					<resource name="Forums_AskAQuestion_Description">创建或查找现有问题话题</resource>
+					<resource name="Options">选项</resource>
+					<resource name="question">提问...</resource>
+					<resource name="suggestionHeading">下面的问题类似。您对这些答案满意吗?</resource>
+				</language>
+				<language key="zh-tw">
+					<resource name="ask">詢問</resource>
+					<resource name="CF_Title">Widget 標題</resource>
+					<resource name="close">關閉</resource>
+					<resource name="Forums_AskAQuestion">論壇 - 問問題</resource>
+					<resource name="Forums_AskAQuestion_Description">建立或尋找現有的問題對話</resource>
+					<resource name="Options">選項</resource>
+					<resource name="question">問問題...</resource>
+					<resource name="suggestionHeading">以下是相似的問題。他們否回答了您的問題?</resource>
+				</language>
+			</languageResources>
+		</scriptedContentFragment>
+	</theme>
+</scriptedContentFragmentLanguageResources>

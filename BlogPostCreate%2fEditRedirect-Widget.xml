@@ -1,0 +1,44 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:BlogPostCreateRedirect_Title}" version="10.1.8.10498" description="${resource:BlogPostCreateRedirect_Description}" instanceIdentifier="5ffa18817b694ed2b50eb7e7efe4f771" theme="" isCacheable="false" varyCacheByUser="false" showHeaderByDefault="false" cssClass="">
+		<contentScript><![CDATA[#set($blogPost = false)
+#set($blog= false)
+        
+#set($blogPost = $core_v2_blogPost.Current)
+#set($blog = $core_v2_blog.Current)
+
+#set($url = false)
+#if($blogPost)
+    #set($url = $core_v2_page.AbsoluteUrl("~/controlpanel/blogs/posteditor.aspx?SelectedNavItem=Posts&WeblogID=$blog.Id&WeblogPostID=$blogPost.Id"))
+#elseif($blog)
+    #set($url = $core_v2_page.AbsoluteUrl("~/controlpanel/blogs/posteditor.aspx?SelectedNavItem=Posts&WeblogID=$blog.Id"))
+    #set($tsid = false)
+    #set($tsid = $core_v2_page.GetQueryStringValue('tsid'))
+    #if ($tsid)
+        #set($url = "$url&tsid=$tsid")
+    #end  
+#end
+    
+#if (!$url)
+  $core_v2_widget.Hide()
+#elseif (!$core_v2_widget.IsInWidgetPreviewMode)
+  $core_v2_page.Redirect($url)
+#end
+    
+<p>$url</p>]]></contentScript>
+		<languageResources><language key="en-us">
+  <resource name="BlogPostCreateRedirect_Title">Blog Post - Create/Edit Redirect</resource>
+  <resource name="BlogPostCreateRedirect_Description">For themes that do not support editing outside of the control panel, this redirects to the control panel editor</resource>
+</language>
+<language key="zh-cn">
+  <resource name="BlogPostCreateRedirect_Title">博客文章 - 创建/编辑重定向</resource>
+  <resource name="BlogPostCreateRedirect_Description">对于不支持在控制面板外进行编辑的主题，这会重定向到控制面板编辑器</resource>
+</language>
+<language key="zh-tw">
+  <resource name="BlogPostCreateRedirect_Title">部落格貼文 - 建立/編輯重新導向</resource>
+  <resource name="BlogPostCreateRedirect_Description">針對不支援在控制台之外編輯的主題，則重新導向至控制台編輯器</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="94b4a7db70934b0abcce06169b6f2272" />
+		</requiredContext>
+	</scriptedContentFragment>
+</scriptedContentFragments>

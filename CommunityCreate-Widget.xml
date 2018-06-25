@@ -1,0 +1,262 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Groups_CreateGroup_Name}" version="10.1.8.10498" description="${resource:Groups_CreateGroup_Description}" instanceIdentifier="5c32e4d6125245e5a086cc8c454b83e4" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="create-group">
+		<contentScript><![CDATA[
+## require non-anonymous user
+#if (!$core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+	$core_v2_authentication.RedirectToLogin()
+#end
+
+## get current or root group
+#set ($group = $core_v2_group.Current)
+#if (!$group)
+	#set ($group = $core_v2_group.Root)
+#end
+#set ($rootGroupId = false)
+#set ($rootGroupId = $core_v2_group.Root.Id)
+
+## require create group permissions
+#if (!$core_v2_nodePermission.Get('groups', $group.Id, $core_v2_groupPermissions.CreateGroup).IsAllowed)
+	$core_v2_widget.Hide()
+#end
+
+## require modification permissions to be able to edit a group's name
+#set ($groupNameEditable = $core_v2_nodePermission.Get('groups', $groupId, $core_v2_groupPermissions.ModifyGroup).IsAllowed)
+
+#set ($groupNameId = $core_v2_widget.UniqueId('groupName'))
+#set ($groupDescriptionId = $core_v2_widget.UniqueId('groupDescription'))
+#set ($groupTypeId = $core_v2_widget.UniqueId('groupType'))
+#set ($groupTypeJoinlessId = $core_v2_widget.UniqueId('joinless'))
+#set ($groupTypePublicOpenId = $core_v2_widget.UniqueId('publicOpen'))
+#set ($groupTypePublicClosedId = $core_v2_widget.UniqueId('publicClosed'))
+#set ($groupTypePrivateListedId = $core_v2_widget.UniqueId('privateListed'))
+#set ($groupTypePrivateUnlistedId = $core_v2_widget.UniqueId('privateUnlisted'))
+#set ($parentGroupId = $core_v2_widget.UniqueId('parentGroup'))
+#set ($enableMessagesId = $core_v2_widget.UniqueId('enableMessages'))
+#set ($createGroupId = $core_v2_widget.UniqueId('createGroup'))
+
+<fieldset>
+	<h2>$core_v2_language.GetResource('Hubs_GroupCreate')</h2>
+	<ul class="field-list">
+		<li class="field-item required group-name">
+			<label for="$core_v2_encoding.HtmlAttributeEncode($groupNameId)" class="field-item-name">$core_v2_language.GetResource('Name')</label>
+			<span class="field-item-description">$core_v2_language.GetResource('Hubs_Name_SubTitle')</span>
+			<span class="field-item-input">
+				<input name="$core_v2_encoding.HtmlAttributeEncode($groupNameId)" type="text" maxlength="256" id="$core_v2_encoding.HtmlAttributeEncode($groupNameId)" />
+			</span>
+			<span class="field-item-validation" style="display: none;"></span>
+		</li>
+		<li class="field-item group-description">
+			<label for="$core_v2_encoding.HtmlAttributeEncode($groupDescriptionId)" class="field-item-name">$core_v2_language.GetResource('Description')</label>
+			<span class="field-item-description">$core_v2_language.GetResource('Hubs_Description_Desc')</span>
+			<span class="field-item-input">
+				<textarea name="$core_v2_encoding.HtmlAttributeEncode($groupDescriptionId)" maxlength="256" id="$core_v2_encoding.HtmlAttributeEncode($groupDescriptionId)"></textarea>
+			</span>
+			<span class="field-item-validation" style="display: none;"></span>
+		</li>
+		<li class="field-item group-type">
+			<label class="field-item-name" for="$core_v2_encoding.HtmlAttributeEncode($groupTypeJoinlessId)">$core_v2_language.GetResource('Hubs_Type')</label>
+			<span class="field-item-description">$core_v2_language.GetResource('Hubs_PublicPrivate')</span>
+			<span class="field-item-input">
+				<ul class="field-list">
+					<li class="field-item">
+						<span class="field-item-input">
+							<input id="$core_v2_encoding.HtmlAttributeEncode($groupTypeJoinlessId)" type="radio" name="$core_v2_encoding.HtmlAttributeEncode($groupTypeId)" value="Joinless" checked="checked" />
+							<label for="$core_v2_encoding.HtmlAttributeEncode($groupTypeJoinlessId)">$core_v2_language.GetResource('HubTypes_Joinless')</label>
+						</span>
+						<span class="field-item-description">$core_v2_language.GetResource('HubTypes_Joinless_Description')</span>
+					</li>
+					<li class="field-item">
+						<span class="field-item-input">
+								<input id="$core_v2_encoding.HtmlAttributeEncode($groupTypePublicOpenId)" type="radio" name="$core_v2_encoding.HtmlAttributeEncode($groupTypeId)" value="PublicOpen" />
+								<label for="$core_v2_encoding.HtmlAttributeEncode($groupTypePublicOpenId)">$core_v2_language.GetResource('HubTypes_Public_Open')</label>
+						</span>
+						<span class="field-item-description">$core_v2_language.GetResource('HubTypes_Public_Open_Description')</span>
+					</li>
+					<li class="field-item">
+						<span class="field-item-input">
+								<input id="$core_v2_encoding.HtmlAttributeEncode($groupTypePublicClosedId)" type="radio" name="$core_v2_encoding.HtmlAttributeEncode($groupTypeId)" value="PublicClosed" />
+								<label for="$core_v2_encoding.HtmlAttributeEncode($groupTypePublicClosedId)">$core_v2_language.GetResource('HubTypes_Public_Closed')</label>
+						</span>
+						<span class="field-item-description">$core_v2_language.GetResource('HubTypes_Public_Closed_Description')</span>
+					</li>
+					<li class="field-item">
+						<span class="field-item-input">
+								<input id="$core_v2_encoding.HtmlAttributeEncode($groupTypePrivateListedId)" type="radio" name="$core_v2_encoding.HtmlAttributeEncode$($groupTypeId)" value="PrivateListed" />
+								<label for="$core_v2_encoding.HtmlAttributeEncode($groupTypePrivateListedId)">$core_v2_language.GetResource('HubTypes_PrivateListed')</label>
+						</span>
+						<span class="field-item-description">$core_v2_language.GetResource('HubTypes_PrivateListed_Description')</span>
+					</li>
+					<li class="field-item">
+						<span class="field-item-input">
+								<input id="$core_v2_encoding.HtmlAttributeEncode($groupTypePrivateUnlistedId)" type="radio" name="$core_v2_encoding.HtmlAttributeEncode($groupTypeId)" value="PrivateUnlisted" />
+								<label for="$core_v2_encoding.HtmlAttributeEncode($groupTypePrivateUnlistedId)">$core_v2_language.GetResource('HubTypes_PrivateNotListed')</label>
+						</span>
+						<span class="field-item-description">$core_v2_language.GetResource('HubTypes_PrivateNotListed_Description')</span>
+					</li>
+				</ul>
+			</span>
+		</li>
+		<li class="field-item parent-group">
+			<label for="$core_v2_encoding.HtmlAttributeEncode($parentGroupId)" class="field-item-name">$core_v2_language.GetResource('Hubs_Group')</label>
+			<span class="field-item-description">$core_v2_language.GetResource('Hubs_SelectCategory')</span>
+			<span class="field-item-input">
+				<input	id="$core_v2_encoding.HtmlAttributeEncode($parentGroupId)"
+						name="$core_v2_encoding.HtmlAttributeEncode($parentGroupId)"
+						type="text"value="$group.Id" />
+			</span>
+		</li>
+		<li class="field-item">
+			<span class="field-item-input">
+				<input id="$core_v2_encoding.HtmlAttributeEncode($enableMessagesId)" type="checkbox" name="$core_v2_encoding.HtmlAttributeEncode($enableMessagesId)" />
+				<label for="$core_v2_encoding.HtmlAttributeEncode($enableMessagesId)">$core_v2_language.GetResource('Groups_EnableMessages')</label>
+			</span>
+			<span class="field-item-description">$core_v2_language.GetResource('Groups_EnableMessages_Desc')</span>
+		</li>
+		<li class="field-item">
+			<span class="field-item-input">
+				<a id="$core_v2_encoding.HtmlAttributeEncode($createGroupId)" class="internal-link create-group button submit-button" href="#">
+					$core_v2_language.GetResource('Create')
+				</a>
+				<span class="processing" style="visibility: hidden;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+			</span>
+		</li>
+	</ul>
+</fieldset>
+<div class="field-list-footer"></div>
+
+
+#registerEndOfPageHtml('telligent.evolution.widgets.createGroup')
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+#end
+#registerEndOfPageHtml()
+	<script type="text/javascript">
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+	jQuery(document).ready(function(){
+		jQuery.telligent.evolution.widgets.createGroup.register({
+			parentGroupInput: jQuery('#$core_v2_encoding.JavascriptEncode($parentGroupId)'),
+			noGroupsMatchText: "$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('GroupLookUp_NoMatches'))",
+			defaultParentGroupId: $group.Id,
+			defaultParentGroupName: '$core_v2_encoding.JavascriptEncode($group.Name)',
+			rootGroupId: $rootGroupId,
+			groupNameInput: jQuery('#$core_v2_encoding.JavascriptEncode($groupNameId)'),
+			groupDescriptionInput: jQuery('#$core_v2_encoding.JavascriptEncode($groupDescriptionId)'),
+			groupTypeName: "$core_v2_encoding.JavascriptEncode($groupTypeId)",
+			enableMessagesInput: jQuery('#$core_v2_encoding.JavascriptEncode($enableMessagesId)'),
+			createGroupInput: jQuery('#$core_v2_encoding.JavascriptEncode($createGroupId)'),
+			requiredNameValidationMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('CreateGroup_GroupName_GroupNameRequired'))',
+			uniqueNameValidationMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('CreateGroup_GroupName_DuplicateGroupName'))'
+		});
+	});
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+	</script>
+#end
+	]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Groups_CreateGroup_Name}'))
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Groups_CreateGroup_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+	]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Create">Create</resource>
+  <resource name="CreateGroup_GroupName_DuplicateGroupName">The community name already exists under the selected parent community.</resource>
+  <resource name="CreateGroup_GroupName_GroupNameRequired">You must enter a community name.</resource>
+  <resource name="Description">Description</resource>
+  <resource name="Group_CreateGroup">Create Community</resource>
+  <resource name="GroupLookUp_NoMatches">A matching community could not be found.</resource>
+  <resource name="Groups_CreateGroup_Description">Displays a form for creating a new community.</resource>
+  <resource name="Groups_CreateGroup_Name">Community - Create</resource>
+  <resource name="Groups_EnableMessages">Enable community status updates</resource>
+  <resource name="Groups_EnableMessages_Desc">Allows a list of recent community activity and status messages to be displayed. Community members can create new status messages.</resource>
+  <resource name="Hubs_Description_Desc">Enter a description for the community (256 chars)</resource>
+  <resource name="Hubs_Group">Parent community</resource>
+  <resource name="Hubs_GroupCreate">Create a Community</resource>
+  <resource name="Hubs_Name_SubTitle">Enter a name for the community.</resource>
+  <resource name="Hubs_PublicPrivate">Should the new community be public or private?</resource>
+  <resource name="Hubs_SelectCategory">The parent community identifies where this community will be categorized within the site. Begin typing to search for and select a parent community.</resource>
+  <resource name="Hubs_Type">Community privacy</resource>
+  <resource name="HubTypes_Joinless">Joinless</resource>
+  <resource name="HubTypes_Joinless_Description">All content is public. No membership required.</resource>
+  <resource name="HubTypes_PrivateListed">Private (listed)</resource>
+  <resource name="HubTypes_PrivateListed_Description">Content is private. Community name and description are public. Membership approval required to contribute.</resource>
+  <resource name="HubTypes_PrivateNotListed">Private (unlisted)</resource>
+  <resource name="HubTypes_PrivateNotListed_Description">Content is private. Community is hidden to non-members. Membership approval required to contribute.</resource>
+  <resource name="HubTypes_Public_Closed">Public (closed membership)</resource>
+  <resource name="HubTypes_Public_Closed_Description">All content is public. Membership approval required to contribute.</resource>
+  <resource name="HubTypes_Public_Open">Public (open membership)</resource>
+  <resource name="HubTypes_Public_Open_Description">All content is public. Membership is required to contribute.</resource>
+  <resource name="Name">Name</resource>
+  <resource name="Options">Options</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Create">创建</resource>
+  <resource name="CreateGroup_GroupName_DuplicateGroupName">社区名称在所选父级社区下已存在。</resource>
+  <resource name="CreateGroup_GroupName_GroupNameRequired">您必须输入社区名称。</resource>
+  <resource name="Description">描述</resource>
+  <resource name="Group_CreateGroup">创建社区</resource>
+  <resource name="GroupLookUp_NoMatches">找不到匹配的社区。</resource>
+  <resource name="Groups_CreateGroup_Description">显示用于创建新社区的窗体。</resource>
+  <resource name="Groups_CreateGroup_Name">社区 - 创建</resource>
+  <resource name="Groups_EnableMessages">启用社区状态更新</resource>
+  <resource name="Groups_EnableMessages_Desc">允许显示近期社区活动和状态消息的列表。社区成员可以创建新的状态消息。</resource>
+  <resource name="Hubs_Description_Desc">输入社区的描述(256 个字符)</resource>
+  <resource name="Hubs_Group">父级社区</resource>
+  <resource name="Hubs_GroupCreate">创建社区</resource>
+  <resource name="Hubs_Name_SubTitle">输入社区的名称。</resource>
+  <resource name="Hubs_PublicPrivate">新社区应为公开还是私有?</resource>
+  <resource name="Hubs_SelectCategory">父级社区标识此社区在网站中的分类。开始键入以搜索并选择父级社区。</resource>
+  <resource name="Hubs_Type">社区隐私</resource>
+  <resource name="HubTypes_Joinless">不加入</resource>
+  <resource name="HubTypes_Joinless_Description">所有内容都公开。无需成员资格。</resource>
+  <resource name="HubTypes_PrivateListed">私有(列出)</resource>
+  <resource name="HubTypes_PrivateListed_Description">内容为私有。社区名称和描述都公开。提供内容需要成员资格审批。</resource>
+  <resource name="HubTypes_PrivateNotListed">私有(未列出)</resource>
+  <resource name="HubTypes_PrivateNotListed_Description">内容为私有。对非成员隐藏社区。提供内容需要成员资格审批。</resource>
+  <resource name="HubTypes_Public_Closed">公开(封闭成员资格)</resource>
+  <resource name="HubTypes_Public_Closed_Description">所有内容都公开。提供内容需要成员资格审批。</resource>
+  <resource name="HubTypes_Public_Open">公开(开放成员资格)</resource>
+  <resource name="HubTypes_Public_Open_Description">所有内容都公开。提供内容需要成员资格。</resource>
+  <resource name="Name">名称</resource>
+  <resource name="Options">选项</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Create">建立</resource>
+  <resource name="CreateGroup_GroupName_DuplicateGroupName">社群名稱已經存在選取的父社群底下。</resource>
+  <resource name="CreateGroup_GroupName_GroupNameRequired">您必須輸入社群名稱。</resource>
+  <resource name="Description">描述</resource>
+  <resource name="Group_CreateGroup">建立社群</resource>
+  <resource name="GroupLookUp_NoMatches">找不到相符的社群。</resource>
+  <resource name="Groups_CreateGroup_Description">顯示用於建立新社群的表單。</resource>
+  <resource name="Groups_CreateGroup_Name">社群 - 建立</resource>
+  <resource name="Groups_EnableMessages">啟用社群狀態更新</resource>
+  <resource name="Groups_EnableMessages_Desc">允許顯示最近的社群活動和狀態訊息清單。社群成員可以建立新的狀態訊息。</resource>
+  <resource name="Hubs_Description_Desc">輸入社群的描述 (256 個字元)</resource>
+  <resource name="Hubs_Group">父社群</resource>
+  <resource name="Hubs_GroupCreate">建立社群</resource>
+  <resource name="Hubs_Name_SubTitle">輸入社群的名稱。</resource>
+  <resource name="Hubs_PublicPrivate">新的社群應該設為公開或私人?</resource>
+  <resource name="Hubs_SelectCategory">父社群會識別要在網站內分類這個社群的位置。開始輸入要搜尋的內容，然後選取父社群。</resource>
+  <resource name="Hubs_Type">社群隱私權</resource>
+  <resource name="HubTypes_Joinless">Joinless</resource>
+  <resource name="HubTypes_Joinless_Description">所有內容都是公開的。不需具備成員資格。</resource>
+  <resource name="HubTypes_PrivateListed">私人 (列出)</resource>
+  <resource name="HubTypes_PrivateListed_Description">內容是私人的。社群名稱和描述是公開的。成員資格須通過核准才能參與。</resource>
+  <resource name="HubTypes_PrivateNotListed">私人 (未列出)</resource>
+  <resource name="HubTypes_PrivateNotListed_Description">內容是私人的。非成員看不到社群。成員資格須通過核准才能參與。</resource>
+  <resource name="HubTypes_Public_Closed">公開 (封閉式成員資格)</resource>
+  <resource name="HubTypes_Public_Closed_Description">所有內容都是公開的。成員資格須通過核准才能參與。</resource>
+  <resource name="HubTypes_Public_Open">公開 (開放式成員資格)</resource>
+  <resource name="HubTypes_Public_Open_Description">所有內容都是公開的。需要具備成員資格才能參與。</resource>
+  <resource name="Name">名稱</resource>
+  <resource name="Options">選項</resource>
+</language></languageResources>
+		<files>
+			<file name="ui.js">KGZ1bmN0aW9uKCQpew0KCXZhciBzcGlubmVyID0gJzxzcGFuIGNsYXNzPSJ1aS1sb2FkaW5nIiB3aWR0aD0iNDgiIGhlaWdodD0iNDgiPjwvc3Bhbj4nLA0KCQlzZWFyY2hHcm91cHMgPSBmdW5jdGlvbihjb250ZXh0LCB0ZXh0Ym94LCBzZWFyY2hUZXh0KSB7DQoJCQlpZihzZWFyY2hUZXh0ICYmIHNlYXJjaFRleHQubGVuZ3RoID49IDIpIHsNCg0KCQkJCXRleHRib3guZ2xvd0xvb2tVcFRleHRCb3goJ3VwZGF0ZVN1Z2dlc3Rpb25zJywgWw0KCQkJCQl0ZXh0Ym94Lmdsb3dMb29rVXBUZXh0Qm94KCdjcmVhdGVMb29rVXAnLCAnJywgc3Bpbm5lciwgc3Bpbm5lciwgZmFsc2UpDQoJCQkJXSk7DQoNCgkJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24uZ2V0KHsNCgkJCQkJdXJsOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvZ3JvdXBzLmpzb24nLA0KCQkJCQlkYXRhOiB7DQoJCQkJCQlHcm91cE5hbWVGaWx0ZXI6IHNlYXJjaFRleHQsDQoJCQkJCQlQZXJtaXNzaW9uOiAnR3JvdXBfQ3JlYXRlR3JvdXAnDQoJCQkJCX0sDQoJCQkJCXN1Y2Nlc3M6IGZ1bmN0aW9uKHJlc3BvbnNlKSB7DQoJCQkJCQlpZiAocmVzcG9uc2UgJiYgcmVzcG9uc2UuR3JvdXBzLmxlbmd0aCA+PSAxKSB7DQoJCQkJCQkJdGV4dGJveC5nbG93TG9va1VwVGV4dEJveCgndXBkYXRlU3VnZ2VzdGlvbnMnLA0KCQkJCQkJCQkkLm1hcChyZXNwb25zZS5Hcm91cHMsIGZ1bmN0aW9uKGdyb3VwLCBpKSB7DQoJCQkJCQkJCQlyZXR1cm4gdGV4dGJveC5nbG93TG9va1VwVGV4dEJveCgnY3JlYXRlTG9va1VwJywgZ3JvdXAuSWQsIGdyb3VwLk5hbWUsIGdyb3VwLk5hbWUsIHRydWUpOw0KCQkJCQkJCQl9KSk7DQoJCQkJCQl9IGVsc2Ugew0KCQkJCQkJCXRleHRib3guZ2xvd0xvb2tVcFRleHRCb3goJ3VwZGF0ZVN1Z2dlc3Rpb25zJywgWw0KCQkJCQkJCQl0ZXh0Ym94Lmdsb3dMb29rVXBUZXh0Qm94KCdjcmVhdGVMb29rVXAnLCAnJywgY29udGV4dC5ub0dyb3Vwc01hdGNoVGV4dCwgY29udGV4dC5ub0dyb3Vwc01hdGNoVGV4dCwgZmFsc2UpDQoJCQkJCQkJXSk7DQoJCQkJCQl9DQoJCQkJCX0NCgkJCQl9KTsNCgkJCX0NCgkJfSwNCgkJY3JlYXRlR3JvdXAgPSBmdW5jdGlvbihjb250ZXh0KSB7DQoJCQl2YXIgY3JlYXRlRGF0YSA9IHsNCgkJCQlOYW1lOiBjb250ZXh0Lmdyb3VwTmFtZUlucHV0LnZhbCgpLA0KCQkJCURlc2NyaXB0aW9uOiBjb250ZXh0Lmdyb3VwRGVzY3JpcHRpb25JbnB1dC52YWwoKSwNCgkJCQlFbmFibGVHcm91cE1lc3NhZ2VzOiBjb250ZXh0LmVuYWJsZU1lc3NhZ2VzSW5wdXQuaXMoJzpjaGVja2VkJyksDQoJCQkJR3JvdXBUeXBlOiAkKCdpbnB1dDpyYWRpb1tuYW1lPScrY29udGV4dC5ncm91cFR5cGVOYW1lKyddOmNoZWNrZWQnKS52YWwoKSwNCgkJCQlBdXRvQ3JlYXRlQXBwbGljYXRpb25zOiBmYWxzZSAvLyB3YW50IHRvIHNwZWNpZnkgd2hpY2ggYXBwbGljYXRpb25zIHRvIGNyZWF0ZQ0KCQkJfTsNCgkJCWlmKGNvbnRleHQucGFyZW50R3JvdXBJbnB1dC52YWwoKSAhPT0gbnVsbCAmJiBjb250ZXh0LnBhcmVudEdyb3VwSW5wdXQudmFsKCkubGVuZ3RoID4gMCkgew0KCQkJCWNyZWF0ZURhdGEuUGFyZW50R3JvdXBJZCA9IE51bWJlcihjb250ZXh0LnBhcmVudEdyb3VwSW5wdXQudmFsKCkpOw0KCQkJfQ0KCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KCQkJCXVybDogJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnNpdGUuZ2V0QmFzZVVybCgpICsgJ2FwaS5hc2h4L3YyL2dyb3Vwcy5qc29uJywNCgkJCQlkYXRhOiBjcmVhdGVEYXRhLA0KCQkJCXN1Y2Nlc3M6IGZ1bmN0aW9uKHJlc3BvbnNlKSB7DQoJCQkJCXdpbmRvdy5sb2NhdGlvbi5ocmVmID0gcmVzcG9uc2UuR3JvdXAuVXJsOw0KCQkJCX0NCgkJCX0pOw0KCQl9Ow0KCXZhciBhcGkgPSB7DQoJCXJlZ2lzdGVyOiBmdW5jdGlvbihjb250ZXh0KSB7DQoJCQljb250ZXh0LnBhcmVudEdyb3VwSW5wdXQNCgkJCQkuZ2xvd0xvb2tVcFRleHRCb3goew0KCQkJCQlkZWxpbWl0ZXI6ICcsJywNCgkJCQkJYWxsb3dEdXBsaWNhdGVzOiB0cnVlLA0KCQkJCQltYXhWYWx1ZXM6IDEsDQoJCQkJCW9uR2V0TG9va1VwczogZnVuY3Rpb24odGIsIHNlYXJjaFRleHQpIHsNCgkJCQkJCXNlYXJjaEdyb3Vwcyhjb250ZXh0LCB0Yiwgc2VhcmNoVGV4dCk7DQoJCQkJCX0sDQoJCQkJCWVtcHR5SHRtbDogJycsDQoJCQkJCXNlbGVjdGVkTG9va1Vwc0h0bWw6IFtdLA0KCQkJCQlkZWxldGVJbWFnZVVybDogJyd9KTsNCg0KCQkJY29udGV4dC5ncm91cERlc2NyaXB0aW9uSW5wdXQuZXZvbHV0aW9uUmVzaXplKCk7DQoNCgkJCWNvbnRleHQuY3JlYXRlR3JvdXBJbnB1dA0KCQkJCS5ldm9sdXRpb25WYWxpZGF0aW9uKHsNCgkJCQkJb25WYWxpZGF0ZWQ6IGZ1bmN0aW9uKGlzVmFsaWQsIGJ1dHRvbkNsaWNrZWQsIGMpIHsNCgkJCQkJCWlmIChpc1ZhbGlkKSB7DQoJCQkJCQkJY29udGV4dC5jcmVhdGVHcm91cElucHV0LnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOw0KCQkJCQkJfSBlbHNlIHsNCgkJCQkJCQljb250ZXh0LmNyZWF0ZUdyb3VwSW5wdXQuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCQkJCQl9DQoJCQkJCX0sDQoJCQkJCW9uU3VjY2Vzc2Z1bENsaWNrOiBmdW5jdGlvbihlKSB7DQoJCQkJCQllLnByZXZlbnREZWZhdWx0KCk7DQoJCQkJCQljb250ZXh0LmNyZWF0ZUdyb3VwSW5wdXQucGFyZW50KCkuYWRkQ2xhc3MoJ3Byb2Nlc3NpbmcnKTsNCgkJCQkJCWNvbnRleHQuY3JlYXRlR3JvdXBJbnB1dC5hZGRDbGFzcygnZGlzYWJsZWQnKTsNCgkJCQkJCS8vIHN1Ym1pdCB0aGUgZm9ybQ0KCQkJCQkJY3JlYXRlR3JvdXAoY29udGV4dCk7DQoJCQkJCX19KQ0KCQkJCS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRGaWVsZCcsDQoJCQkJCWNvbnRleHQuZ3JvdXBOYW1lSW5wdXQsDQoJCQkJCXsNCgkJCQkJCXJlcXVpcmVkOiB0cnVlLA0KCQkJCQkJZ3JvdXBuYW1lZXhpc3RzOiB7DQoJCQkJCQkJZ2V0UGFyZW50SWQ6IGZ1bmN0aW9uKCl7DQoJCQkJCQkJCXZhciBwYXJlbnRHcm91cElucHV0ID0gTnVtYmVyKGNvbnRleHQucGFyZW50R3JvdXBJbnB1dC52YWwoKSk7DQoJCQkJCQkJCWlmKCFwYXJlbnRHcm91cElucHV0KSB7DQoJCQkJCQkJCQlwYXJlbnRHcm91cElucHV0ID0gY29udGV4dC5yb290R3JvdXBJZDsNCgkJCQkJCQkJfQ0KCQkJCQkJCQlyZXR1cm4gcGFyZW50R3JvdXBJbnB1dDsNCgkJCQkJCQl9DQoJCQkJCQl9LA0KCQkJCQkJbWVzc2FnZXM6IHsNCgkJCQkJCQlyZXF1aXJlZDogY29udGV4dC5yZXF1aXJlZE5hbWVWYWxpZGF0aW9uTWVzc2FnZSwNCgkJCQkJCQlncm91cG5hbWVleGlzdHM6IGNvbnRleHQudW5pcXVlTmFtZVZhbGlkYXRpb25NZXNzYWdlDQoJCQkJCQl9DQoJCQkJCX0sDQoJCQkJCWNvbnRleHQuZ3JvdXBOYW1lSW5wdXQuY2xvc2VzdCgnLmZpZWxkLWl0ZW0nKS5maW5kKCcuZmllbGQtaXRlbS12YWxpZGF0aW9uJyksIG51bGwpOw0KDQoJCQljb250ZXh0LnBhcmVudEdyb3VwSW5wdXQuYmluZCgnZ2xvd0xvb2tVcFRleHRCb3hDaGFuZ2UnLCBmdW5jdGlvbigpew0KCQkJCWNvbnRleHQuY3JlYXRlR3JvdXBJbnB1dA0KCQkJCQkuZXZvbHV0aW9uVmFsaWRhdGlvbigndmFsaWRhdGVGaWVsZCcsIGNvbnRleHQuZ3JvdXBOYW1lSW5wdXQpOw0KCQkJfSk7DQoNCgkJCWlmKGNvbnRleHQuZGVmYXVsdFBhcmVudEdyb3VwTmFtZSAmJiBjb250ZXh0LmRlZmF1bHRQYXJlbnRHcm91cElkID4gMCkgew0KCQkJCXZhciBpbml0aWFsTG9va3VwVmFsdWUgPSBjb250ZXh0LnBhcmVudEdyb3VwSW5wdXQuZ2xvd0xvb2tVcFRleHRCb3goJ2NyZWF0ZUxvb2tVcCcsDQoJCQkJCWNvbnRleHQuZGVmYXVsdFBhcmVudEdyb3VwSWQsDQoJCQkJCWNvbnRleHQuZGVmYXVsdFBhcmVudEdyb3VwTmFtZSwNCgkJCQkJY29udGV4dC5kZWZhdWx0UGFyZW50R3JvdXBOYW1lLA0KCQkJCQl0cnVlKTsNCgkJCQljb250ZXh0LnBhcmVudEdyb3VwSW5wdXQuZ2xvd0xvb2tVcFRleHRCb3goJ2FkZCcsIGluaXRpYWxMb29rdXBWYWx1ZSk7DQoJCQl9DQoJCX0NCgl9Ow0KDQoJaWYgKHR5cGVvZiAkLnRlbGxpZ2VudCA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQgPSB7fTsgfQ0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSB7fTsgfQ0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID0ge307IH0NCgkkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cy5jcmVhdGVHcm91cCA9IGFwaTsNCg0KfShqUXVlcnkpKTsNCg==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

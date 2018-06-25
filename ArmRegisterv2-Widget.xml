@@ -1,0 +1,91 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="Arm - Register v2" version="10.1.8.10498" description="Allows a new user to choose a display name when arriving from Azure AD." instanceIdentifier="3826d74863084c35a4206272f8630250" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="choose-username">
+		<contentScript><![CDATA[#set ($UsernameId = $core_v2_widget.UniqueId('username'))
+#set ($submitId = $core_v2_widget.UniqueId('submit'))
+
+#set ($returnUrl = false)
+#set ($returnUrl = $core_v2_page.ReturnUrl)
+#if (!$returnUrl)
+	#set ($returnUrl = $core_v2_urls.Home())
+#end
+
+#set($existingUser = $core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+
+#set ($dynamicFieldsForm = $core_v2_widget.UniqueId('profileFieldsForm'))
+#set ($requiredFields = "")
+
+<form id="mktoForm_1461" style="display:none;">
+    <fieldset>
+        <input type="hidden" id="EmailAddress" name="EmailAddress" value="$azure_v1_ad.GetEmailAddress()" />
+        <input type="hidden" id="ExistingUser" name="ExistingUser" value="$existingUser" />
+    	<ul class="field-list">
+    		#if(!$existingUser)
+    	<h2>$core_v2_language.GetResource('Register_Title')</h2>
+    	<div style="font-size: 1.2em; font-style: normal; box-sizing: border-box; display: inline-block; margin-bottom: 20px; float: left; width: 100%;" class="message">$core_v2_language.GetResource('Description')</div>
+    		<li style="clear: both;" class="field-item">
+    			<label style="font-size: 20px;" for="$core_v2_encoding.HtmlAttributeEncode($UsernameId)" class="field-item-name">$core_v2_language.GetResource('Username')</label>
+    			<span class="field-item-input">
+    				<input style="min-height: 42px; border-radius:10px;" name="$core_v2_encoding.HtmlAttributeEncode($UsernameId)" id="$core_v2_encoding.HtmlAttributeEncode($UsernameId)" type="text" />
+    			</span>
+    			<span class="field-item-validation" style="display: none;"></span>
+    		</li>
+        	<li class="field-item">
+    			<span class="field-item-input">	
+    				<input name="$core_v2_encoding.HtmlAttributeEncode($submitId)" id="$core_v2_encoding.HtmlAttributeEncode($submitId)" type="submit" value="$core_v2_encoding.HtmlAttributeEncode($core_v2_language.GetResource('Save'))" class="button" />
+    			</span>
+    		</li>
+    		#end
+    	</ul>
+    </fieldset>
+</form>
+<div class="field-list-footer">
+
+#registerEndOfPageHtml('telligent.evolution.widgets.register')
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+#end
+#registerEndOfPageHtml()
+	<script type="text/javascript">
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+	jQuery(document).ready(function(j){
+		jQuery.telligent.evolution.widgets.register.register({
+			wrapper: "#$core_v2_encoding.JavascriptEncode($core_v2_widget.WrapperElementId)",
+			usernameInput: "#$core_v2_encoding.JavascriptEncode($UsernameId)",
+			submitInput: "#$core_v2_encoding.JavascriptEncode($submitId)",
+			createUrl: "$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('create.vm'))",
+			updateUrl: "$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('update.vm'))",
+			usernameMinLength: $core_v2_configuration.UsernameMinLength,
+			usernameMaxLength: $core_v2_configuration.UsernameMaxLength,
+			usernameInvalidUserName: "$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('InvalidUserName'))",
+			usernameDuplicateUserName: "$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('DuplicateUsername'))",
+			fieldRequired: "$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('RequiredMessage'))",
+			redirectUrl: '$core_v2_encoding.JavascriptEncode($returnUrl)',
+			resources: {
+				fieldRequired: "$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Validate_Field_Required'))"
+			},
+//			getDynamicValues: function() {
+//				return $core_v2_dynamicForm.GetValuesScript($dynamicFieldsForm);
+//			},
+//			getHasValue: function(profileField) {
+//				return ${core_v2_dynamicForm.GetHasValueScript($dynamicFieldsForm)}(profileField);
+//			},
+//			dynamicFieldsForm: "$core_v2_encoding.JavascriptEncode($dynamicFieldsForm)",
+//			requiredDynamicfields: '$core_v2_encoding.JavascriptEncode($requiredFields)',
+			existingUser: #if($existingUser) true #else false #end
+		});
+	});
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+	</script>
+#end
+]]></contentScript>
+		<configuration><![CDATA[<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:CF_Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+]]></configuration>
+		<languageResources><language key="en-us"><resource name="CF_Title">Choose Username</resource><resource name="Description">One more thing - your display name will appear next to your comments.</resource><resource name="DuplicateUsername">That display name is not available.</resource><resource name="InvalidUserName">Your display name does not meet the requirements.</resource><resource name="ProfileFields">Enter comma separated profile fields</resource><resource name="Register_Title">Complete your registration</resource><resource name="RequiredMessage">Please enter a display name.</resource><resource name="Save">Save</resource><resource name="Username">Display name</resource><resource name="Validate_Field_Required">This field is required.</resource></language></languageResources>
+		<files>
+			<file name="create.vm">I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkKICAgICRjb3JlX3YyX3BhZ2UuU2V0Q29udGVudFR5cGUoJ2FwcGxpY2F0aW9uL2pzb24nKQoJCgkjc2V0KCR1c2VybmFtZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdVc2VybmFtZScpKQoJI3NldCgkZmlyc3ROYW1lID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0ZpcnN0TmFtZScpKQoJI3NldCgkbGFzdE5hbWUgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnTGFzdE5hbWUnKSkKCSNzZXQoJGxlYWRTb3VyY2VEZXRhaWwgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnTGVhZFNvdXJjZURldGFpbCcpKQoJI3NldCgkY291bnRyeSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdDb3VudHJ5JykpCgkKCSNpZiAoJGF6dXJlX3YxX2FkLkNyZWF0ZVVzZXIoJHVzZXJuYW1lLCAkZmlyc3ROYW1lLCAkbGFzdE5hbWUsICRsZWFkU291cmNlRGV0YWlsLCAkY291bnRyeSkpCgkgICAgeyJ1c2VyQ3JlYXRlZCI6dHJ1ZX0KCSNlbHNlCgkJJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCdUaGVyZSB3YXMgYW4gZXJyb3IgY3JlYXRpbmcgeW91ciBhY2NvdW50LicpCgkjZW5kCiNlbmQ=</file>
+			<file name="ui.js">KGZ1bmN0aW9uKCQpIHsKCXZhciBjcmVhdGVVc2VyID0gZnVuY3Rpb24oY29udGV4dCkgewoJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5wb3N0KHsKCQkJdXJsOiBjb250ZXh0LmNyZWF0ZVVybCwKCQkJZGF0YTogewoJCQkJVXNlcm5hbWU6ICQoY29udGV4dC51c2VybmFtZUlucHV0KS52YWwoKSwKCQkJfSwKCQkJc3VjY2VzczogZnVuY3Rpb24gKHJlc3BvbnNlKSB7CiAgICAgICAgCQkgICAgd2luZG93LmxvY2F0aW9uID0gY29udGV4dC5yZWRpcmVjdFVybDsKCQkJfQoJCX0pOwoJfTsKCQoJdmFyIHVwZGF0ZVVzZXIgPSBmdW5jdGlvbihjb250ZXh0KSB7CgkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3QoewoJCQl1cmw6IGNvbnRleHQudXBkYXRlVXJsLAoJCQlkYXRhOiB7CgkJCQlGaXJzdE5hbWU6IGNvbnRleHQuZ2V0RHluYW1pY1ZhbHVlcygpWyJGaXJzdCBOYW1lIl0sCgkJCQlMYXN0TmFtZTogY29udGV4dC5nZXREeW5hbWljVmFsdWVzKClbIkxhc3QgTmFtZSJdLAoJCQkJTGVhZFNvdXJjZURldGFpbDogY29udGV4dC5nZXREeW5hbWljVmFsdWVzKClbIkxlYWQgU291cmNlIERldGFpbCJdLAoJCQkJQ291bnRyeTogY29udGV4dC5nZXREeW5hbWljVmFsdWVzKClbIkNvdW50cnkiXQoJCQl9LAoJCQlzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsKCQkJICAgIGlmKCQoY29udGV4dC5hY2NlcHRBZ3JlZW1lbnQpLmlzKCI6Y2hlY2tlZCIpKXsKICAgICAgICAJCSAgICBzZW5kTWFya2V0b0Zvcm0oY29udGV4dCk7CgkJCSAgICB9IGVsc2UgewogICAgICAgIAkJICAgIHdpbmRvdy5sb2NhdGlvbiA9IGNvbnRleHQucmVkaXJlY3RVcmw7CiAgICAgICAgCQl9CgkJCX0KCQl9KTsKCX07CgkKCXZhciBhcGkgPSB7CgkJcmVnaXN0ZXI6IGZ1bmN0aW9uKGNvbnRleHQpIHsKCQkJY29udGV4dC5zdWJtaXRJbnB1dCA9ICQoY29udGV4dC5zdWJtaXRJbnB1dCkKCQkJCS5ldm9sdXRpb25WYWxpZGF0aW9uKHsKCQkJCQlvblZhbGlkYXRlZDogZnVuY3Rpb24oaXNWYWxpZCwgYnV0dG9uQ2xpY2tlZCwgYykgeyB9LAoJCQkJCW9uU3VjY2Vzc2Z1bENsaWNrOiBmdW5jdGlvbihlKSB7CgkJCQkJCWUucHJldmVudERlZmF1bHQoKTsKCQkJCQkJaWYoY29udGV4dC5leGlzdGluZ1VzZXIpewoJCQkJCQkgICAgdXBkYXRlVXNlcihjb250ZXh0KTsKCQkJCQkJfSBlbHNlIHsKCQkJCQkJICAgIGNyZWF0ZVVzZXIoY29udGV4dCk7CgkJCQkJCX0KCQkJCQkJCgkJCQkJCXJldHVybiBmYWxzZTsKCQkJCQl9CgkJCQl9KQoJCQkJCgkJCQkvLyBtYWtlIGR5bmFtaWMgZmllbGRzIHRoYXQgd2VyZSBzcGVjaWZpZWQgdG8gYmUgcmVxdWlyZWQgcmVxdWlyZWQKICAgIAkJCQogICAgCQkJaWYoIWNvbnRleHQuZXhpc3RpbmdVc2VyKXsKICAgIAkJCSAgICBjb250ZXh0LnN1Ym1pdElucHV0LmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEZpZWxkJywgJChjb250ZXh0LnVzZXJuYW1lSW5wdXQpLCB7CiAgICAJCQkJCXJlcXVpcmVkOiB0cnVlLAogICAgCQkJCQltaW5sZW5ndGg6IGNvbnRleHQudXNlcm5hbWVNaW5MZW5ndGgsCiAgICAJCQkJCW1heGxlbmd0aDogY29udGV4dC51c2VybmFtZU1heExlbmd0aCwKICAgIAkJCQkJdXNlcm5hbWU6IHRydWUsCiAgICAJCQkJCXVzZXJuYW1lZXhpc3RzOiB0cnVlLAogICAgCQkJCQltZXNzYWdlczogewogICAgCQkJCQkJdXNlcm5hbWU6IGNvbnRleHQudXNlcm5hbWVJbnZhbGlkVXNlck5hbWUsCiAgICAJCQkJCQl1c2VybmFtZWV4aXN0czogY29udGV4dC51c2VybmFtZUR1cGxpY2F0ZVVzZXJOYW1lLAogICAgCQkJCQkJcmVxdWlyZWQ6IGNvbnRleHQuZmllbGRSZXF1aXJlZAogICAgCQkJCQl9CiAgICAJCQkJfSwJJChjb250ZXh0LnVzZXJuYW1lSW5wdXQpLmNsb3Nlc3QoJy5maWVsZC1pdGVtJykuZmluZCgnLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpLCBudWxsKTsKCQkJCX0KCQl9Cgl9OwoKCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50ID0ge307IH0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSB7fTsgfQoJaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPSB7fTsgfQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMucmVnaXN0ZXIgPSBhcGk7Cgp9KGpRdWVyeSkpOwo=</file>
+			<file name="update.vm">I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkKICAgICRjb3JlX3YyX3BhZ2UuU2V0Q29udGVudFR5cGUoJ2FwcGxpY2F0aW9uL2pzb24nKQoJCgkjc2V0KCRmaXJzdE5hbWUgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnRmlyc3ROYW1lJykpCgkjc2V0KCRsYXN0TmFtZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdMYXN0TmFtZScpKQoJI3NldCgkbGVhZFNvdXJjZURldGFpbCA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdMZWFkU291cmNlRGV0YWlsJykpCgkjc2V0KCRjb3VudHJ5ID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0NvdW50cnknKSkKCQoJI2lmICgkYXp1cmVfdjFfYWQuVXBkYXRlVXNlcigkZmlyc3ROYW1lLCAkbGFzdE5hbWUsICRsZWFkU291cmNlRGV0YWlsLCAkY291bnRyeSkpCgkgICAgeyJ1c2VyVXBkYXRlZCI6dHJ1ZX0KCSNlbHNlCgkJJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCdUaGVyZSB3YXMgYW4gZXJyb3IgdXBkYXRpbmcgeW91ciBhY2NvdW50LicpCgkjZW5kCiNlbmQ=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

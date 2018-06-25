@@ -1,0 +1,252 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:LeaderboardList_Name}" version="10.1.8.10498" description="${resource:LeaderboardList_Description}" instanceIdentifier="f68e8c5ecc7c42bd950b83b3967abd61" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="true" cssClass="leaderboard-list">
+		<contentScript><![CDATA[
+#set($pageIndex = 0)
+#set($pageIndex = $core_v2_ui.GetCurrentPageIndex())
+#set($pageSize = 10)
+#set($pageSize = $core_v2_widget.GetIntValue('pageSize', 10))
+
+#set($options = "%{}")
+$options.Add("PageSize", $pageSize)
+$options.Add("PageIndex", $pageIndex)
+$options.Add('DisplayStatus', 'Displayed')
+
+#set ($sortBy = $core_v2_widget.GetStringValue('defaultSortOrder', 'ApplicationName'))
+#set ($sortBy = $core_v2_page.GetQueryStringValue('sortBy'))
+#if ($sortBy == 'ApplicationName')
+	$options.Add("SortBy", 'Name')
+	$options.Add("SortOrder", 'Ascending')
+#elseif ($sortBy == 'ContentIdsOrder')
+	$options.Add("SortBy", 'ContentIdsOrder')
+	$options.Add("SortOrder", 'Ascending')
+#end
+
+#set($leaderboardSelection = false)
+#set ($leaderboardSelection = $core_v2_widget.GetCustomValue('leaderboardSelection', ''))
+#if ($leaderboardSelection && $leaderboardSelection.Length > 0)
+	#set($leaderboardIds = $core_v2_utility.Join(',', $core_v2_page.ParseQueryString($leaderboardSelection).Values('leaderboard')))
+	$options.Add('ContentIds', $leaderboardIds)
+#else
+	#set($groupId = false)
+	#set($groupId = $core_v2_utility.ParseInt($core_v2_page.ParseQueryString($core_v2_widget.GetCustomValue('group', '')).Value('Group')))
+	#set($rootGroup = $core_v2_group.Root)
+
+	#if ($groupId > 0)
+		#set($group = $core_v2_group.Get("%{Id = $groupId}"))
+	#else
+		#set($group = $core_v2_group.Current)
+	#end
+
+	#if ($group.Id == $rootGroup.Id)
+		$options.Add('Scope', 'Global')
+	#else
+		$options.Add('ContainerId', $group.ContainerId)
+	#end
+#end
+
+#set($leaderboards = $core_v2_leaderboard.List($options))
+
+#set($leadersSize = $core_v2_widget.GetIntValue('leadersSize', 3))
+#set($showValue = $core_v2_widget.GetBoolValue('showValue', true))
+#set($showCurrentUser = $core_v2_widget.GetBoolValue('showCurrentUser', true))
+#set($numberOfColumns = $core_v2_widget.GetStringValue('numberOfColumns', 'two-column'))
+
+#foreach($leaderboard in $leaderboards)
+#beforeall
+<ul class="content-list simple leaderboards $numberOfColumns">
+#each
+	<li class="content-item simple leaderboard">
+		<h3><a href="$leaderboard.Url">$leaderboard.Name</a></h3>
+		<div class="description">$!leaderboard.Description</div>
+
+		#set($leaders = $core_v2_leader.List($leaderboard.Id, "%{PageSize = $leadersSize}"))
+
+		#if(!$core_v2_user.Accessing.IsSystemAccount && $core_v2_user.Accessing.EnableDisplayInMemberList && $showCurrentUser && $leaderboard.LastCalculatedDate && $pageIndex == 0 && $leaders.TotalCount > 0 && $core_v2_leaderboard.UserIsEligible($leaderboard.Id))
+			#set($currentUserInList = false)
+			#foreach ($leader in $leaders)
+				#if($leader.user.Id == $core_v2_user.Accessing.Id)
+					#set($currentUserInList = true)
+				#end
+			#end
+			#if(!$currentUserInList)
+				#set($currentLeader = $core_v2_leader.Get($leaderboard.Id))
+				#if ($currentLeader && $currentLeader.LeaderboardId > 0)
+					$leaders.Add($currentLeader)
+				#end
+			#end
+		#end
+
+		#foreach ($leader in $leaders)
+		#beforeall
+			<div class="leaders">
+				<ul class="leaders">
+				<li class="row leader-header">
+					<div class="column rank-column">$core_v2_language.GetResource("Rank")</div>
+					<div class="column name-column">$core_v2_language.GetResource("Name")</div>
+					#if ($showValue)
+						<div class="column points-column">$core_v2_language.GetResource("Points")</div>
+					#end
+				</li>
+		#each
+				<li class="row leader-item #if($leader.user.Id == $core_v2_user.Accessing.Id)current-leader-item#end">
+					<div class="column rank-column">#if($leader.Rank != -1)$leader.Rank #else $core_v2_language.GetResource("NotRanked") #end</div>
+					<div class="column name-column">
+						#if ($leader.user.ProfileUrl)
+							<a href="$core_v2_encoding.HtmlAttributeEncode($leader.user.ProfileUrl)" class="internal-link view-user-profile avatar">
+								$core_v2_ui.GetResizedImageHtml($leader.user.AvatarUrl, 35, 35, "%{ alt = $leader.user.DisplayName, ResizeMethod='ZoomAndCrop' }")
+							</a>
+							<a href="$core_v2_encoding.HtmlAttributeEncode($leader.user.ProfileUrl)" class="internal-link view-user-profile username">
+								$leader.user.DisplayName
+							</a>
+						#else
+							$core_v2_ui.GetResizedImageHtml($leader.user.AvatarUrl, 35, 35, "%{ alt = $leader.user.DisplayName, ResizeMethod='ZoomAndCrop' }")
+							<span class="username">$leader.user.DisplayName</span>
+						#end
+
+					</div>
+					#if ($showValue)
+						<div class="column points-column">#if($leader.Value != -1)$core_v2_language.FormatNumber($leader.Value) #else &nbsp; #end</div>
+					#end
+				</li>
+		#afterall
+				</ul>
+				<div class="actions">
+					<a href="$leaderboard.Url">$core_v2_language.GetResource("ViewLeaderboard")</a>
+				</div>
+			</div>
+		#nodata
+			#if($leaderboard.LastCalculatedDate)
+				<div class="message">$core_v2_language.GetResource("NoLeaders")</div>
+			#else
+				<div class="message">$core_v2_language.GetResource("LeaderboardNotCalculated")</div>
+			#end
+
+			<div class="actions">
+				<a href="$leaderboard.Url">$core_v2_language.GetResource("ViewLeaderboard")</a>
+			</div>
+
+		#end
+
+	</li>
+#afterall
+</ul>
+
+$core_v2_ui.Pager($leaderboards.PageIndex, $leaderboards.PageSize, $leaderboards.TotalCount)
+
+#nodata
+	<div class="message">$core_v2_language.GetResource("NoLeaderboardsFound")</div>
+#end
+
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:LeaderboardList_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:LeaderboardList_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="group" resourceName="Group" dataType="Custom" defaultValue="Group=-1" controlType="Telligent.Evolution.Controls.GroupSelectionList, Telligent.Evolution.Platform" includeCurrentGroup="true" />
+	<property id="pageSize" resourceName="PageSize" dataType="int" defaultValue="10">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="100" />
+	</property>
+	<property id="defaultSortOrder" resourceName="DefaultSortOrder" dataType="string" defaultValue="ApplicationName">
+		<propertyValue value="ApplicationName" resourceName="SortBy_ApplicationName" />
+    	<propertyValue value="ContentIdsOrder" resourceName="SortBy_Custom" />
+	</property>
+  <property id="leaderboardSelection" resourceName="LeaderboardInclusion" controlType="Telligent.Evolution.Controls.LeaderboardSortableListControl, Telligent.Evolution.Platform" dataType="custom" groupSelectionField="group" key="leaderboard" sortPropertyId="defaultSortOrder" sortPropertyOn="ContentIdsOrder" />
+  <property id="numberOfColumns" resourceName="NumberOfColumns" dataType="string" defaultValue="two-column">
+  	<propertyValue value="one-column" resourceName="OneColumn" />
+  	<propertyValue value="two-column" resourceName="TwoColumn" />
+  </property>
+	<property id="leadersSize" resourceName="LeadersSize" dataType="int" defaultValue="3">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="100" />
+	</property>
+	<property id="showValue" resourceName="ShowValueColumn" dataType="bool" defaultValue="true" />
+	<property id="showCurrentUser" resourceName="ShowCurrentUserPosition" dataType="bool" defaultValue="true" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Community">Filter to community</resource>
+  <resource name="DefaultSortOrder">Default Sort Order</resource>
+  <resource name="Group">Filter to group</resource>
+  <resource name="IncludeGroupName">Include community name in header</resource>
+  <resource name="LeaderboardInclusion">Include leaderboards</resource>
+  <resource name="LeaderboardList_Description">Displays the list of leaderboards avaiable for a community.</resource>
+  <resource name="LeaderboardList_Name">Leaderboards</resource>
+  <resource name="LeaderboardNotCalculated">Leaderboard has not been calculated yet.</resource>
+  <resource name="LeadersSize">Leaders per leaderboard</resource>
+  <resource name="Name">Name</resource>
+  <resource name="NoLeaderboardsFound">No leaderboards found.</resource>
+  <resource name="NoLeaders">No leaders found.</resource>
+  <resource name="NotRanked">--</resource>
+  <resource name="NumberOfColumns">Number of columns</resource>
+  <resource name="OneColumn">One column</resource>
+  <resource name="Options">Options</resource>
+  <resource name="PageSize">Leaderboards per page</resource>
+  <resource name="Points">Points</resource>
+  <resource name="Rank">Rank</resource>
+  <resource name="ShowCurrentUserPosition">Show current user's position</resource>
+  <resource name="ShowValueColumn">Show points column</resource>
+  <resource name="SortBy_ApplicationName">By name</resource>
+  <resource name="SortBy_Custom">By 'Include leaderboards' order</resource>
+  <resource name="TwoColumn">Two columns</resource>
+  <resource name="ViewLeaderboard">View Full Leaderboard</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Community">筛选到社区</resource>
+  <resource name="DefaultSortOrder">缺省排序顺序</resource>
+  <resource name="Group">筛选到组中</resource>
+  <resource name="IncludeGroupName">在标题中包含社区名称</resource>
+  <resource name="LeaderboardInclusion">包括排行榜</resource>
+  <resource name="LeaderboardList_Description">显示社区的可用排行榜列表。</resource>
+  <resource name="LeaderboardList_Name">排行榜</resource>
+  <resource name="LeaderboardNotCalculated">尚未计算排行榜。</resource>
+  <resource name="LeadersSize">每个排行榜的上榜对象数</resource>
+  <resource name="Name">名称</resource>
+  <resource name="NoLeaderboardsFound">未找到排行榜。</resource>
+  <resource name="NoLeaders">未找到上榜对象。</resource>
+  <resource name="NotRanked">--</resource>
+  <resource name="NumberOfColumns">列数</resource>
+  <resource name="OneColumn">一列</resource>
+  <resource name="Options">选项</resource>
+  <resource name="PageSize">每页排行榜</resource>
+  <resource name="Points">积分</resource>
+  <resource name="Rank">排名</resource>
+  <resource name="ShowCurrentUserPosition">显示当前用户的位置</resource>
+  <resource name="ShowValueColumn">显示积分列</resource>
+  <resource name="SortBy_ApplicationName">按名称</resource>
+  <resource name="SortBy_Custom">按“包括排行榜”顺序</resource>
+  <resource name="TwoColumn">两列</resource>
+  <resource name="ViewLeaderboard">查看完整排行榜</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Community">篩選至社群</resource>
+  <resource name="DefaultSortOrder">預設排序次序</resource>
+  <resource name="Group">篩選至群組</resource>
+  <resource name="IncludeGroupName">在頁首中包含社群名稱</resource>
+  <resource name="LeaderboardInclusion">包含排行榜</resource>
+  <resource name="LeaderboardList_Description">顯示社群可用的排行榜清單。</resource>
+  <resource name="LeaderboardList_Name">排行榜</resource>
+  <resource name="LeaderboardNotCalculated">尚未計算排行榜。</resource>
+  <resource name="LeadersSize">每個排行榜的前端項目</resource>
+  <resource name="Name">名稱</resource>
+  <resource name="NoLeaderboardsFound">找不到排行榜。</resource>
+  <resource name="NoLeaders">找不到前端項目。</resource>
+  <resource name="NotRanked">--</resource>
+  <resource name="NumberOfColumns">欄數</resource>
+  <resource name="OneColumn">一欄</resource>
+  <resource name="Options">選項</resource>
+  <resource name="PageSize">每個頁面的排行榜</resource>
+  <resource name="Points">點數</resource>
+  <resource name="Rank">等級</resource>
+  <resource name="ShowCurrentUserPosition">顯示目前使用者的位置</resource>
+  <resource name="ShowValueColumn">顯示點數欄</resource>
+  <resource name="SortBy_ApplicationName">依名稱</resource>
+  <resource name="SortBy_Custom">依「包含排行榜」順序</resource>
+  <resource name="TwoColumn">兩欄</resource>
+  <resource name="ViewLeaderboard">檢視完整排行榜</resource>
+</language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

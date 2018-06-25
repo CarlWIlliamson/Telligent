@@ -1,0 +1,55 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="Social Follows - Arm Education" version="10.1.8.10498" description="Adds a Social Follow widget " instanceIdentifier="05ef3ddd549e4360a7b621afd2033f78" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="">
+		<contentScript><![CDATA[<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-P6S7VDF');</script>
+<!-- End Google Tag Manager -->
+
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-P6S7VDF"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+<div class="content-fragment-content">
+    <div class="social-follow">
+        <span>Follow us</span>
+        <ul>
+            <li>
+                <a id="Facebook (En) Follow - Arm Education" class="highlightit" href="https://www.facebook.com/ArmEducation" target="_blank" alt="Follow on Facebook">
+                    <i class="fa fa-2x fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+            <li>
+                <a id="Twitter (En) Follow - Arm Education" class="highlightit" href="https://twitter.com/ArmEducation">
+                    <i class="fa fa-2x fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+            <li>
+                <a id="LinkedIN (En) Follow - Arm" class="highlightit" href="https://www.linkedin.com/company/Arm">
+                    <i aria-hidden="true" class="fa fa-2x fa-linkedin"></i>
+                </a>
+            </li>
+        <!--    <li>
+            
+                <a id="Instagram (En)" class="highlightit" href="https://www.instagram.com/ArmCommunity/">
+                    <i aria-hidden="true" class="fa fa-2x fa-instagram"></i>
+                </a>
+            </li> -->
+            <li>
+                <a id="YouTube (En) Follow - Arm" class="highlightit" href="https://www.youtube.com/Armflix/">
+                    <i aria-hidden="true" class="fa fa-2x fa-youtube-play"></i>
+                </a>
+            </li>
+            </ul>
+        </div>
+    </div>
+    <div style="clear: both;"></div>]]></contentScript>
+		<configuration><![CDATA[<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:SocialFollowsTitle_Education}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>]]></configuration>
+		<languageResources><language key="en-us"><resource name="CF_Title">Widget Title</resource><resource name="SocialFollowsTitle_Education">Social Follows - Education</resource></language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

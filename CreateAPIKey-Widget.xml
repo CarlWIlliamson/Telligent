@@ -1,0 +1,89 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_CreateApiKey_Name}" version="10.1.8.10498" description="${resource:Core_CreateApiKey_Description}" instanceIdentifier="15ff2c5a7d264aff900f33c662de3736" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="create-api-key">
+		<contentScript><![CDATA[
+#set ($accessingUser = $core_v2_user.Accessing)
+#if (!$core_v2_user.IsRegistered($accessingUser.Id))
+	$core_v2_widget.Hide()
+#end
+
+#set ($keyNameId = $core_v2_widget.UniqueId('keyName'))
+#set ($submitId = $core_v2_widget.UniqueId('submit'))
+
+<fieldset>
+	<h2>$core_v2_language.GetResource('NewApiKey')</h2>
+	<ul class="field-list">
+		<li class="field-item">
+			<label for="$core_v2_encoding.HtmlAttributeEncode($keyNameId)" class="field-item-name">$core_v2_language.GetResource('Name')</label>
+			<span class="field-item-input">
+				<input name="$core_v2_encoding.HtmlAttributeEncode($keyNameId)" id="$core_v2_encoding.HtmlAttributeEncode($keyNameId)" type="text" />
+			</span>
+			<span class="field-item-validation" style="display: none;"></span>
+		</li>
+		<li class="field-item">
+			<span class="field-item-input">	
+				<input name="$core_v2_encoding.HtmlAttributeEncode($submitId)" id="$core_v2_encoding.HtmlAttributeEncode($submitId)" type="submit" value="$core_v2_encoding.HtmlAttributeEncode($core_v2_language.GetResource('Generate'))" class="button" />
+			</span>
+		</li>
+	</ul>
+</fieldset>
+<div class="field-list-footer"></div>
+
+#registerEndOfPageHtml('telligent.evolution.widgets.createApiKey')
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+#end
+#registerEndOfPageHtml()
+	<script type="text/javascript">
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+	jQuery(document).ready(function(j){
+		jQuery.telligent.evolution.widgets.createApiKey.register({
+			wrapper: "#$core_v2_encoding.JavascriptEncode($core_v2_widget.WrapperElementId)",
+			nameInput: "#$core_v2_encoding.JavascriptEncode($keyNameId)",
+			submitInput: "#$core_v2_encoding.JavascriptEncode($submitId)",
+			createUrl: "$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('create.vm'))"
+		});
+	});
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+	</script>
+#end
+	]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Core_CreateApiKey_Name}'))
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Core_CreateApiKey_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Core_CreateApiKey_Description">Allows you to create api keys.</resource>
+  <resource name="Core_CreateApiKey_Name">Create API Key</resource>
+  <resource name="Generate">Generate</resource>
+  <resource name="Name">Name</resource>
+  <resource name="NewApiKey">New API Key</resource>
+  <resource name="Options">Options</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Core_CreateApiKey_Description">使您可以创建 API 密钥。</resource>
+  <resource name="Core_CreateApiKey_Name">创建 API 密钥</resource>
+  <resource name="Generate">生成</resource>
+  <resource name="Name">名称</resource>
+  <resource name="NewApiKey">新建 API 密钥</resource>
+  <resource name="Options">选项</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Core_CreateApiKey_Description">可讓您建立 API 金鑰。</resource>
+  <resource name="Core_CreateApiKey_Name">建立 API 金鑰</resource>
+  <resource name="Generate">產生</resource>
+  <resource name="Name">名稱</resource>
+  <resource name="NewApiKey">新的 API 金鑰</resource>
+  <resource name="Options">選項</resource>
+</language></languageResources>
+		<files>
+			<file name="create.vm">77u/I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkNCgkjc2V0KCRuYW1lID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ05hbWUnKSkNCgkkY29yZV92Ml9wYWdlLlNldENvbnRlbnRUeXBlKCdhcHBsaWNhdGlvbi9qc29uJykNCgkjc2V0ICgkYXBpS2V5ID0gZmFsc2UpDQoJI3NldCAoJGFwaUtleSA9ICRjb3JlX3YyX2FwaUtleS5DcmVhdGUoJG5hbWUsICIleyBFbmFibGVkID0gJ3RydWUnIH0iKSkNCgkjaWYgKCRhcGlLZXkpDQoJCSNpZiAoJGFwaUtleS5FcnJvcnMuQ291bnQgPT0gMCkNCgkJCXsia2V5Q3JlYXRlZCI6dHJ1ZX0NCgkJI2Vsc2UNCgkJCSRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcigkYXBpS2V5LkVycm9ycykNCgkJI2VuZA0KCSNlbHNlDQoJCSRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcignVW5rbm93biBlcnJvcicpDQoJI2VuZA0KI2VuZA==</file>
+			<file name="ui.js">KGZ1bmN0aW9uKCQpIHsNCgl2YXIgY3JlYXRlQXBpS2V5ID0gZnVuY3Rpb24oY29udGV4dCkgew0KCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ucG9zdCh7DQoJCQl1cmw6IGNvbnRleHQuY3JlYXRlVXJsLA0KCQkJZGF0YTogew0KCQkJCU5hbWU6ICQoY29udGV4dC5uYW1lSW5wdXQpLnZhbCgpDQoJCQl9LA0KCQkJc3VjY2VzczogZnVuY3Rpb24gKHJlc3BvbnNlKSB7DQoJCQkJd2luZG93LmxvY2F0aW9uLnJlbG9hZCh0cnVlKTsNCgkJCX0NCgkJfSk7CQkNCgl9Ow0KCXZhciBhcGkgPSB7DQoJCXJlZ2lzdGVyOiBmdW5jdGlvbihjb250ZXh0KSB7DQoJCQljb250ZXh0LnN1Ym1pdElucHV0ID0gJChjb250ZXh0LnN1Ym1pdElucHV0KQ0KCQkJCS5ldm9sdXRpb25WYWxpZGF0aW9uKHsNCgkJCQkJb25WYWxpZGF0ZWQ6IGZ1bmN0aW9uKGlzVmFsaWQsIGJ1dHRvbkNsaWNrZWQsIGMpIHsgfSwNCgkJCQkJb25TdWNjZXNzZnVsQ2xpY2s6IGZ1bmN0aW9uKGUpIHsNCgkJCQkJCWUucHJldmVudERlZmF1bHQoKTsNCgkJCQkJCWNyZWF0ZUFwaUtleShjb250ZXh0KTsNCgkJCQkJCXJldHVybiBmYWxzZTsNCgkJCQkJfQ0KCQkJCX0pDQoJCQkJLmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEZpZWxkJywgJChjb250ZXh0Lm5hbWVJbnB1dCksIHsNCgkJCQkJcmVxdWlyZWQ6IHRydWUsDQoJCQkJCW1lc3NhZ2VzOiB7IHJlcXVpcmVkOiAnKicgfQ0KCQkJCX0sCSQoY29udGV4dC5uYW1lSW5wdXQpLmNsb3Nlc3QoJy5maWVsZC1pdGVtJykuZmluZCgnLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpLCBudWxsKTsNCgkJfQ0KCX07DQoNCglpZiAodHlwZW9mICQudGVsbGlnZW50ID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudCA9IHt9OyB9DQoJaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbiA9IHt9OyB9DQoJaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPSB7fTsgfQ0KCSQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzLmNyZWF0ZUFwaUtleSA9IGFwaTsNCg0KfShqUXVlcnkpKTsNCg==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

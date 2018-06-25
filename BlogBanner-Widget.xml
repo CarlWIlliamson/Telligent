@@ -112,7 +112,8 @@ $core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${
 	 <property id="border" descriptionResourceName="border_desc" dataType="bool" defaultValue="True" resourceName="border" />
  </propertyGroup>
 		]]></configuration>
-		<languageResources><language key="en-us">
+
+    <languageResources><language key="en-us">
   <resource name="amber">Amber</resource>
   <resource name="backgroundColor">Background Color</resource>
   <resource name="backgroundColor2">Secondary Gradient Background Color</resource>
@@ -177,6 +178,7 @@ $core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${
   <resource name="white">White</resource>
   <resource name="yellow">Yellow</resource>
 </language></languageResources>
+
 		<additionalCssScript><![CDATA[
 #set ($post = false)
 #set ($renderPoster = $core_v2_widget.GetBoolValue('renderPoster', true))

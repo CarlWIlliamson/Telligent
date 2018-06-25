@@ -1,0 +1,135 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_Logout_Name}" version="10.1.8.10498" description="${resource:Core_Logout_Description}" instanceIdentifier="df3486cdf75244e6b4f4bc4b269832da" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="logout">
+		<contentScript><![CDATA[
+
+#if ($core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+	#set ($waitForOAuthSignOut = false)
+	#set ($loggedInOAuthClientType = $core_v2_authentication.GetLastLoginType())
+	#if ($loggedInOAuthClientType && $loggedInOAuthClientType.length > 0)
+		#set ($oAuthProvider = false)
+		#set ($oAuthProvider = $core_v2_authentication.GetOAuthProvider($loggedInOAuthClientType))
+		#if ($oAuthProvider && $oAuthProvider.ClientLogoutScript && $oAuthProvider.ClientLogoutScript.length > 0)
+			$oAuthProvider.ClientLogoutScript
+			#set ($waitForOAuthSignOut = true)
+		#end
+	#end
+
+	## log out via ajax post to avoid CSRF-based logouts
+	#if (!$core_v2_widget.IsInWidgetPreviewMode)
+		#registerEndOfPageHtml()
+			<script type="text/javascript">
+			var shouldWaitForOAuthSignOut = #if ($waitForOAuthSignOut) true #else false #end;
+			jQuery(document).ready(function(j){
+				var signOut = function() {
+					// raise a clientside logout event for any helpful client cleanup
+					// wait for it to potentially be raised after sockets have connected
+					var logoutEventRaised = false;
+					j.telligent.evolution.messaging.subscribe('socket.connected', function() {
+						j.telligent.evolution.messaging.publish('user.logout', null, { crossWindow: true });
+						logoutEventRaised = true;
+					});
+					setTimeout(function(){
+						// otherwise raise it immediately before logout
+						if(!logoutEventRaised) {
+							j.telligent.evolution.messaging.publish('user.logout', null, { crossWindow: true });
+						}
+						j.telligent.evolution.post({
+							url: "$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('logout.vm'))",
+							success: function(response) {
+								if(response.redirectUrl.length > 0) {
+									window.location.href = response.redirectUrl;
+								} else {
+									window.location.reload(true);
+								}
+							}
+						});
+					}, 1500);
+				};
+				if (shouldWaitForOAuthSignOut) {
+					var oAuthLogoutTimeout = setTimeout(function(){
+						signOut();
+					}, 15000);
+					j(document).bind('oauthsignout',function(){
+						clearTimeout(oAuthLogoutTimeout);
+						signOut();
+					});
+				} else {
+					signOut();
+				}
+
+			});
+			</script>
+		#end
+	#end
+
+	## show being-logged-out message during ajax post logout
+	<h1>$core_v2_language.GetResource('Logout_Title')</h1>
+	<p>$core_v2_language.FormatString($core_v2_language.GetResource('LoggingOut_Status'), $core_v2_infoResult.Get().SiteName)</p>
+
+#else
+	## show logged out message when logged out
+	<h1>$core_v2_language.GetResource('Logout_Title')</h1>
+	<p>$core_v2_language.FormatString($core_v2_language.GetResource('Logout_Status'), $core_v2_infoResult.Get().SiteName)</p>
+
+	<ul class="navigation-list">
+		#set ($returnToCurrentUrl = false)
+		#set ($loginUrl = $core_v2_urls.LogIn("%{ ReturnToCurrentUrl = $returnToCurrentUrl }"))
+		#if ($loginUrl)
+			<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($loginUrl)">$core_v2_language.GetResource('login')</a></li>
+		#end
+		#set ($homeUrl = $core_v2_urls.Home())
+		#if ($homeUrl)
+			<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($homeUrl)">$core_v2_language.GetResource('Logout_ReturnHome')</a></li>
+		#end
+	</ul>
+#end
+
+
+
+		]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Core_Logout_Name}'))
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Core_Logout_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+	]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Core_Logout_Description">Displays message that user has been logged out.</resource>
+  <resource name="Core_Logout_Name">User - Logged Out</resource>
+  <resource name="LoggingOut_Status">Signing out of {0}...</resource>
+  <resource name="login">Sign in</resource>
+  <resource name="Logout_ReturnHome">Return home</resource>
+  <resource name="Logout_Status">You have been signed out of {0}.</resource>
+  <resource name="Logout_Title">Sign out</resource>
+  <resource name="Options">Options</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Core_Logout_Description">显示一条有关用户已注销的消息。</resource>
+  <resource name="Core_Logout_Name">用户 - 已注销</resource>
+  <resource name="LoggingOut_Status">正在从 {0} 注销...</resource>
+  <resource name="login">登录</resource>
+  <resource name="Logout_ReturnHome">返回主页</resource>
+  <resource name="Logout_Status">您已从 {0} 注销。</resource>
+  <resource name="Logout_Title">注销</resource>
+  <resource name="Options">选项</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Core_Logout_Description">顯示使用者已經登出的訊息。</resource>
+  <resource name="Core_Logout_Name">使用者 - 已登出</resource>
+  <resource name="LoggingOut_Status">正在登出 {0}...</resource>
+  <resource name="login">登入</resource>
+  <resource name="Logout_ReturnHome">返回首頁</resource>
+  <resource name="Logout_Status">您已經登出 {0}。</resource>
+  <resource name="Logout_Title">登出</resource>
+  <resource name="Options">選項</resource>
+</language></languageResources>
+		<files>
+			<file name="logout.vm">77u/I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkNCgkkY29yZV92Ml9wYWdlLlNldENvbnRlbnRUeXBlKCdhcHBsaWNhdGlvbi9qc29uJykNCgkjc2V0ICgkZmFsc2VWYWx1ZSA9IGZhbHNlKQ0KCSNzZXQgKCRpZ25vcmUgPSAkY29yZV92Ml91c2VyUHJlc2VuY2UuVXBkYXRlKCRmYWxzZVZhbHVlLCAiJXtVc2VySWQ9JGNvcmVfdjJfdXNlci5BY2Nlc3NpbmcuSWR9IikpDQoJI3NldCAoJHJldHVyblVybCA9ICcnKQ0KCSNzZXQgKCRyZXR1cm5VcmwgPSAkY29yZV92Ml9hdXRoZW50aWNhdGlvbi5Mb2dvdXQoKSkNCgl7InJlZGlyZWN0VXJsIjoiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkcmV0dXJuVXJsKSJ9DQojZW5k</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

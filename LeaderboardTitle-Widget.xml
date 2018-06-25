@@ -1,0 +1,60 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:LeaderboardTitle_Name}" version="10.1.8.10498" description="${resource:LeaderboardTitle_Description}" instanceIdentifier="e7f32628f5e24f59ad25cf309d9178bf" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="leaderboard-title">
+		<contentScript><![CDATA[
+#set ($page = $core_v2_leaderboardUrls.Current)
+
+#if($page == 'Home')
+	#set($title = $core_v2_language.GetResource('Leaderboards'))
+#elseif ($page == 'Leaderboard')
+	#set ($leaderboard = $core_v2_leaderboard.Current)
+	#set($title = $leaderboard.Name)
+#end
+
+#if ($title)
+	$core_v2_page.SetTitle($title, false, true)
+	#if ($core_v2_widget.GetBoolValue('visible', false))
+		<h1 class="title">$title</h1>
+	#end
+#else
+	$core_v2_widget.Hide()
+#end
+
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Leaderboard_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Leaderboard_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="visible" resourceName="Title_Visible" dataType="bool" defaultValue="False" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Leaderboards">Leaderboards</resource>
+  <resource name="LeaderboardTitle_Description">Displays the title for leaderboard pages.</resource>
+  <resource name="LeaderboardTitle_Name">Leaderboard - Title</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Title_Visible">Show the title in the page</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Leaderboards">排行榜</resource>
+  <resource name="LeaderboardTitle_Description">显示排行榜页面的标题。</resource>
+  <resource name="LeaderboardTitle_Name">排行榜 - 标题</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Title_Visible">在页面中显示标题</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Leaderboards">排行榜</resource>
+  <resource name="LeaderboardTitle_Description">顯示排行榜頁面的標題。</resource>
+  <resource name="LeaderboardTitle_Name">排行榜 - 標題</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Title_Visible">在頁面中顯示標題</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="33635e930bcf4a03a4389a949cf31619" />
+		</requiredContext>
+	</scriptedContentFragment>
+</scriptedContentFragments>

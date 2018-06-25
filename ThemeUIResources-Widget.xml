@@ -1,0 +1,37 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Theme_Overrides_Title}" version="10.1.8.10498" description="${resource:Theme_Overrides_Description}" instanceIdentifier="fe757b55a68043478a5014bd2d91f8db" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="">
+		<contentScript><![CDATA[#registerEndOfPageHtml()
+	<script type="text/javascript">
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+
+        jQuery.telligent.evolution.ui.components.moderate.defaults = {
+    		reportedText: '$core_v2_language.GetResource("moderate_reportedText")',
+    		flagText: '$core_v2_language.GetResource("moderate_flagText")',
+    		flaggedText: '$core_v2_language.GetResource("moderate_flaggedText")'
+    	};
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+	</script>
+#end]]></contentScript>
+		<languageResources><language key="en-us">
+  <resource name="moderate_flaggedText">Reported as abusive</resource>
+  <resource name="moderate_flagText">Report as abusive</resource>
+  <resource name="moderate_reportedText">Thank you for your report</resource>
+  <resource name="Theme_Overrides_Description">Provides language pack support for theme specific UI components</resource>
+  <resource name="Theme_Overrides_Title">Theme UI Resources</resource>
+</language>
+<language key="zh-cn">
+  <resource name="moderate_flaggedText">已报告不良信息</resource>
+  <resource name="moderate_flagText">报告不良信息</resource>
+  <resource name="moderate_reportedText">感谢您的举报</resource>
+  <resource name="Theme_Overrides_Description">为主题特定 UI 组件提供语言包支持</resource>
+  <resource name="Theme_Overrides_Title">主题 UI 资源</resource>
+</language>
+<language key="zh-tw">
+  <resource name="moderate_flaggedText">已回報為不當使用</resource>
+  <resource name="moderate_flagText">回報為不當使用</resource>
+  <resource name="moderate_reportedText">感謝您的回報</resource>
+  <resource name="Theme_Overrides_Description">針對佈景主題特定 UI 元件提供語言套件支援</resource>
+  <resource name="Theme_Overrides_Title">佈景主題 UI 資源</resource>
+</language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

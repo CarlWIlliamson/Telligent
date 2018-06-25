@@ -1,0 +1,155 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:SEO_Name}" version="10.1.8.10498" description="${resource:SEO_Description}" instanceIdentifier="db3ab93332e94ebfaefe40321fbc999b" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="">
+		<contentScript><![CDATA[
+      #set($page = false)
+      #set($page = $core_v2_customPage.Current)
+
+      #if (!$page)
+      $core_v2_widget.Hide()
+      #end
+
+      #set($pageTitle =  $core_v2_widget.GetStringValue("pageTitle",""))
+      #if($pageTitle != "")
+      $core_v2_page.SetTitle($core_v2_encoding.HtmlEncode($pageTitle),false,false)
+      #else
+      $core_v2_page.SetTitle($core_v2_encoding.HtmlEncode($page.Name),false,false)
+      #end
+
+      #set($metaKeywords =  $core_v2_widget.GetStringValue("metaKeywords",""))
+      #if($metaKeywords != "")
+      $core_v2_page.AddMetaKeywords($core_v2_encoding.HtmlAttributeEncode($metaKeywords))
+      #end
+
+      #set($metaDescription =  $core_v2_widget.GetStringValue("metaDescription",""))
+      #if($metaDescription != "")
+      $core_v2_page.AddMetaDescription($core_v2_encoding.HtmlAttributeEncode($metaDescription))
+      #end
+
+      #set($canonicalUrl =  $core_v2_widget.GetUrlValue("canonicalUrl",""))
+      #if($canonicalUrl != "")
+      $core_v2_page.SetCanonicalLink($core_v2_encoding.HtmlAttributeEncode($canonicalUrl))
+      #end
+
+      $core_v2_page.AddOpenGraphNamespace("website", "http://ogp.me/ns/website#")
+      $core_v2_page.AddOpenGraphMetaTag("og:type","website")
+      $core_v2_page.AddOpenGraphMetaTag("og:url", $core_v2_page.AbsoluteUrl($core_v2_urls.Custom($page.Name)))
+      #set($ogTitle =  $core_v2_widget.GetStringValue("openGraphTitle",""))
+      #if($ogTitle != "")
+      $core_v2_page.AddOpenGraphMetaTag("og:title", $core_v2_encoding.HtmlAttributeEncode($ogTitle))
+      #end
+
+      #set($ogDescription =  $core_v2_widget.GetStringValue("openGraphDescription",""))
+      #if($ogDescription != "")
+      $core_v2_page.AddOpenGraphMetaTag("og:description", $core_v2_encoding.HtmlAttributeEncode($ogDescription))
+      #end
+
+      #set($ogImage =  $core_v2_widget.GetUrlValue("openGraphImage",""))
+      #if($ogImage != "")
+      $core_v2_page.AddOpenGraphMetaTag("og:image",$core_v2_encoding.HtmlAttributeEncode($core_v2_page.AbsoluteUrl($ogImage)))
+      #end
+      ]]></contentScript>
+		<configuration><![CDATA[
+      <propertyGroup id="options" resourceName="Options">
+        <property id="fragmentHeader" resourceName="Title" dataType="string" defaultValue="${resource:Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+        <property id="pageTitle" resourceName="PageTitle" dataType="string" descriptionResourceName="PageTitle_Description" defaultValue="" />
+        <property id="metaKeywords" resourceName="MetaKeywords" dataType="string" descriptionResourceName="MetaKeywords_Description" defaultValue="" />
+        <property id="metaDescription" resourceName="MetaDescription" dataType="string" defaultValue="" descriptionResourceName="MetaDescription_Description" controlType="Telligent.DynamicConfiguration.Controls.MultilineHtmlControl, Telligent.DynamicConfiguration" />
+        <property id="canonicalUrl" resourceName="CanonicalUrl" dataType="url" defaultValue="" descriptionResourceName="CanonicalUrl_Description" />
+      </propertyGroup>
+      <propertyGroup id="openGraph" resourceName="OpenGraph">
+        <property id="openGraphTitle" resourceName="OpenGraphTitle" dataType="string" defaultValue="" descriptionResourceName="OpenGraphTitle_Description" />
+        <property id="openGraphDescription" resourceName="OpenGraphDescription" dataType="string" defaultValue="" descriptionResourceName="OpenGraphDescription_Description" controlType="Telligent.DynamicConfiguration.Controls.MultilineHtmlControl, Telligent.DynamicConfiguration"/>
+        <property id="openGraphImage" dataType="url" defaultValue="" resourceName="OpenGraphImage" descriptionResourceName="OpenGraphImage_Description"  controlType="Telligent.Evolution.Controls.ThemeFileUrlControl, Telligent.Evolution.Platform">
+          <propertyRule type="Telligent.Evolution.Controls.PropertyRules.FileExtensionRule, Telligent.Evolution.Platform" validExtensions="gif,jpg,jpeg,png" />
+        </property>
+
+      </propertyGroup>
+      ]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CanonicalUrl">Canonical Url</resource>
+  <resource name="CanonicalUrl_Description">If specified this will override the default url used in the canonical link tag.  By default the canonical url is the page's current base url.</resource>
+  <resource name="If specified this will override the default url used in the canonical link tag.  By default the canonical url is the page's current base url."></resource>
+  <resource name="MetaDescription">Meta Description</resource>
+  <resource name="MetaDescription_Description">Should describe the page's content and will be placed in the description meta tag.</resource>
+  <resource name="MetaKeywords">Meta Keywords</resource>
+  <resource name="MetaKeywords_Description">A comma separated list of keywords that will be placed in the keywords meta tag.</resource>
+  <resource name="OpenGraph">Open Graph</resource>
+  <resource name="OpenGraphDescription">Description</resource>
+  <resource name="OpenGraphDescription_Description">The description to be used in an Open Graph meta tag.  If not specified no tag will be rendered.</resource>
+  <resource name="OpenGraphImage">Image</resource>
+  <resource name="OpenGraphImage_Description">An image to be used in the open graph meta tag.  If not specified no tag will be rendered.</resource>
+  <resource name="OpenGraphTitle">Title</resource>
+  <resource name="OpenGraphTitle_Description">The title to be used in an Open Graph meta tag.  If not specified no tag will be rendered.</resource>
+  <resource name="Options">Options</resource>
+  <resource name="PageTitle">Page Title</resource>
+  <resource name="PageTitle_Description">The text to be used in the title tag of this page.  If not specified the page name will be used.</resource>
+  <resource name="SEO_Description">Provides SEO Meta Data For Custom Content Pages</resource>
+  <resource name="SEO_Name">SEO Meta Data for Content Pages</resource>
+  <resource name="Title">SEO Meta Data for Content Pages</resource>
+</language>
+<language key="fr-fr">
+  <resource name="CanonicalUrl"></resource>
+  <resource name="CanonicalUrl_Description"></resource>
+  <resource name="If specified this will override the default url used in the canonical link tag.  By default the canonical url is the page's current base url."></resource>
+  <resource name="MetaDescription"></resource>
+  <resource name="MetaDescription_Description"></resource>
+  <resource name="MetaKeywords"></resource>
+  <resource name="MetaKeywords_Description"></resource>
+  <resource name="OpenGraph"></resource>
+  <resource name="OpenGraphDescription"></resource>
+  <resource name="OpenGraphDescription_Description"></resource>
+  <resource name="OpenGraphImage"></resource>
+  <resource name="OpenGraphImage_Description"></resource>
+  <resource name="OpenGraphTitle"></resource>
+  <resource name="OpenGraphTitle_Description"></resource>
+  <resource name="Options"></resource>
+  <resource name="PageTitle"></resource>
+  <resource name="PageTitle_Description"></resource>
+  <resource name="Title"></resource>
+</language>
+<language key="zh-cn">
+  <resource name="CanonicalUrl">规范 Url</resource>
+  <resource name="CanonicalUrl_Description">如果已指定，这将覆盖规范链接标记中使用的缺省 url。缺省情况下，规范 url 即为页面的当前基础 url。</resource>
+  <resource name="If specified this will override the default url used in the canonical link tag.  By default the canonical url is the page's current base url."></resource>
+  <resource name="MetaDescription">元描述</resource>
+  <resource name="MetaDescription_Description">应描述页面的内容，并且将放置在描述元标记中。</resource>
+  <resource name="MetaKeywords">元关键字</resource>
+  <resource name="MetaKeywords_Description">将放置在关键字元标记中的逗号分隔关键字列表。</resource>
+  <resource name="OpenGraph">开放图形</resource>
+  <resource name="OpenGraphDescription">描述</resource>
+  <resource name="OpenGraphDescription_Description">要在开放图形元标记中使用的描述。如果未指定，将不会显示标记。</resource>
+  <resource name="OpenGraphImage">图像</resource>
+  <resource name="OpenGraphImage_Description">要在开放图形元标记中使用的图像。如果未指定，将不会显示标记。</resource>
+  <resource name="OpenGraphTitle">标题</resource>
+  <resource name="OpenGraphTitle_Description">要在开放图形元标记中使用的标题。如果未指定，将不会显示标记。</resource>
+  <resource name="Options">选项</resource>
+  <resource name="PageTitle">页面标题</resource>
+  <resource name="PageTitle_Description">要在此页面的标题标记中使用的文本。如果未指定，则将使用页面名称。</resource>
+  <resource name="SEO_Description">为自定义内容页面提供 SEO 元数据</resource>
+  <resource name="SEO_Name">内容页面的 SEO 元数据</resource>
+  <resource name="Title">内容页面的 SEO 元数据</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CanonicalUrl">正式 URL</resource>
+  <resource name="CanonicalUrl_Description">若已指定，則會覆寫標準連結標記中使用的預設 URL。依預設，正式 URL 會是頁面目前的基本 URL。</resource>
+  <resource name="If specified this will override the default url used in the canonical link tag.  By default the canonical url is the page's current base url."></resource>
+  <resource name="MetaDescription">中繼描述</resource>
+  <resource name="MetaDescription_Description">應描述頁面的內容並置於描述中繼標記。</resource>
+  <resource name="MetaKeywords">中繼關鍵字</resource>
+  <resource name="MetaKeywords_Description">將置於關鍵字中繼標記中的關鍵字逗號分隔清單。</resource>
+  <resource name="OpenGraph">開放式圖形</resource>
+  <resource name="OpenGraphDescription">描述</resource>
+  <resource name="OpenGraphDescription_Description">要在開放式圖形中繼標記中使用的描述。若未指定，則不會顯示標記。</resource>
+  <resource name="OpenGraphImage">影像</resource>
+  <resource name="OpenGraphImage_Description">要在開放式圖形中繼標記中使用的影像。若未指定，則不會顯示標記。</resource>
+  <resource name="OpenGraphTitle">標題</resource>
+  <resource name="OpenGraphTitle_Description">要在開放式圖形中繼標記中使用的標題。若未指定，則不會顯示標記。</resource>
+  <resource name="Options">選項</resource>
+  <resource name="PageTitle">頁面標題</resource>
+  <resource name="PageTitle_Description">要在此頁面的標題標記中使用的文字。如果未指定，就會使用頁面的名稱。</resource>
+  <resource name="SEO_Description">提供自訂內容頁面的 SEO 中繼資料</resource>
+  <resource name="SEO_Name">內容頁面的 SEO 中繼資料</resource>
+  <resource name="Title">內容頁面的 SEO 中繼資料</resource>
+</language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

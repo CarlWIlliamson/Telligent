@@ -1,0 +1,96 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:PointTransactionTotal_WidgetName}" version="10.1.8.10498" description="${resource:PointTransactionTotal_WidgetDescription}" instanceIdentifier="5275347a07e14842816d82f8cadc04a5" theme="" isCacheable="false" varyCacheByUser="false" showHeaderByDefault="true" cssClass="user-points-total">
+		<contentScript><![CDATA[	#set($canViewDetails = $core_v2_nodePermission.Get($core_v2_sitePermissions.ManageMembership).IsAllowed)
+	#set ($userSelection = $core_v2_widget.GetStringValue('userSelection', 'accessing'))
+
+	#if($userSelection == 'contextual')
+	    #set ($user = $core_v2_user.Current)
+	    #if(!$core_v2_user.IsRegistered($user.Id) || $user.IsSystemAccount)
+	        $core_v2_widget.Hide()
+	    #end
+	#else
+	    #set ($user = $core_v2_user.Accessing)
+	#end
+
+	#if($core_v2_user.IsRegistered($core_v2_user.Accessing.Id) && !$user.IsSystemAccount)
+		#set($linkToDetails = false)
+		#set($linkToDetails = $core_v2_urls.UserPoints($user.Id))
+		<div class="content full">
+	    <h3 class="name">
+				#if ($linkToDetails)
+					<a href="$linkToDetails">
+				#end
+				#if ($user.Points == 1)
+					$core_v2_language.GetResource('Point')
+				#else
+					$core_v2_language.FormatString($core_v2_language.GetResource('Points'), $core_v2_language.FormatNumber($user.Points))
+				#end
+				#if ($linkToDetails)
+					</a>
+				#end
+			</h3>
+			<div class="content"></div>
+		</div>
+	#else
+		## don't show anonymous users their own (non-existent) points
+		$core_v2_widget.Hide()
+	#end
+	]]></contentScript>
+		<headerScript><![CDATA[
+	#set ($userSelection = $core_v2_widget.GetStringValue('userSelection', 'accessing'))
+	#if($userSelection == 'contextual')
+		$core_v2_language.FormatString($core_v2_widget.ApplyTokens('${resource:PointTransactionTotal_Title_Someone}'), $core_v2_user.Current.DisplayName)
+	#else
+		$core_v2_widget.ApplyTokens('${resource:PointTransactionTotal_Title_You}')
+	#end
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Configuration_Options">
+	<property id="fragmentHeader" resourceName="Configuration_Title" dataType="string" defaultValue="${resource:PointTransactionTotal_WidgetName}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="userSelection" resourceName="Configuration_UserSelection" dataType="string" defaultValue="accessing" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		<propertyValue value="accessing" resourceName="Configuration_UserSelection_Accessing" />
+		<propertyValue value="contextual" resourceName="Configuration_UserSelection_Contextual" />
+	</property>
+</propertyGroup>
+]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Configuration_Options">Options</resource>
+  <resource name="Configuration_Title">Widget Name</resource>
+  <resource name="Configuration_UserSelection">Display points earned by...</resource>
+  <resource name="Configuration_UserSelection_Accessing">the user viewing the page</resource>
+  <resource name="Configuration_UserSelection_Contextual">the contextual user (for use on a profile page)</resource>
+  <resource name="Point">1 Point</resource>
+  <resource name="Points">{0} Points</resource>
+  <resource name="PointTransactionTotal_Title_Someone">{0}'s Points</resource>
+  <resource name="PointTransactionTotal_Title_You">My Points</resource>
+  <resource name="PointTransactionTotal_WidgetDescription">Displays a points total for a single user.</resource>
+  <resource name="PointTransactionTotal_WidgetName">User - Points Total</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Configuration_Options">选项</resource>
+  <resource name="Configuration_Title">小组件名称</resource>
+  <resource name="Configuration_UserSelection">显示以下各项赢得的积分...</resource>
+  <resource name="Configuration_UserSelection_Accessing">查看页面的用户</resource>
+  <resource name="Configuration_UserSelection_Contextual">上下文用户(用于个人资料页面)</resource>
+  <resource name="Point">1 分</resource>
+  <resource name="Points">{0} 分</resource>
+  <resource name="PointTransactionTotal_Title_Someone">{0} 的积分</resource>
+  <resource name="PointTransactionTotal_Title_You">我的积分</resource>
+  <resource name="PointTransactionTotal_WidgetDescription">显示某个用户的总积分。</resource>
+  <resource name="PointTransactionTotal_WidgetName">用户 - 总积分</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Configuration_Options">選項</resource>
+  <resource name="Configuration_Title">Widget 名稱</resource>
+  <resource name="Configuration_UserSelection">顯示該使用者獲得的點數...</resource>
+  <resource name="Configuration_UserSelection_Accessing">檢視頁面的使用者</resource>
+  <resource name="Configuration_UserSelection_Contextual">內容相關使用者 (於個人檔案頁面上使用)</resource>
+  <resource name="Point">1 點</resource>
+  <resource name="Points">{0} 點</resource>
+  <resource name="PointTransactionTotal_Title_Someone">{0} 的點數</resource>
+  <resource name="PointTransactionTotal_Title_You">我的點數</resource>
+  <resource name="PointTransactionTotal_WidgetDescription">顯示單一使用者的點數總計。</resource>
+  <resource name="PointTransactionTotal_WidgetName">使用者 - 點數總計</resource>
+</language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

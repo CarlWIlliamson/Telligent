@@ -1,0 +1,47 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Blogs_AboutBlog_Name}" version="10.1.8.10498" description="${resource:Blogs_AboutBlog_Description}" instanceIdentifier="ec7c6fe6fbdd450b94d6f0a411636fc2" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="true" cssClass="about-blog">
+		<contentScript><![CDATA[
+#set ($blog = $core_v2_blog.Current)
+#if ($blog && $blog.EnableAbout)
+	<div class="content full">
+		<h1 class="name">$blog.AboutTitle</h1>
+		<div class="content">$core_v2_ui.Render($blog.AboutDescription)</div>
+	</div>
+#else
+	$core_v2_widget.Hide()
+#end
+	]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Blogs_AboutBlog_Name}'))
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Blogs_AboutBlog_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+	]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Blogs_AboutBlog_Description">Displays the about blog page.</resource>
+  <resource name="Blogs_AboutBlog_Name">Blog - About</resource>
+  <resource name="Blogs_AboutBlog_Title_About">About</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Options">Options</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Blogs_AboutBlog_Description">显示关于博客页面。</resource>
+  <resource name="Blogs_AboutBlog_Name">博客 - 关于</resource>
+  <resource name="Blogs_AboutBlog_Title_About">关于</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Options">选项</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Blogs_AboutBlog_Description">顯示關於部落格頁面。</resource>
+  <resource name="Blogs_AboutBlog_Name">部落格 - 關於</resource>
+  <resource name="Blogs_AboutBlog_Title_About">關於</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Options">選項</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="94b4a7db70934b0abcce06169b6f2272" />
+		</requiredContext>
+	</scriptedContentFragment>
+</scriptedContentFragments>

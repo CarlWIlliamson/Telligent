@@ -1,0 +1,102 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:PointTransactionList_WidgetName}" version="10.1.8.10498" description="${resource:PointTransactionList_WidgetDescription}" instanceIdentifier="b4926a2a608644a8a2e152dc8df49d7d" theme="" isCacheable="false" varyCacheByUser="false" showHeaderByDefault="true" cssClass="user-points-list">
+		<contentScript><![CDATA[#set ($userSelection = $core_v2_widget.GetStringValue('userSelection', 'accessing'))
+
+#if($userSelection != "accessing")
+    #set($currentUser = false)
+    #set($currentUser = $core_v2_user.Current)
+    
+    #set($canViewPoints = $core_v2_nodePermission.Get($core_v2_sitePermissions.ManageMembership).IsAllowed)
+    #if(!$currentUser || !$core_v2_user.IsRegistered($core_v2_user.Current.Id) || (!$canViewPoints && $core_v2_user.Accessing.Id != $core_v2_user.Current.Id))
+        $core_v2_widget.Hide()
+    #end
+#else
+    #if(!$core_v2_user.IsRegistered($core_v2_user.Accessing.Id) || $core_v2_user.Accessing.IsSystemAccount)
+         $core_v2_widget.Hide()
+    #end
+#end
+
+ $core_v2_ui.PagedContent('list.vm')
+
+
+]]></contentScript>
+		<headerScript><![CDATA[#set ($userSelection = $core_v2_widget.GetStringValue('userSelection', 'accessing'))
+#if($userSelection == 'contextual')
+	$core_v2_language.FormatString($core_v2_widget.ApplyTokens('${resource:PointTransactionList_Title_Someone}'), $core_v2_user.Current.DisplayName)
+#else
+	$core_v2_widget.ApplyTokens('${resource:PointTransactionList_Title_You}')
+#end]]></headerScript>
+		<configuration><![CDATA[<propertyGroup id="options" resourceName="Configuration_Options">
+		<property id="fragmentHeader" resourceName="Configuration_Title" dataType="string" defaultValue="${resource:PointTransactionList_WidgetName}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+		<property id="userSelection" resourceName="Configuration_UserSelection" dataType="string" defaultValue="accessing" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+			<propertyValue value="accessing" resourceName="Configuration_UserSelection_Accessing" />
+			<propertyValue value="contextual" resourceName="Configuration_UserSelection_Contextual" />
+		</property>
+		<property id="filterSelection" resourceName="Configuration_FilterSelection" dataType="string" defaultValue="all" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+			<propertyValue value="all" resourceName="Configuration_FilterSelection_All" />
+			<propertyValue value="container" resourceName="Configuration_FilterSelection_Container" />
+			<propertyValue value="application" resourceName="Configuration_FilterSelection_Application" />
+		</property>
+		<property id="pageSize" resourceName="Configuration_PageSize" dataType="int" defaultValue="5">
+			<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="100" />
+		</property>
+	</propertyGroup>]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Configuration_FilterSelection">Filter points to those earned...</resource>
+  <resource name="Configuration_FilterSelection_All">site-wide (no filtering)</resource>
+  <resource name="Configuration_FilterSelection_Application">in the contextual application</resource>
+  <resource name="Configuration_FilterSelection_Container">in the contextual group</resource>
+  <resource name="Configuration_Options">Options</resource>
+  <resource name="Configuration_PageSize">Number of items to show at a time</resource>
+  <resource name="Configuration_Title">Widget Name</resource>
+  <resource name="Configuration_UserSelection">Display points earned by...</resource>
+  <resource name="Configuration_UserSelection_Accessing">the user viewing the page</resource>
+  <resource name="Configuration_UserSelection_Contextual">the contextual user (for use on a profile page)</resource>
+  <resource name="Error_AccessDenied">You don't have permission to view this content.</resource>
+  <resource name="PointTransactionList_PointsList_NoResults">No points history was found for the current filters.</resource>
+  <resource name="PointTransactionList_Title_Someone">{0}'s Recent Points Activity</resource>
+  <resource name="PointTransactionList_Title_You">My Recent Points Activity</resource>
+  <resource name="PointTransactionList_WidgetDescription">Displays a history of points earned for a single user.</resource>
+  <resource name="PointTransactionList_WidgetName">User - Points Activity</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Configuration_FilterSelection">将积分筛选为在以下范围赢得的积分...</resource>
+  <resource name="Configuration_FilterSelection_All">网站范围(未筛选)</resource>
+  <resource name="Configuration_FilterSelection_Application">在上下文应用程序中</resource>
+  <resource name="Configuration_FilterSelection_Container">在上下文社区中</resource>
+  <resource name="Configuration_Options">选项</resource>
+  <resource name="Configuration_PageSize">一次要显示的项目数</resource>
+  <resource name="Configuration_Title">小组件名称</resource>
+  <resource name="Configuration_UserSelection">显示以下各项赢得的积分...</resource>
+  <resource name="Configuration_UserSelection_Accessing">查看页面的用户</resource>
+  <resource name="Configuration_UserSelection_Contextual">上下文用户(用于个人资料页面)</resource>
+  <resource name="Error_AccessDenied">您无权查看此内容。</resource>
+  <resource name="PointTransactionList_PointsList_NoResults">未找到当前筛选器的积分历史记录。</resource>
+  <resource name="PointTransactionList_Title_Someone">{0} 的近期积分活动</resource>
+  <resource name="PointTransactionList_Title_You">我的近期积分活动</resource>
+  <resource name="PointTransactionList_WidgetDescription">显示某个用户赢得的积分的历史记录。</resource>
+  <resource name="PointTransactionList_WidgetName">用户 - 积分活动</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Configuration_FilterSelection">篩選獲得的點數...</resource>
+  <resource name="Configuration_FilterSelection_All">整個網站 (不篩選)</resource>
+  <resource name="Configuration_FilterSelection_Application">在內容相關應用程式中</resource>
+  <resource name="Configuration_FilterSelection_Container">在內容相關社群中</resource>
+  <resource name="Configuration_Options">選項</resource>
+  <resource name="Configuration_PageSize">一次要顯示的項目數</resource>
+  <resource name="Configuration_Title">Widget 名稱</resource>
+  <resource name="Configuration_UserSelection">顯示該使用者獲得的點數...</resource>
+  <resource name="Configuration_UserSelection_Accessing">檢視頁面的使用者</resource>
+  <resource name="Configuration_UserSelection_Contextual">內容相關使用者 (於個人檔案頁面上使用)</resource>
+  <resource name="Error_AccessDenied">您沒有檢視此內容的權限。</resource>
+  <resource name="PointTransactionList_PointsList_NoResults">找不到目前篩選器的點數記錄。</resource>
+  <resource name="PointTransactionList_Title_Someone">{0} 的最近點數活動</resource>
+  <resource name="PointTransactionList_Title_You">我的最近點數活動</resource>
+  <resource name="PointTransactionList_WidgetDescription">顯示單一使用者獲得的點數記錄。</resource>
+  <resource name="PointTransactionList_WidgetName">使用者 - 點數活動</resource>
+</language></languageResources>
+		<files>
+			<file name="list.vm">77u/I3NldCAoJHVzZXJTZWxlY3Rpb24gPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ3VzZXJTZWxlY3Rpb24nLCAnYWNjZXNzaW5nJykpDQojaWYoJHVzZXJTZWxlY3Rpb24gPT0gJ2NvbnRleHR1YWwnKQ0KICAgICNzZXQgKCR1c2VySWQgPSAkY29yZV92Ml91c2VyLkN1cnJlbnQuSWQpDQojZWxzZQ0KICAgICNzZXQgKCR1c2VySWQgPSAkY29yZV92Ml91c2VyLkFjY2Vzc2luZy5JZCkNCiNlbmQNCiNzZXQgKCRxdWVyeSA9ICIle1VzZXJJZD0kdXNlcklkfSIpDQoNCiRxdWVyeS5BZGQoJ1BhZ2VTaXplJywgJGNvcmVfdjJfd2lkZ2V0LkdldEludFZhbHVlKCdwYWdlU2l6ZScsIDUpKQ0KJHF1ZXJ5LkFkZCgnUGFnZUluZGV4JywgJGNvcmVfdjJfdWkuR2V0Q3VycmVudFBhZ2VJbmRleCgpKQ0KDQojc2V0ICgkcXNDb250YWluZXJJZCA9ICRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgiY29udGFpbmVySWQiKSkNCiNzZXQgKCRxc0FwcGxpY2F0aW9uSWQgPSAkY29yZV92Ml9wYWdlLkdldFF1ZXJ5U3RyaW5nVmFsdWUoImFwcGxpY2F0aW9uSWQiKSkNCiNzZXQgKCRxc1N0YXJ0RGF0ZSA9ICRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgic3RhcnREYXRlIikpDQojc2V0ICgkcXNFbmREYXRlID0gJGNvcmVfdjJfcGFnZS5HZXRRdWVyeVN0cmluZ1ZhbHVlKCJlbmREYXRlIikpDQoNCiNpZiAoJHFzQ29udGFpbmVySWQgfHwgJHFzQXBwbGljYXRpb25JZCB8fCAkcXNTdGFydERhdGUgfHwgJHFzRW5kRGF0ZSkNCiAgICAjaWYgKCRxc0NvbnRhaW5lcklkKQ0KICAgICAgICAkcXVlcnkuQWRkKCJDb250YWluZXJJZCIsICRxc0NvbnRhaW5lcklkKQ0KICAgICAgICAjc2V0ICgkY29udGFpbmVyID0gJGNvcmVfdjJfY29udGFpbmVyLkdldCgkY29yZV92Ml91dGlsaXR5LlBhcnNlR3VpZCgkcXNDb250YWluZXJJZCksICRjb3JlX3YyX2dyb3VwLkNvbnRhaW5lclR5cGVJZCkpDQogICAgI2Vsc2VpZiAoJHFzQXBwbGljYXRpb25JZCkNCiAgICAgICAgJHF1ZXJ5LkFkZCgiQXBwbGljYXRpb25JZCIsICRxc0FwcGxpY2F0aW9uSWQpDQogICAgI2VuZA0KICAgIA0KICAgICNpZiAoJHFzU3RhcnREYXRlKQ0KICAgICAgICAkcXVlcnkuQWRkKCJTdGFydERhdGUiLCAkcXNTdGFydERhdGUpDQogICAgI2VuZA0KICAgICNpZiAoJHFzRW5kRGF0ZSkNCiAgICAgICAgJHF1ZXJ5LkFkZCgiRW5kRGF0ZSIsICRxc0VuZERhdGUpDQogICAgI2VuZA0KI2Vsc2UNCiAgICAjc2V0ICgkZmlsdGVyU2VsZWN0aW9uID0gJGNvcmVfdjJfd2lkZ2V0LkdldFN0cmluZ1ZhbHVlKCdmaWx0ZXJTZWxlY3Rpb24nLCAnYWxsJykpDQogICAgI2lmICgkZmlsdGVyU2VsZWN0aW9uID09ICdjb250YWluZXInKQ0KICAgICAgICAkcXVlcnkuQWRkKCJDb250YWluZXJJZCIsICRjb3JlX3YyX2NvbnRhaW5lci5DdXJyZW50LkNvbnRhaW5lcklkKQ0KICAgICNlbHNlaWYgICgkZmlsdGVyU2VsZWN0aW9uID09ICdhcHBsaWNhdGlvbicpDQogICAgICAgICRxdWVyeS5BZGQoIkFwcGxpY2F0aW9uSWQiLCAkY29yZV92Ml9hcHBsaWNhdGlvbi5DdXJyZW50LkFwcGxpY2F0aW9uSWQpDQogICAgI2VuZA0KI2VuZA0KDQojc2V0ICgkcG9pbnRUcmFuc2FjdGlvbnMgPSAkY29yZV92Ml9wb2ludFRyYW5zYWN0aW9uLkxpc3QoJHF1ZXJ5KSkNCg0KI2lmKCRjb250YWluZXIgfHwgJHFzU3RhcnREYXRlIHx8ICRxc0VuZERhdGUpDQo8ZGl2Pg0KICAgICNpZigkY29udGFpbmVyKQ0KICAgIEZyb20gPGEgaHJlZj0nJGNvbnRhaW5lci5VcmwnPickY29udGFpbmVyLkh0bWxOYW1lKCJXZWIiKSc8L2E+DQogICAgI2VuZA0KICAgIA0KICAgICNpZigkcXNTdGFydERhdGUgJiYgJHFzRW5kRGF0ZSkNCiAgICAgICAgI2lmKCRjb250YWluZXIpIGJldHdlZW4jZWxzZSBCZXR3ZWVuI2VuZCAkY29yZV92Ml9sYW5ndWFnZS5Gb3JtYXREYXRlQW5kVGltZSgkY29yZV92Ml91dGlsaXR5LlBhcnNlRGF0ZSgkcXVlcnkuU3RhcnREYXRlKSkgYW5kICRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdERhdGVBbmRUaW1lKCRjb3JlX3YyX3V0aWxpdHkuUGFyc2VEYXRlKCRxdWVyeS5FbmREYXRlKSkNCiAgICAjZWxzZWlmKCRxc1N0YXJ0RGF0ZSkNCiAgICAgICAgI2lmKCRjb250YWluZXIpIGFmdGVyI2Vsc2UgQWZ0ZXIjZW5kICRjb3JlX3YyX2xhbmd1YWdlLkZvcm1hdERhdGVBbmRUaW1lKCRjb3JlX3YyX3V0aWxpdHkuUGFyc2VEYXRlKCRxdWVyeS5TdGFydERhdGUpKQ0KICAgICNlbHNlaWYoJHFzRW5kRGF0ZSkNCiAgICAgICAgI2lmKCRjb250YWluZXIpIGJlZm9yZSNlbHNlIEJlZm9yZSNlbmQgJGNvcmVfdjJfbGFuZ3VhZ2UuRm9ybWF0RGF0ZUFuZFRpbWUoJGNvcmVfdjJfdXRpbGl0eS5QYXJzZURhdGUoJHF1ZXJ5LkVuZERhdGUpKQ0KICAgICNlbmQNCjwvZGl2Pg0KI2VuZA0KDQoNCg0KI2ZvcmVhY2goJHRyYW5zYWN0aW9uIGluICRwb2ludFRyYW5zYWN0aW9ucykNCiNiZWZvcmVhbGwNCjx1bCBjbGFzcz0iY29udGVudC1saXN0IGNvbnRlbnQgc2ltcGxlIG1hcmdpbi1ib3R0b20gdGFidWxhciI+DQojZWFjaA0KICAgIDxsaSBjbGFzcz0iY29udGVudC1pdGVtIj4NCiAgICAgICAgPGRpdiBjbGFzcz0ibWluaW1hbCBuYW1lIGNlbGwgbm93cmFwIHBvaW50cyNpZigkdHJhbnNhY3Rpb24uVmFsdWUgPCAwKSBuZWdhdGl2ZSNlbHNlIHBvc2l0aXZlI2VuZCI+JHRyYW5zYWN0aW9uLlZhbHVlPC9kaXY+DQogICAgICAgIDxkaXYgY2xhc3M9ImNlbGwgbmFtZSBub3dyYXAiPiR0cmFuc2FjdGlvbi5EZXNjcmlwdGlvbjwvZGl2Pg0KICAgICAgICA8ZGl2IGNsYXNzPSJtaW5pbWFsIGNlbGwgbm93cmFwIj4kY29yZV92Ml9sYW5ndWFnZS5Gb3JtYXREYXRlQW5kVGltZSgkdHJhbnNhY3Rpb24uQ3JlYXRlZERhdGUpPC9kaXY+DQogICAgICAgIDxkaXYgY2xhc3M9Im1pbmltYWwgY2VsbCBub3dyYXAiPg0KICAgICAgICAjaWYoJHRyYW5zYWN0aW9uLkNvbnRlbnQpDQogICAgICAgICAgICA8YSBocmVmPSckdHJhbnNhY3Rpb24uQ29udGVudC5VcmwnPiR0cmFuc2FjdGlvbi5Db250ZW50Lkh0bWxOYW1lKCJXZWIiKTwvYT4NCiAgICAgICAgI2Vsc2UNCiAgICAgICAgICAgIDxzcGFuIGNsYXNzPSJpdGVtLWRlc2NyaXB0aW9uIj4kY29yZV92Ml9sYW5ndWFnZS5HZXRSZXNvdXJjZSgiRXJyb3JfQWNjZXNzRGVuaWVkIikpPC9zcGFuPg0KICAgICAgICAjZW5kDQogICAgICAgIDwvZGl2Pg0KICAgIDwvbGk+DQojYWZ0ZXJhbGwNCjwvdWw+DQojbm9kYXRhDQo8ZGl2IGNsYXNzPSJtZXNzYWdlIG5vcmVjb3JkcyI+JGNvcmVfdjJfbGFuZ3VhZ2UuR2V0UmVzb3VyY2UoJ1BvaW50VHJhbnNhY3Rpb25MaXN0X1BvaW50c0xpc3RfTm9SZXN1bHRzJyk8L2Rpdj4NCiNlbmQNCg0KJGNvcmVfdjJfdWkuUGFnZXIoJHBvaW50VHJhbnNhY3Rpb25zLlBhZ2VJbmRleCwgJHBvaW50VHJhbnNhY3Rpb25zLlBhZ2VTaXplLCAkcG9pbnRUcmFuc2FjdGlvbnMuVG90YWxDb3VudCwgIiV7IFBhZ2VkQ29udGVudEZpbGUgPSAnbGlzdC52bScsIExvYWRpbmdJbmRpY2F0b3IgPSAndHJ1ZScsIExvYWRPbkFueUhhc2hDaGFuZ2UgPSAndHJ1ZScgfSIp</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

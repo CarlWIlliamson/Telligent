@@ -1,0 +1,81 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:CF_RawContent}" version="10.1.8.10498" description="${resource:CF_RawContentDesc}" instanceIdentifier="42eb3aec20af4b97bd8e5ab3f84a1feb" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="true" cssClass="raw-content">
+		<contentScript><![CDATA[#set($html = false)
+#set($html = $core_v2_ui.Render($core_v2_widget.GetHtmlValue('html','')))
+#set($backgroundColor = false)
+#set($backgroundColor = $core_v2_widget.GetColorValue('backgroundColor', ''))
+#set($backgroundImage = false)
+#set($backgroundImage = $core_v2_widget.GetUrlValue('backgroundImage', ''))
+#set($height = false)
+#set($height = $core_v2_widget.GetUnitValue('height', ''))
+#set($width = $core_v2_widget.GetStringValue('width', 'page'))
+#if (!$html || $html == '')
+	$core_v2_widget.Hide()
+#end
+#if ($width == 'windowpage')
+    <div id="$core_v2_widget.UniqueId('content')" class="outer-wrapper" style="#if($backgroundColor && $backgroundColor != '')background-color: $backgroundColor;#end#if($backgroundImage && $backgroundImage != '')background-image:url('$core_v2_encoding.HtmlAttributeEncode($backgroundImage)');#end#if($height && $height != '')height:$height;#end">
+        <div class="inner-wrapper user-defined-markup">
+            $html
+        </div>
+    </div>
+#else
+    <div id="$core_v2_widget.UniqueId('content')" class="#if ($width == 'window') outer-wrapper inner-wrapper #end user-defined-markup" style="#if($backgroundColor && $backgroundColor != '')background-color: $backgroundColor;#end#if($backgroundImage && $backgroundImage != '')background-image:url('$core_v2_encoding.HtmlAttributeEncode($backgroundImage)');#end#if($height && $height != '')height:$height;#end">
+        $html
+    </div>
+#end
+#if ($width == 'window' || $width == 'windowpage')
+    #registerEndOfPageHtml()
+        <script type="text/javascript">
+            jQuery(document).ready(function() {
+                var elm = jQuery('#$core_v2_widget.UniqueId('content')');
+                elm.parent().height(elm.outerHeight(true));
+                jQuery(window).trigger('resize');
+                elm.on('resized', function() {
+                    elm.parent().height(elm.outerHeight(true));
+                    jQuery(window).trigger('resize');
+                });
+            });
+        </script>
+    #end
+#end]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('title', '${resource:CF_GenericContent}'))
+	]]></headerScript>
+		<configuration><![CDATA[<propertyGroup id="group1" resourceName="Options">
+	<property id="title" resourceName="CF_Title" dataType="string" defaultValue="${resource:CF_GenericContent}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="html" resourceName="CF_Content" dataType="html" controlType="Telligent.Evolution.Controls.CodeStringControl, Telligent.Evolution.Platform" language="html" minlines="20" maxlines="20" />
+</propertyGroup>
+<propertyGroup id="group2" resourceName="Style">
+	<property id="backgroundColor" resourceName="CF_BackgroundColor" dataType="color" />
+	<property id="backgroundImage" resourceName="CF_BackgroundImage" dataType="url" controlType="Telligent.Evolution.Controls.UserFileUrlControl, Telligent.Evolution.Platform" validExtensions="gif,jpg,jpeg,png">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.FileExtensionRule, Telligent.Evolution.Platform" validExtensions="gif,jpg,jpeg,png" />
+	</property>
+	<property id="height" resourceName="Height" dataType="unit" />
+	<property id="width" resourceName="Width" dataType="string" defaultValue="page">
+	    <propertyValue resourceName="Width_PageWidth" value="page" />
+	    <propertyValue resourceName="Width_WindowContentPageWidth" value="windowpage" />
+	    <propertyValue resourceName="Width_WindowWidth" value="window" />
+	</property>
+	<property id="cssClass" resourceName="CF_CssClass" descriptionResourceName="CF_CssClass_Description" dataType="string" />
+</propertyGroup>
+	]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_BackgroundColor">Background Color</resource>
+  <resource name="CF_BackgroundImage">Background Image</resource>
+  <resource name="CF_Content">Content</resource>
+  <resource name="CF_CssClass">CSS Class</resource>
+  <resource name="CF_CssClass_Description">This class name is applied to the wrapper for the content, enabling targeting from custom CSS rules.</resource>
+  <resource name="CF_RawContent">Unfiltered HTML</resource>
+  <resource name="CF_RawContentDesc">Enables raw HTML to be rendered for advertisement code, embedded content, etc.</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Height">Height</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Style">Style</resource>
+  <resource name="Width">Width</resource>
+  <resource name="Width_PageWidth">Page width</resource>
+  <resource name="Width_WindowContentPageWidth">Background at window width, content at page width</resource>
+  <resource name="Width_WindowWidth">Window width</resource>
+</language></languageResources>
+		<additionalCssScript><![CDATA[$core_v2_widget.GetStringValue('cssClass', '')]]></additionalCssScript>
+	</scriptedContentFragment>
+</scriptedContentFragments>

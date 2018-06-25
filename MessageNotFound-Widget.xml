@@ -1,0 +1,36 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_ErrorNotFound_Name}" version="10.1.8.10498" description="${resource:Core_ErrorNotFound_Description}" instanceIdentifier="6259543df09b4d8daeafa09e31380a64" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="error-not-found">
+		<contentScript><![CDATA[
+<p>$core_v2_language.GetResource("Error_NotFound_Description")</p>
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Core_ErrorNotFound_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Core_ErrorNotFound_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Core_ErrorNotFound_Description">Displays an error message that requested resource was not found, and provides a site search form.</resource>
+  <resource name="Core_ErrorNotFound_Name">Message - Not Found</resource>
+  <resource name="Error_NotFound_Description">Unfortunately, the page you've requested no longer exists. Please use the search form above to locate the information you're interested in.</resource>
+  <resource name="Options">Options</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Core_ErrorNotFound_Description">显示一条有关未找到所请求资源的错误消息，并提供网站搜索表单。</resource>
+  <resource name="Core_ErrorNotFound_Name">消息 - 找不到</resource>
+  <resource name="Error_NotFound_Description">很遗憾，您请求的页面不再存在。请使用上面的搜索表查找您感兴趣的信息。</resource>
+  <resource name="Options">选项</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Core_ErrorNotFound_Description">顯示找不到所要求資源的錯誤訊息，並且提供網站搜尋表單。</resource>
+  <resource name="Core_ErrorNotFound_Name">訊息 - 找不到</resource>
+  <resource name="Error_NotFound_Description">很抱歉，您所要求的頁面已經不存在。請使用以上搜尋表單來找出您感興趣的資訊。</resource>
+  <resource name="Options">選項</resource>
+</language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

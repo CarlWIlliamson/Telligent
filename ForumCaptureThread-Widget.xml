@@ -1,0 +1,127 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Forums_CaptureThread_Name}" version="10.1.8.10498" description="${resource:Forums_CaptureThread_Description}" instanceIdentifier="f33c85127b2449d3903659092cba6e37" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="capture-thread">
+		<contentScript><![CDATA[
+
+#set ($thread = $core_v2_forumThread.Current)
+#set ($hasEnabledWikis = true)
+#if (!$core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+	#set ($hasEnabledWikis = false)
+#end
+
+#set ($wikis = false)
+#set ($wikis = $core_v2_wiki.List("%{ GroupId = $core_v2_group.Current.Id }"))
+#if (!$wikis || $wikis.Count == 0)
+	#set ($hasEnabledWikis = false)
+#end
+
+#set ($wikiSelectId = $core_v2_widget.UniqueId('wikiSelect'))
+#set ($submitCaptureId = $core_v2_widget.UniqueId('submitCapture'))
+#set ($defaultWikiCaptureUrl = false)
+
+#set ($enabledWikis = [])
+#foreach ($wiki in $wikis)
+	#if ($wiki.Enabled && $core_v2_nodePermission.Get("wikis", $wiki.Id, $core_v2_wikiPermissions.CreatePage).IsAllowed)
+		#set ($index = $enabledWikis.Add($wiki))
+		#if (!$defaultWikiCaptureUrl)
+			#set ($defaultWikiCaptureUrl = $core_v2_wikiUrls.AddPage($wiki.Id, "%{ ForumThreadId = $thread.Id }"))
+		#end
+	#end
+#end
+
+#if ($enabledWikis.Count == 0)
+	#set ($hasEnabledWikis = false)
+#end
+
+#if (!$hasEnabledWikis)
+	<div class="message warning">$core_v2_language.GetResource('Wiki_NoWikisToCapture')</div>
+#else
+	<fieldset>
+		<p>$core_v2_language.GetResource('Wiki_CopyToWiki')</p>
+		<ul class="field-list">
+			<li class="field-item">
+				<label for="$core_v2_encoding.HtmlAttributeEncode($wikiSelectId)" class="field-item-name">$core_v2_language.GetResource('Wiki_CaptureDesc')</label>
+				<span class="field-item-input">
+					<select name="$core_v2_encoding.HtmlAttributeEncode($wikiSelectId)" id="$core_v2_encoding.HtmlAttributeEncode($wikiSelectId)">
+					#foreach ($wiki in $enabledWikis)
+						#set ($captureUrl = $core_v2_wikiUrls.AddPage($wiki.Id, "%{ ForumThreadId = $thread.Id }"))
+						#set ($name = $wiki.Name)
+						#if ($wiki.Group && $wiki.Group.ParentGroupId > 0)
+							#set ($name = "${wiki.Group.Name} / ${name}")
+						#end
+						<option value="$core_v2_encoding.HtmlAttributeEncode($captureUrl)">$name</option>
+					#end
+					</select>
+				</span>
+			</li>
+			<li class="field-item">
+				<span class="field-item-input">
+					<a href="#" class="button" name="$core_v2_encoding.HtmlAttributeEncode($submitCaptureId)" id="$core_v2_encoding.HtmlAttributeEncode($submitCaptureId)">$core_v2_language.GetResource('Wiki_Capture')</a>
+				</span>
+			</li>
+		</ul>
+	</fieldset>
+#end
+
+#registerEndOfPageHtml('telligent.evolution.widgets.captureThread')
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl("ui.js"))"></script>
+#end
+
+#registerEndOfPageHtml()
+	<script type="text/javascript">
+		jQuery(function(){
+			jQuery.telligent.evolution.widgets.captureThread.register({
+				wrapperId: '$core_v2_widget.WrapperElementId',
+				wikiCaptureUrl: #if ($enabledWikis.Count == 1 && $defaultWikiCaptureUrl) '$core_v2_encoding.JavascriptEncode($defaultWikiCaptureUrl)' #else null #end,
+				wikiSelect: '#$core_v2_encoding.JavascriptEncode($wikiSelectId)',
+				submitCapture: '#$core_v2_encoding.JavascriptEncode($submitCaptureId)'
+			});
+		});
+	</script>
+#end
+		]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Forums_CaptureThread_Name}'))
+		]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Forums_CaptureThread_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Forums_CaptureThread_Description">Displays the capture thread to wiki form.</resource>
+  <resource name="Forums_CaptureThread_Name">Forum - Capture Thread</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Wiki_Capture">Capture</resource>
+  <resource name="Wiki_CaptureDesc">Select the wiki to capture the thread into.</resource>
+  <resource name="Wiki_CopyToWiki">Capture to wiki</resource>
+  <resource name="Wiki_NoWikisToCapture">There are no wikis that you have access to create pages for.</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Forums_CaptureThread_Description">显示将话题捕获到 Wiki 的窗体。</resource>
+  <resource name="Forums_CaptureThread_Name">论坛 - 捕获话题</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Wiki_Capture">捕获</resource>
+  <resource name="Wiki_CaptureDesc">选择要捕获话题的 Wiki。</resource>
+  <resource name="Wiki_CopyToWiki">捕获到 Wiki</resource>
+  <resource name="Wiki_NoWikisToCapture">没有您有权访问以为其创建页面的 Wiki。</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Forums_CaptureThread_Description">顯示擷取對話至 Wiki 表單。</resource>
+  <resource name="Forums_CaptureThread_Name">論壇 - 擷取對話</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Wiki_Capture">擷取</resource>
+  <resource name="Wiki_CaptureDesc">選取要擷取對話的目標 Wiki。</resource>
+  <resource name="Wiki_CopyToWiki">擷取至 Wiki</resource>
+  <resource name="Wiki_NoWikisToCapture">您沒有任何 Wiki 的建立頁面存取權。</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="3e42a61fe20447f78ea9b0bb99a5c6a5" />
+		</requiredContext>
+		<files>
+			<file name="ui.js">KGZ1bmN0aW9uKCQpew0KCXZhciBhcGkgPSB7DQoJCXJlZ2lzdGVyOiBmdW5jdGlvbihjb250ZXh0KSB7DQoJCQljb250ZXh0ID0gJC5leHRlbmQoe30sIGFwaS5kZWZhdWx0cywgY29udGV4dCk7DQoNCgkJCSQoY29udGV4dC5zdWJtaXRDYXB0dXJlKS5iaW5kKCdjbGljaycsIGZ1bmN0aW9uKGUpew0KCQkJCWUucHJldmVudERlZmF1bHQoKTsNCgkJCQl3aW5kb3cubG9jYXRpb24uaHJlZiA9ICQoY29udGV4dC53aWtpU2VsZWN0KS52YWwoKTsNCgkJCQlyZXR1cm4gZmFsc2U7DQoJCQl9KTsNCgkJfQ0KCX07DQoJJC5leHRlbmQoYXBpLCB7DQoJCWRlZmF1bHRzOiB7DQoJCQl3cmFwcGVySWQ6ICcnLA0KCQkJd2lraUNhcHR1cmVVcmw6IG51bGwsDQoJCQl3aWtpU2VsZWN0OiAnJywNCgkJCXN1Ym1pdENhcHR1cmU6ICcnDQoJCX0NCgl9KTsNCg0KCS8vIGV4cG9zZSBhcGkgaW4gYSBwdWJsaWMgbmFtZXNwYWNlDQoJaWYgKHR5cGVvZiAkLnRlbGxpZ2VudCA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQgPSB7fTsgfQ0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSB7fTsgfQ0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID0ge307IH0NCgkkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cy5jYXB0dXJlVGhyZWFkID0gYXBpOw0KDQp9KGpRdWVyeSkpOw0K</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

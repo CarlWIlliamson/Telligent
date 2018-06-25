@@ -1,0 +1,92 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Ideas_Title_Name}" version="10.1.8.10498" description="${resource:Ideas_Title_Description}" instanceIdentifier="679decf2a911416fa4cc50e5b84cbe64" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="group-title ideas-title">
+		<contentScript><![CDATA[#set ($group = false)
+#set ($group = $core_v2_group.Current)
+
+#if(!$group)
+  $core_v2_widget.Hide()
+#end
+
+#set($idea = false)
+#set($idea = $telligentIdeas_v1_ideas.Current)
+
+#set($page = $telligentIdeas_v1_urls.Current)
+#if ($page == 'IdeaList')
+	#set($title = $challenge.Name)
+#elseif ($page == 'AddIdea')
+	#set($title = $core_v2_language.GetResource('Ideas_Url_AddIdea'))
+#elseif($page == 'EditIdea')
+	#set($title = $core_v2_language.FormatString($core_v2_language.GetResource('Ideas_Url_EditIdea'), $idea.Name))
+#elseif($page == 'Idea')
+	#set($title = $idea.Name)
+#elseif($page == 'challengeList')
+	#set($title = $core_v2_language.GetResource('Ideas_Url_ChallenegeList'))
+#elseif($page == 'Addchallenge')
+	#set($title = $core_v2_language.GetResource('Ideas_Url_AddChallenge'))
+#elseif($page == 'Editchallenge')
+	#set($title = $core_v2_language.GetResource('Ideas_Url_EditChallenge'))
+#else
+	#set($title = $core_v2_language.GetResource('Ideas_Url_AllIdeas'))
+#end
+
+$core_v2_page.SetTitle($title, true, true)
+]]></contentScript>
+		<headerScript><![CDATA[$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Ideas_Title_Title}'))]]></headerScript>
+		<configuration><![CDATA[      
+      <propertyGroup id="options" resourceName="Options">
+        <property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Ideas_Title_Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+      </propertyGroup>
+      ]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="BreadCrumb_Seperator"> &amp;raquo; </resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Home">Home</resource>
+  <resource name="Ideas_Title_Description">Sets and displays title for idea pages</resource>
+  <resource name="Ideas_Title_Name">Ideas - Title</resource>
+  <resource name="Ideas_Title_Title">Title</resource>
+  <resource name="Ideas_Url_AddChallenge">Create Ideation</resource>
+  <resource name="Ideas_Url_AddIdea">Add Idea</resource>
+  <resource name="Ideas_Url_AllIdeas">Ideas</resource>
+  <resource name="Ideas_Url_ChallenegeList">Ideations</resource>
+  <resource name="Ideas_Url_EditChallenge">Edit Ideation</resource>
+  <resource name="Ideas_Url_EditIdea">Edit '{0}'</resource>
+  <resource name="Options">Options</resource>
+  <resource name="ViewMore">...</resource>
+</language>
+<language key="zh-cn">
+  <resource name="BreadCrumb_Seperator"> &amp;raquo; </resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Home">首页</resource>
+  <resource name="Ideas_Title_Description">设置和显示创意页面的标题</resource>
+  <resource name="Ideas_Title_Name">创意 - 标题</resource>
+  <resource name="Ideas_Title_Title">标题</resource>
+  <resource name="Ideas_Url_AddChallenge">创建构思</resource>
+  <resource name="Ideas_Url_AddIdea">添加创意</resource>
+  <resource name="Ideas_Url_AllIdeas">创意</resource>
+  <resource name="Ideas_Url_ChallenegeList">构思</resource>
+  <resource name="Ideas_Url_EditChallenge">编辑构思</resource>
+  <resource name="Ideas_Url_EditIdea">编辑创意</resource>
+  <resource name="Options">选项</resource>
+  <resource name="ViewMore">...</resource>
+</language>
+<language key="zh-tw">
+  <resource name="BreadCrumb_Seperator"> &amp;raquo; </resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Home">首頁</resource>
+  <resource name="Ideas_Title_Description">設定及顯示構想頁面的標題</resource>
+  <resource name="Ideas_Title_Name">構想 - 標題</resource>
+  <resource name="Ideas_Title_Title">標題</resource>
+  <resource name="Ideas_Url_AddChallenge">建立構思</resource>
+  <resource name="Ideas_Url_AddIdea">新增構想</resource>
+  <resource name="Ideas_Url_AllIdeas">構想</resource>
+  <resource name="Ideas_Url_ChallenegeList">構思</resource>
+  <resource name="Ideas_Url_EditChallenge">編輯構思</resource>
+  <resource name="Ideas_Url_EditIdea">編輯構想</resource>
+  <resource name="Options">選項</resource>
+  <resource name="ViewMore">...</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="4daabcc42846400e95f4990266d3e3c9" />
+		</requiredContext>
+	</scriptedContentFragment>
+</scriptedContentFragments>

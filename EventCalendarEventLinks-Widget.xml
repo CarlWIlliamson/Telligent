@@ -1,0 +1,361 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Calendar_EventLinks_Name}" version="10.1.8.10498" description="${resource:Calendar_EventLinks_Description}" instanceIdentifier="68d781952e3f475ba6949577ca623604" theme="" isCacheable="false" varyCacheByUser="false" showHeaderByDefault="true" cssClass="event-links">
+		<contentScript><![CDATA[ 
+#set($links = $core_v2_page.ParseQueryString($core_v2_widget.GetCustomValue('links','Link=eventSubscribe&amp;Link=eventEdit&amp;Link=viewRegistrations&amp;Link=cancelEvent&amp;Link=deleteEvent&amp;Link=download&amp;Link=rss&amp;Link=feature')))
+#set($hasLinks = false)
+#set($currentGroup = $core_v2_group.Current)
+#set($currentCalendar = $calendar_v1_calendars.Current)
+#set($event = $calendar_v1_events.Current)
+#set($userId = $core_v2_user.Accessing.Id)
+#set($userIsRegistered = $core_v2_user.IsRegistered($userId))
+
+#if(!$currentGroup)
+  $core_v2_widget.Hide()
+#end
+
+#foreach($link in $links.Values('Link'))
+#beforeall
+
+<div class="ui-links navigation-list links" data-minlinks="0" data-maxlinks="0" data-direction="vertical">
+  <ul class="navigation-list">
+
+#each
+
+    #if($link == 'eventEdit' && $calendar_v1_calendars.HasPermission($event.CalendarId,$calendar_v1_permissions.EditEvent))
+      #set($url = $calendar_v1_urls.EditEvent($event.Id))
+      #if ($url)
+        <li class="navigation-list-item">
+          <a href="$core_v2_encoding.HtmlAttributeEncode($url)">$core_v2_language.GetResource('edit')</a>
+        </li>
+        #set($hasLinks = true)
+      #end
+    #end
+    
+    #if($link == 'feature' && $core_v3_feature.CanFeature($event.ContentId, $event.ContentTypeId))
+      <li class="navigation-list-item">$core_v2_ui.Feature($event.ContentId, $event.ContentTypeId)</li>
+    #end      
+      
+    #if($link == 'viewRegistrations' && $calendar_v1_calendars.HasPermission($event.CalendarId,$calendar_v1_permissions.ViewRegistrations))
+      #set($url = $calendar_v1_urls.RegisteredUsers($event.Id))
+      #if ($url)
+        <li class="navigation-list-item">
+          <a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link view-registrations">
+            $core_v2_language.GetResource('calendar_EventLinks_ViewRegistrations')
+          </a>
+        </li>
+        #set($hasLinks = true)
+      #end
+    #end
+      
+    #if($link == 'eventSubscribe' && $userIsRegistered && $calendar_v1_calendars.HasPermission($event.CalendarId,$calendar_v1_permissions.ViewCalendar))
+        
+      <li class="navigation-list-item">
+	      <a data-messagename="widget.${core_v2_widget.WrapperElementId}.eventSubscribe" data-eventid="$event.Id" data-subscribed="false" href="#" #if($calendar_v1_events.IsSubscribed($event.Id)) style="display:none" #end>$core_v2_language.GetResource('event_Subscribe_Off')</a>
+      </li>
+      <li class="navigation-list-item">
+	      <a data-messagename="widget.${core_v2_widget.WrapperElementId}.eventSubscribe" data-eventid="$event.Id" data-subscribed="true" href="#" #if(!$calendar_v1_events.IsSubscribed($event.Id)) style="display:none" #end>$core_v2_language.GetResource('event_Subscribe_On')</a>
+      </li>
+
+      #registerEndOfPageHtml("widget.${core_v2_widget.WrapperElementId}.eventSubscribe") 
+	      <script type="text/javascript">
+		      jQuery(function(j){
+			      function update(value, link) {
+				      j.telligent.evolution.post({
+					      url: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('subscribe.vm'))',
+					      data: {
+						      subscribe: value,
+						      eventId: link.data('eventid')
+					      },
+					      dataType: 'json',
+					      success: function(response) {
+						      if (response.subscribe) {
+							      link.closest('ul').find('a[data-subscribed="false"]').hide();
+							      link.closest('ul').find('a[data-subscribed="true"]').show();
+						      } else {
+							      link.closest('ul').find('a[data-subscribed="false"]').show();
+							      link.closest('ul').find('a[data-subscribed="true"]').hide();
+						      }
+
+						      if (response.warnings && response.warnings.length > 0) {
+							      j.telligent.evolution.notifications.show(response.warnings[0], { type: 'warning' });
+						      }
+					      }
+				      });
+			      }
+			      j.telligent.evolution.messaging.subscribe('widget.${core_v2_widget.WrapperElementId}.eventSubscribe', function(data){
+				      update(!j(data.target).data('subscribed'), j(data.target));
+			      });
+		      });
+	      </script>
+      #end
+          
+      #set($hasLinks = true)
+          
+    #end
+        
+    #if($link == 'cancelEvent' && $calendar_v1_calendars.HasPermission($currentCalendar.Id,$calendar_v1_permissions.EditEvent) && $event.IsCancelled == false)
+
+      <li class="navigation-list-item" id="$core_v2_widget.UniqueId('cancelEventItem')">
+        <a data-messagename="widget.${core_v2_widget.WrapperElementId}.eventCancel" data-eventid="$event.Id" href="#" class="internal-link delete-post">
+          $core_v2_language.GetResource('calendar_EventLinks_CancelEvent')
+        </a>
+      </li>
+      
+      #registerEndOfPageHtml()
+        <script type="text/javascript">
+          jQuery(function(){
+            cancelEvent = function(link) {
+              if (window.confirm('$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_CancelEventConfirmation'))'))
+              {
+                jQuery.telligent.evolution.del({
+                  url: jQuery.telligent.evolution.site.getBaseUrl() + 'api.ashx/v2/calendars/events/{Id}.json',
+                  data: {Id: link.data('eventid'), CancelOnly: true},
+                  defaultErrorMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_CancelEventError'))'
+                }).then(function(response) {
+                  jQuery.telligent.evolution.notifications.show('$core_v2_language.GetResource('calendar_event_cancelled_confirmation')');
+                  jQuery('#$core_v2_widget.UniqueId('eventTitle')').html('$core_v2_language.FormatString($core_v2_language.GetResource('calendar_event_cancelled'), $title)');
+                  link.hide();
+                });
+              }
+            };
+                
+            jQuery.telligent.evolution.messaging.subscribe('widget.${core_v2_widget.WrapperElementId}.eventCancel', function(data){
+              cancelEvent(jQuery(data.target));
+            });
+                
+          });
+        </script>
+      #end
+    
+      #set($hasLinks = true)
+
+    #end        
+        		        
+    #if ($link == 'deleteEvent' && $calendar_v1_calendars.HasPermission($event.CalendarId,$calendar_v1_permissions.DeleteEvent))      
+      <li class="navigation-list-item">    
+        <a href="#" onclick="deleteEvent(event);">$core_v2_language.GetResource('delete')</a>            
+      </li>
+      
+      #registerEndOfPageHtml()
+        <script type="text/javascript">
+          jQuery(function(){
+            deleteEvent = function(e) {
+              e.preventDefault();
+              if (window.confirm('$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_DeleteEventConfirmation'))'))
+              {
+                jQuery.telligent.evolution.del({
+                  url: jQuery.telligent.evolution.site.getBaseUrl() + 'api.ashx/v2/calendars/events/{Id}.json',
+                  data: {Id: $event.Id},
+                  success: function (response) {
+                    alert((response.Calendar == 'deleted') ? '$core_v2_language.GetResource('calendar_event_deleted')' : '$core_v2_language.GetResource('calendar_event_cancelled')');
+                    window.location = '$core_v2_encoding.JavascriptEncode($calendar_v1_urls.HomePage($event.CalendarId))';
+                  },
+                  error: function (xhr, desc, ex) {
+                    alert(desc);
+                  },
+                  defaultErrorMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('calendar_DeleteEventError'))'
+                });
+              }
+            };
+          });
+        </script>
+      #end
+      #set($hasLinks = true)
+    #end
+    
+    #if($link == 'rss' && $calendar_v1_calendars.HasPermission($currentCalendar.Id,$calendar_v1_permissions.ViewCalendar))
+      #set($url = $calendar_v1_urls.EventCommentRSS($event.Id))
+      #if($url)
+        <li class="navigation-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link rss"><span></span>$core_v2_language.GetResource('calendar_EventLinks_Rss')</a></li>
+        #set($hasLinks = true)
+      #end
+    #end
+
+    #if($link == 'download' && $calendar_v1_calendars.HasPermission($currentCalendar.Id,$calendar_v1_permissions.ViewCalendar))
+      #set($url = $calendar_v1_urls.DownloadEvent($event.Id))
+      #if($url)
+        <li class="navigation-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link download-event"><span></span>$core_v2_language.GetResource('calendar_EventLinks_Download')</a></li>
+        #set($hasLinks = true)
+      #end
+    #end
+    
+    #if ($link == 'convert')
+        #set($convert = false)
+		#set($convert = $core_v2_ui.ConvertContent($event.ContentId, $event.ContentTypeId))
+		#if ($convert)
+		    <li class="navigation-list-item">
+		        $convert
+		    </li>
+		    #set($hasLinks = true)
+		#end
+	#end
+#afterall
+    #if($hasLinks)    
+      <li class="navigation-list-item">
+	    <a href="#" data-more>$core_v2_language.GetResource('more')</a>
+	  </li>
+	  <li class="navigation-list-item">
+	    <a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+	  </li>
+    #end
+  </ul>
+</div>
+
+#end
+
+#if($hasLinks == false)
+  $core_v2_widget.Hide()
+#end
+
+]]></contentScript>
+		<headerScript><![CDATA[$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Calendar_EventLinks_Title}'))]]></headerScript>
+		<configuration><![CDATA[      
+    <propertyGroup id="options" resourceName="Options">
+        <property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Calendar_EventLinks_Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+        <property id="links" resourceName="event_Links" dataType="custom" defaultValue="Link=eventSubscribe&amp;Link=eventEdit&amp;Link=viewRegistrations&amp;Link=cancelEvent&amp;Link=deleteEvent&amp;Link=download&amp;Link=rss&amp;Link=feature" controlType="Telligent.Evolution.Controls.SortableListControl, Telligent.Evolution.Platform" height="300" key="Link" >
+          <propertyValue value="eventSubscribe" resourceName="calendar_EventLinks_Subscribe" />
+          <propertyValue value="eventEdit" resourceName="calendar_EventLinks_EditLink" />
+          <propertyValue value="viewRegistrations" resourceName="calendar_EventLinks_ViewRegistrationsLink" />
+          <propertyValue value="cancelEvent" resourceName="calendar_EventLinks_CancelEventLink" />
+          <propertyValue value="deleteEvent" resourceName="calendar_EventLinks_DeleteEventLink" />
+          <propertyValue value="download" resourceName="calendar_EventLinks_DownloadLink" />
+          <propertyValue value="rss" resourceName="calendar_EventLinks_RssLink" />
+          <propertyValue value="feature" resourceName="CF_feature" />
+          <propertyValue value="convert" resourceName="Convert" />
+        </property>
+      </propertyGroup>
+      ]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="calendar_CancelEventConfirmation">Are you sure you wish to cancel this event? This cannot be undone.</resource>
+  <resource name="calendar_CancelEventError">An error occurred while cancelling the event.</resource>
+  <resource name="calendar_DeleteEventConfirmation">Are you sure you wish to delete this event?  This will cause the event to first be cancelled along with any/all registrations.  This cannot be undone.</resource>
+  <resource name="calendar_DeleteEventError">An error occurred while deleting the event.</resource>
+  <resource name="calendar_event_cancelled">This event has been cancelled</resource>
+  <resource name="calendar_event_deleted">This event has been successfully deleted</resource>
+  <resource name="calendar_EventLinks">Select, rearrange, and enable the links to be displayed</resource>
+  <resource name="calendar_EventLinks_Add">Add a new event</resource>
+  <resource name="calendar_EventLinks_AddLink">Add Event</resource>
+  <resource name="calendar_EventLinks_Cancel">Cancel Registration/Invitation</resource>
+  <resource name="calendar_EventLinks_CancelEvent">Cancel</resource>
+  <resource name="calendar_EventLinks_CancelEventLink">Cancel</resource>
+  <resource name="calendar_EventLinks_DeleteEvent">Delete</resource>
+  <resource name="calendar_EventLinks_DeleteEventLink">Delete Event</resource>
+  <resource name="Calendar_EventLinks_Description">Displays links for a calendar event</resource>
+  <resource name="calendar_EventLinks_Download">Download</resource>
+  <resource name="calendar_EventLinks_DownloadLink">Download</resource>
+  <resource name="calendar_EventLinks_Edit">Edit this event</resource>
+  <resource name="calendar_EventLinks_EditLink">Edit Event</resource>
+  <resource name="Calendar_EventLinks_Name">Event Calendar - Event Links</resource>
+  <resource name="calendar_EventLinks_Register">Request Registration</resource>
+  <resource name="calendar_EventLinks_Rss">Rss</resource>
+  <resource name="calendar_EventLinks_RssLink">Rss</resource>
+  <resource name="calendar_EventLinks_Subscribe">Email Subscribe</resource>
+  <resource name="Calendar_EventLinks_Title">Options</resource>
+  <resource name="calendar_EventLinks_ViewRegistrations">Registrations</resource>
+  <resource name="calendar_EventLinks_ViewRegistrationsLink">Registrations</resource>
+  <resource name="calendar_EventLinkSettings_Disabled">Disabled</resource>
+  <resource name="calendar_EventLinkSettings_Enabled">Enabled</resource>
+  <resource name="cancel">Cancel</resource>
+  <resource name="CF_feature">Feature</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Convert">Move</resource>
+  <resource name="delete">Delete</resource>
+  <resource name="edit">Edit</resource>
+  <resource name="event_Links">Links</resource>
+  <resource name="event_Subscribe_Off">Turn Event notifications on</resource>
+  <resource name="event_Subscribe_On">Turn Event notifications off</resource>
+  <resource name="more">More</resource>
+  <resource name="Options">Options</resource>
+</language>
+<language key="zh-cn">
+  <resource name="calendar_CancelEventConfirmation">是否确定要取消此活动?此操作无法撤消。</resource>
+  <resource name="calendar_CancelEventError">取消活动时出错。</resource>
+  <resource name="calendar_DeleteEventConfirmation">是否确定要删除此活动?这将导致首先取消活动及任何/所有注册。此操作无法撤消。</resource>
+  <resource name="calendar_DeleteEventError">删除活动时出错。</resource>
+  <resource name="calendar_event_cancelled">此活动已取消</resource>
+  <resource name="calendar_event_deleted">已成功删除此活动</resource>
+  <resource name="calendar_EventLinks">选择、重新排列和启用要显示的链接</resource>
+  <resource name="calendar_EventLinks_Add">添加新活动</resource>
+  <resource name="calendar_EventLinks_AddLink">添加活动</resource>
+  <resource name="calendar_EventLinks_Cancel">取消注册/邀请</resource>
+  <resource name="calendar_EventLinks_CancelEvent">取消</resource>
+  <resource name="calendar_EventLinks_CancelEventLink">取消</resource>
+  <resource name="calendar_EventLinks_DeleteEvent">删除</resource>
+  <resource name="calendar_EventLinks_DeleteEventLink">删除活动</resource>
+  <resource name="Calendar_EventLinks_Description">显示日历活动的链接</resource>
+  <resource name="calendar_EventLinks_Download">下载</resource>
+  <resource name="calendar_EventLinks_DownloadLink">下载</resource>
+  <resource name="calendar_EventLinks_Edit">编辑此活动</resource>
+  <resource name="calendar_EventLinks_EditLink">编辑活动</resource>
+  <resource name="Calendar_EventLinks_Name">活动日历 - 活动链接</resource>
+  <resource name="calendar_EventLinks_Register">申请注册</resource>
+  <resource name="calendar_EventLinks_Rss">Rss</resource>
+  <resource name="calendar_EventLinks_RssLink">Rss</resource>
+  <resource name="calendar_EventLinks_Subscribe">电子邮件订阅</resource>
+  <resource name="Calendar_EventLinks_Title">选项</resource>
+  <resource name="calendar_EventLinks_ViewRegistrations">注册</resource>
+  <resource name="calendar_EventLinks_ViewRegistrationsLink">注册</resource>
+  <resource name="calendar_EventLinkSettings_Disabled">已禁用</resource>
+  <resource name="calendar_EventLinkSettings_Enabled">已启用</resource>
+  <resource name="cancel">取消</resource>
+  <resource name="CF_feature">专题</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Convert">移动</resource>
+  <resource name="delete">删除</resource>
+  <resource name="edit">编辑</resource>
+  <resource name="event_Links">链接</resource>
+  <resource name="event_Subscribe_Off">打开活动通知</resource>
+  <resource name="event_Subscribe_On">关闭活动通知</resource>
+  <resource name="more">更多</resource>
+  <resource name="Options">选项</resource>
+</language>
+<language key="zh-tw">
+  <resource name="calendar_CancelEventConfirmation">您確定要取消這個事件嗎?取消動作無法復原。</resource>
+  <resource name="calendar_CancelEventError">取消事件時發生錯誤。</resource>
+  <resource name="calendar_DeleteEventConfirmation">您確定要刪除這個事件嗎?這將會造成事件與其任何/所有註冊一併取消。取消動作無法復原。</resource>
+  <resource name="calendar_DeleteEventError">刪除事件時發生錯誤。</resource>
+  <resource name="calendar_event_cancelled">已取消這個事件</resource>
+  <resource name="calendar_event_deleted">已刪除這個事件</resource>
+  <resource name="calendar_EventLinks">選取%E3%80%81重新排列並啟用要顯示的連結</resource>
+  <resource name="calendar_EventLinks_Add">加入新的事件</resource>
+  <resource name="calendar_EventLinks_AddLink">新增事件</resource>
+  <resource name="calendar_EventLinks_Cancel">取消註冊/邀請</resource>
+  <resource name="calendar_EventLinks_CancelEvent">取消</resource>
+  <resource name="calendar_EventLinks_CancelEventLink">取消</resource>
+  <resource name="calendar_EventLinks_DeleteEvent">刪除</resource>
+  <resource name="calendar_EventLinks_DeleteEventLink">刪除事件</resource>
+  <resource name="Calendar_EventLinks_Description">顯示行事曆事件的連結</resource>
+  <resource name="calendar_EventLinks_Download">下載</resource>
+  <resource name="calendar_EventLinks_DownloadLink">下載</resource>
+  <resource name="calendar_EventLinks_Edit">編輯這個事件</resource>
+  <resource name="calendar_EventLinks_EditLink">編輯事件</resource>
+  <resource name="Calendar_EventLinks_Name">事件行事曆 - 事件連結</resource>
+  <resource name="calendar_EventLinks_Register">要求註冊</resource>
+  <resource name="calendar_EventLinks_Rss">Rss</resource>
+  <resource name="calendar_EventLinks_RssLink">Rss</resource>
+  <resource name="calendar_EventLinks_Subscribe">電子郵件訂閱</resource>
+  <resource name="Calendar_EventLinks_Title">選項</resource>
+  <resource name="calendar_EventLinks_ViewRegistrations">註冊</resource>
+  <resource name="calendar_EventLinks_ViewRegistrationsLink">註冊</resource>
+  <resource name="calendar_EventLinkSettings_Disabled">已停用</resource>
+  <resource name="calendar_EventLinkSettings_Enabled">已啟用</resource>
+  <resource name="cancel">取消</resource>
+  <resource name="CF_feature">精選</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Convert">移動</resource>
+  <resource name="delete">刪除</resource>
+  <resource name="edit">編輯</resource>
+  <resource name="event_Links">連結</resource>
+  <resource name="event_Subscribe_Off">開啟事件通知</resource>
+  <resource name="event_Subscribe_On">關閉事件通知</resource>
+  <resource name="more">更多</resource>
+  <resource name="Options">選項</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="ca14a7db70934b0abcce06169b6f2272" />
+		</requiredContext>
+		<files>
+			<file name="subscribe.vm">77u/I3NldCgkdHlwZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCd0eXBlJykpDQojc2V0KCRzdWJzY3JpYmUgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlQm9vbCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnc3Vic2NyaWJlJykpKQ0KJGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoNCiRjYWxlbmRhcl92MV9ldmVudHMuU2V0U3Vic2NyaWJlZCgkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdldmVudElkJykpLCAkc3Vic2NyaWJlKQ0KeyJzdWJzY3JpYmUiOiNpZigkc3Vic2NyaWJlKSB0cnVlI2Vsc2UgZmFsc2UjZW5kfQ==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

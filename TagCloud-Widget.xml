@@ -1,0 +1,287 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_TagCloud_Name}" version="10.1.8.10498" description="${resource:Core_TagCloud_Description}" instanceIdentifier="8c838436a4184f83a6f70318e8cc031a" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="tag-cloud">
+		<contentScript><![CDATA[
+#set ($applicationType = $core_v2_widget.GetStringValue('applicationType', 'Unknown'))
+#set ($filterTags = $core_v2_widget.GetStringValue('filterTags',''))
+#set ($ignoreFilterTags = $core_v2_widget.GetBoolValue('ignoreFilterTags', false))
+#set ($maximumTags = $core_v2_widget.GetIntValue('maximumTags', 25))
+#set ($minimumPostsPerTag = $core_v2_widget.GetIntValue('minimumPostsPerTag', 1))
+#set ($showTagCounts = $core_v2_widget.GetBoolValue('showTagCounts',false))
+#set ($enableNoTagsMessage = $core_v2_widget.GetBoolValue('enableNoTagsMessage',false))
+#set ($noTagsText = $core_v2_widget.GetStringValue('noTagsText','${resource:TagCloud_NoTagsDefined}'))
+#set ($linkTo = $core_v2_widget.GetStringValue('linkTo','ContextualTagBrowser'))
+#set ($cssClasses = $core_v2_utility.MakeList('level-6','level-5','level-4','level-3','level-2','level-1'))
+#set ($currentTags = $core_v2_tags.Current)
+
+## build base tag query
+#set ($query = "%{PageSize=100,PageIndex=0,SortBy='ContentCount',SortOrder='Descending'}")
+#set ($linkQuery = "%{}")
+#set ($showBreadCrumbs = false)
+#if (!$ignoreFilterTags)
+	#if($filterTags.Length == 0 && $currentTags && $currentTags.Count > 0)
+		#set ($filterTags = $core_v2_utility.Join(',',$currentTags))
+		#set($showBreadCrumbs = true)	
+	#end
+	#if ($filterTags && $filterTags.Length > 0)
+		$query.Add('Tags', $filterTags)
+	#end
+#end
+
+#if ($core_v2_container.Current)
+	##if widget is on the site home page (on the root group page) then retrieve all tags
+	#if ($core_v2_container.Current.ContainerId != $core_v2_group.Root.ContainerId)
+		$query.Add('ContainerIds', $core_v2_container.Current.ContainerId)
+	#end
+	$linkQuery.Add('ContainerId', $core_v2_container.Current.ContainerId)
+	$linkQuery.Add('ContainerTypeId', $core_v2_container.Current.ContainerTypeId)
+#end
+
+## load tags
+#set ($tags = false)
+#set ($urlGenerator = false)
+#if ($applicationType == "Forum")
+	#set ($currentForum = $core_v2_forum.Current)
+	$query.Add('ApplicationTypeIds', $core_v2_forum.ApplicationTypeId)
+	$linkQuery.Add('ApplicationTypeId', $core_v2_forum.ApplicationTypeId)
+	#if ($currentForum)
+		$query.Add('ApplicationIds', $currentForum.ApplicationId)
+		$linkQuery.Add('ApplicationId', $currentForum.ApplicationId)
+	#end
+#elseif ($applicationType == "Weblog")
+	#set ($currentBlog = $core_v2_blog.Current)
+	$query.Add('ApplicationTypeIds', $core_v2_blog.ApplicationTypeId)
+	$linkQuery.Add('ApplicationTypeId', $core_v2_blog.ApplicationTypeId)
+	#if ($currentBlog)
+		$query.Add('ApplicationIds', $currentBlog.ApplicationId)
+		$linkQuery.Add('ApplicationId', $currentBlog.ApplicationId)
+	#end
+#elseif ($applicationType == "MediaGallery")
+	#set ($currentGallery = $core_v2_gallery.Current)
+	$query.Add('ApplicationTypeIds', $core_v2_gallery.ApplicationTypeId)
+	$linkQuery.Add('ApplicationTypeId', $core_v2_gallery.ApplicationTypeId)
+	#if ($currentGallery)
+		$query.Add('ApplicationIds', $currentGallery.ApplicationId)
+		$linkQuery.Add('ApplicationId', $currentGallery.ApplicationId)
+	#end
+#elseif ($applicationType == "Wiki")
+	#set ($currentWiki = $core_v2_wiki.Current)
+	$query.Add('ApplicationTypeIds', $core_v2_wiki.ApplicationTypeId)
+	$linkQuery.Add('ApplicationTypeId', $core_v2_wiki.ApplicationTypeId)
+	#if ($currentWiki)
+		$query.Add('ApplicationIds', $currentWiki.ApplicationId)
+		$linkQuery.Add('ApplicationId', $currentWiki.ApplicationId)
+	#end
+#elseif ($applicationType == "Unknown")
+	#if($core_v2_application.Current)
+		$query.Add('ApplicationIds', $core_v2_application.Current.ApplicationId)
+		$linkQuery.Add('ApplicationId', $core_v2_application.Current.ApplicationId)
+	#end
+	#if ($core_v2_applicationType.Current)
+		$query.Add('ApplicationTypeIds', $core_v2_applicationType.Current.Id)
+		$linkQuery.Add('ApplicationTypeId', $core_v2_applicationType.Current.Id)
+	#end
+#end
+
+#if ($showBreadCrumbs)
+	#if($core_v2_tags.Current && $core_v2_tags.Current.Count > 0)
+		<ul class="breadcrumbs">
+			$linkQuery.Remove('Tags')
+			#set($tagUrl = false)
+			#set($tagUrl = $core_v2_urls.Tags($linkQuery))
+			#if ($tagUrl)
+				<li class="breadcrumb"><a href="$core_v2_encoding.HtmlAttributeEncode($tagUrl)">$core_v2_language.GetResource('AllTags')</a></li>
+			#end
+	
+			#set($index = 0)
+			#foreach($tag in $core_v2_tags.Current)
+			#each
+				#set($index = $index + 1)
+				$linkQuery.Remove('Tags')
+				$linkQuery.Add('Tags', $core_v2_utility.Join(',', $core_v2_utility.Slice($core_v2_tags.Current, 0, $index)))				
+				#set($tagUrl = false)
+				#set($tagUrl = $core_v2_urls.Tags($linkQuery))
+				#if ($tagUrl)
+					<li class="breadcrumb"><a href="$core_v2_encoding.HtmlAttributeEncode($tagUrl)">$tag</a></li>
+				#end
+			#end
+		</ul>
+	#end
+#end
+
+#set ($tags = $core_v2_tags.List($query))
+#set ($sortedTags = $core_v2_tags.Sort($tags, "%{ MinimumItemsPerTag = $minimumPostsPerTag, MaximumNumberOfTags = $maximumTags, CssClasses = $cssClasses }"))
+
+#foreach ($tag in $sortedTags)
+#beforeall
+	<ul class="tag-list cloud">
+#each
+	#set ($tagName = $tag.Name)
+	#if ($showTagCounts)
+		#set ($tagName = "${tagName} ($tag.ContentCount)")
+	#end
+	<li class="tag-item ${tag.CssClass}">
+		#set ($tagUrl = false)
+		#if($linkTo != 'Nothing')
+			#set ($tagsToLink = false)
+			#set ($tagsToLink = $core_v2_tags.Current)
+			#if ($tagsToLink)
+				#set ($addIndex = $tagsToLink.Add($tag.Name))
+			#else
+				#set ($tagsToLink = $core_v2_utility.MakeList($tag.Name))
+			#end
+			#if($linkTo == 'SiteTagBrowser')
+				#set($tagUrl = $core_v2_urls.Tags($tagsToLink))
+			#else
+				$linkQuery.Remove('Tags')
+				$linkQuery.Add('Tags', $core_v2_utility.Join(',', $tagsToLink))
+				#set($tagUrl = $core_v2_urls.Tags($linkQuery))
+			#end
+		#end
+		#if ($tagUrl)
+			<a href="$core_v2_encoding.HtmlAttributeEncode($tagUrl)" rel="nofollow tag"><span></span>$tagName</a>
+		#else
+			$tagName
+		#end
+	</li>
+#afterall
+	</ul>
+#nodata
+	#if ($filterTags && $filterTags.Length > 0)
+		<div class="tag-list cloud">$core_v2_language.GetResource('TagCloud_NoSubTagsDefined')</div>
+	#elseif($noTagsText && $enableNoTagsMessage)
+		#set ($noTagsText = $core_v2_widget.ApplyTokens($noTagsText))
+		<div class="tag-list cloud">$noTagsText</div>
+	#else
+		$core_v2_widget.Hide()
+	#end
+#end
+	]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:TagCloud_Title}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:TagCloud_Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="applicationType" resourceName="CF_AppType" dataType="string" defaultValue="Unknown">
+		<propertyValue value="Forum" resourceName="CF_Forum" />
+		<propertyValue value="Weblog" resourceName="CF_Weblog" />
+		<propertyValue value="MediaGallery" resourceName="CF_MediaGallery" />
+		<propertyValue value="Wiki" resourceName="CF_Wiki" />
+		<propertyValue value="Unknown" resourceName="CF_Unknown" />
+	</property>
+	<property id="ignoreFilterTags" resourceName="CF_IgnoreFilterTags" descriptionResourceName="CF_IgnoreFilterTags_Description" dataType="bool" defaultValue="false" />
+	<property id="maximumTags" resourceName="CF_MaxTags" descriptionResourceName="CF_MaxTags_Description" dataType="int" defaultValue="25">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="100" />
+	</property>
+	<property id="minimumPostsPerTag" resourceName="CF_MinPostsPerTag" descriptionResourceName="CF_MinPostsPerTag_Description" dataType="int" defaultValue="1">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="1" maxValue="10000" />
+	</property>
+	<property id="filterTags" resourceName="CF_TagsToFilter" descriptionResourceName="CF_TagsToFilter_Description" dataType="string" defaultValue="" />
+	<property id="showTagCounts" resourceName="CF_ShowTagCount" descriptionResourceName="CF_ShowTagCount_Description" dataType="bool" defaultValue="false" />
+	<property id="enableNoTagsMessage" resourceName="CF_EnableNoTagsMessage" dataType="bool" defaultValue="false" />
+	<property id="noTagsText" resourceName="CF_NoTagsText" dataType="string" defaultValue="${resource:TagCloud_NoTagsDefined}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="linkTo" resourceName="CF_LinkTagsTo" dataType="string" defaultValue="ContextualTagBrowser">
+		<propertyValue value="SiteTagBrowser" resourceName="CF_SiteTagBrowser" />
+		<propertyValue value="ContextualTagBrowser" resourceName="CF_ContextualTagBrowser" />
+		<propertyValue value="Nothing" resourceName="CF_Nothing" />
+	</property>
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="AllTags">All tags</resource>
+  <resource name="CF_AppType">Application</resource>
+  <resource name="CF_ContextualTagBrowser">Contextual Tag Browser</resource>
+  <resource name="CF_EnableNoTagsMessage">Enable No Tags Message</resource>
+  <resource name="CF_Forum">Forums</resource>
+  <resource name="CF_IgnoreFilterTags">Ignore Filter Tags</resource>
+  <resource name="CF_IgnoreFilterTags_Description">If set to true, the tag cloud will not be filtered by tags identified in the URL. This can be useful if the tag cloud will be shown on a 'Tag Browser' page.</resource>
+  <resource name="CF_LinkTagsTo">Link each Tag to</resource>
+  <resource name="CF_MaxTags">Maximum Number of Tags</resource>
+  <resource name="CF_MaxTags_Description">Only the most popular tags, up to the maximum number defined, will be displayed.</resource>
+  <resource name="CF_MediaGallery">Media Galleries</resource>
+  <resource name="CF_MinPostsPerTag">Minimum Number of Posts per Tag</resource>
+  <resource name="CF_MinPostsPerTag_Description">Only tags related to this minimum will be displayed.</resource>
+  <resource name="CF_NoTagsText">Text to Display when No Tags are Available</resource>
+  <resource name="CF_Nothing">(Nothing)</resource>
+  <resource name="CF_ShowTagCount">Show Post Count</resource>
+  <resource name="CF_ShowTagCount_Description">If enabled, the number of posts referencing each tag will be shown with each tag.</resource>
+  <resource name="CF_SiteTagBrowser">Site Tag Browser</resource>
+  <resource name="CF_TagsToFilter">Tags to Filter by</resource>
+  <resource name="CF_TagsToFilter_Description">A comma-separated list of tags to filter the tag cloud by.</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="CF_Unknown">(Automatically Detect)</resource>
+  <resource name="CF_Weblog">Weblogs</resource>
+  <resource name="CF_Wiki">Wikis</resource>
+  <resource name="Core_TagCloud_Description">Displays a tag cloud.</resource>
+  <resource name="Core_TagCloud_Name">Tag Cloud</resource>
+  <resource name="Options">Options</resource>
+  <resource name="TagCloud_NoSubTagsDefined">Sorry, but there are no more tags available to filter with.</resource>
+  <resource name="TagCloud_NoTagsDefined">No tags have been created or used yet.</resource>
+  <resource name="TagCloud_Title">Related Tags</resource>
+</language>
+<language key="zh-cn">
+  <resource name="AllTags">所有标记</resource>
+  <resource name="CF_AppType">应用程序</resource>
+  <resource name="CF_ContextualTagBrowser">上下文标记浏览器</resource>
+  <resource name="CF_EnableNoTagsMessage">启用无标记消息</resource>
+  <resource name="CF_Forum">论坛</resource>
+  <resource name="CF_IgnoreFilterTags">忽略筛选器标记</resource>
+  <resource name="CF_IgnoreFilterTags_Description">如果设置为真，则无法通过 URL 内标识的标记来筛选标记云。如果将在“标记浏览器”页面中显示标记云，这会很有用。</resource>
+  <resource name="CF_LinkTagsTo">将每个标记链接至</resource>
+  <resource name="CF_MaxTags">最大标记数</resource>
+  <resource name="CF_MaxTags_Description">将只显示最常用的标记，最多为定义的最大数量。</resource>
+  <resource name="CF_MediaGallery">媒体库</resource>
+  <resource name="CF_MinPostsPerTag">每个标记的最小文章数</resource>
+  <resource name="CF_MinPostsPerTag_Description">将只显示与此最小数量相关的标记。</resource>
+  <resource name="CF_NoTagsText">在无标记可用时显示的文本</resource>
+  <resource name="CF_Nothing">(无)</resource>
+  <resource name="CF_ShowTagCount">显示文章计数</resource>
+  <resource name="CF_ShowTagCount_Description">如果启用，将显示引用每个标记的文章数以及每个标记。</resource>
+  <resource name="CF_SiteTagBrowser">网站标记浏览器</resource>
+  <resource name="CF_TagsToFilter">要作为筛选依据的标记</resource>
+  <resource name="CF_TagsToFilter_Description">作为标记云的筛选依据的标记的逗号分隔列表。</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="CF_Unknown">(自动检测)</resource>
+  <resource name="CF_Weblog">网络日志</resource>
+  <resource name="CF_Wiki">Wiki</resource>
+  <resource name="Core_TagCloud_Description">显示标记云。</resource>
+  <resource name="Core_TagCloud_Name">标记云</resource>
+  <resource name="Options">选项</resource>
+  <resource name="TagCloud_NoSubTagsDefined">抱歉，没有更多标记可用于筛选。</resource>
+  <resource name="TagCloud_NoTagsDefined">尚未创建或使用任何标记。</resource>
+  <resource name="TagCloud_Title">相关标记</resource>
+</language>
+<language key="zh-tw">
+  <resource name="AllTags">所有標記</resource>
+  <resource name="CF_AppType">應用程式</resource>
+  <resource name="CF_ContextualTagBrowser">關聯式標記瀏覽器</resource>
+  <resource name="CF_EnableNoTagsMessage">啟用無標記訊息</resource>
+  <resource name="CF_Forum">論壇</resource>
+  <resource name="CF_IgnoreFilterTags">忽略篩選標記</resource>
+  <resource name="CF_IgnoreFilterTags_Description">如果設定為 true，URL 中識別的標記就不會篩選標記雲。如果標記雲將顯示在 [標記瀏覽器] 頁面上，此選項可能會很有用。</resource>
+  <resource name="CF_LinkTagsTo">將每個標記連結至</resource>
+  <resource name="CF_MaxTags">標記數目上限</resource>
+  <resource name="CF_MaxTags_Description">只會顯示最常見的標記，上限為定義的最大數目。</resource>
+  <resource name="CF_MediaGallery">媒體資源庫</resource>
+  <resource name="CF_MinPostsPerTag">每個標記的貼文數目下限</resource>
+  <resource name="CF_MinPostsPerTag_Description">只會顯示與此最小值有關的標記。</resource>
+  <resource name="CF_NoTagsText">沒有標記可用時要顯示的文字</resource>
+  <resource name="CF_Nothing">(無)</resource>
+  <resource name="CF_ShowTagCount">顯示貼文計數</resource>
+  <resource name="CF_ShowTagCount_Description">啟用後，將會在每個標記旁顯示參照每個標記的貼文數目。</resource>
+  <resource name="CF_SiteTagBrowser">網站標記瀏覽器</resource>
+  <resource name="CF_TagsToFilter">要篩選的標記</resource>
+  <resource name="CF_TagsToFilter_Description">要篩選標記雲所依據之標記的逗號分隔清單。</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="CF_Unknown">(自動偵測)</resource>
+  <resource name="CF_Weblog">部落格</resource>
+  <resource name="CF_Wiki">Wiki</resource>
+  <resource name="Core_TagCloud_Description">顯示標記雲。</resource>
+  <resource name="Core_TagCloud_Name">標記雲</resource>
+  <resource name="Options">選項</resource>
+  <resource name="TagCloud_NoSubTagsDefined">很抱歉，沒有其他標記可供篩選。</resource>
+  <resource name="TagCloud_NoTagsDefined">尚未建立或使用任何標記。</resource>
+  <resource name="TagCloud_Title">相關標記</resource>
+</language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

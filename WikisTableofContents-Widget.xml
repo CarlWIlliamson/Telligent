@@ -1,0 +1,136 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Wikis_WikiPageHierarchy_Name}" version="10.1.8.10498" description="${resource:Wikis_WikiPageHierarchy_Description}" instanceIdentifier="23efcf2931104e89a2bb43a57f52f2d3" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="wiki-page-hierarchy">
+		<contentScript><![CDATA[
+#set($wiki = false)
+#set($config = $core_v2_page.ParseQueryString($core_v2_widget.GetCustomValue('selectedWikiOrGroup', '')))
+#set($currentPage = $core_v2_wikiPage.CurrentOrDefault)
+
+#if ($core_v2_utility.ParseInt($config.Value('Wiki')) > 0)
+	#set($wiki = $core_v2_wiki.Get("%{Id=$core_v2_utility.ParseInt($config.Value('Wiki'))}"))
+#else
+	#set($wiki = $core_v2_wiki.Get("%{Id=$currentPage.WikiId}"))
+#end
+
+#if(!$wiki)
+	$core_v2_widget.Hide()
+#end
+
+#if ($currentPage.Id > 0 && $currentPage.WikiId != $wiki.Id)
+	#set($currentPage = false)
+#end
+
+#set($pages = false)
+#if ($currentPage.Id > 0)
+	#set($pages = $core_v2_utility.FlattenHierarchy($core_v2_wikiToc.List($wiki.Id), 'Children', "%{ ExpandToChildProperty='Id', ExpandToChildValue=$currentPage.Id, HiddenProperty='HiddenInTableOfContents' }"))
+#else
+	#set($pages = $core_v2_utility.FlattenHierarchy($core_v2_wikiToc.List($wiki.Id), 'Children', "%{ ExpandToLevel=1, HiddenProperty='HiddenInTableOfContents' }"))
+#end
+
+#if(!$pages || $pages.Count == 0)
+	$core_v2_widget.Hide()
+#end
+
+<div id="$core_v2_widget.UniqueId('hierarchy')">
+	#set($currentLevel = 0)
+	#set($hiddenLevel = 0)
+	#set($wasHidden = false)
+	#foreach($page in $pages)
+		#if($page.Level > $currentLevel)
+			#foreach($i in [$currentLevel..$page.Level])
+				#if($i != $currentLevel)
+					<div class="hierarchy-children">
+						<ul class="hierarchy-list">
+				#end
+			#end
+		#elseif ($page.Level < $currentLevel)
+			#foreach($i in [$page.Level..$currentLevel])
+				#if($i != $currentLevel)
+							</li>
+						</ul>
+					</div>
+				#end
+			#end
+		#else
+			</li>
+		#end
+		<li data-pageid="$page.Item.Id">
+			<div class="hierarchy-item#if($currentPage && $currentPage.Id == $page.Item.Id) selected#end#if($page.HasChildren) with-children#else without-children#end">
+			#if ($page.Item.HasVisibleChildren)
+				#if ($page.IsExpanded)
+						<a href="$core_v2_encoding.HtmlAttributeEncode($page.Item.Url)"><span class="expand-collapse expanded">-</span>$page.Item.Title</a>
+					</div>
+				#else
+						<a href="$core_v2_encoding.HtmlAttributeEncode($page.Item.Url)"><span class="expand-collapse collapsed">+</span>$page.Item.Title</a>
+					</div>
+				#end
+			#else
+					<a href="$core_v2_encoding.HtmlAttributeEncode($page.Item.Url)">$page.Item.Title</a>
+				</div>
+			#end
+		#set($currentLevel = $page.Level)
+	#end
+	#if ($currentLevel > 0)
+		#foreach($i in [1..$currentLevel])
+					</li>
+				</ul>
+			</div>
+		#end
+	#end
+</div>
+
+#registerEndOfPageHtml('telligent.evolution.widgets.wikiPageHierarchy')
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+#end
+#registerEndOfPageHtml()
+	<script type="text/javascript">
+	jQuery(document).ready(function(j) {
+		j.telligent.evolution.widgets.wikiPageHierarchy.register({
+			hierarchy: j('#$core_v2_widget.UniqueId('hierarchy')'),
+			pagesUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('pages.vm'))',
+			wikiId: $wiki.Id,
+			wrapper: '#$core_v2_widget.WrapperElementId'
+		});
+	});
+	</script>
+#end
+
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Wikis_WikiPageHierarchy_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Wikis_WikiPageHierarchy_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="selectedWikiOrGroup" resourceName="CF_Wiki_SelectGroupAndWiki" dataType="Custom" defaultValue="" controlType="Telligent.Evolution.Wikis.Controls.WikiSelectionControl, Telligent.Evolution.Wikis" width="95%" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="CF_Wiki_SelectGroupAndWiki">Select wiki to pull content from</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Wikis_WikiPageHierarchy_Description">Displays the pages in their hierarchy for a specific wiki.</resource>
+  <resource name="Wikis_WikiPageHierarchy_Name">Wikis - Table of Contents</resource>
+  <resource name="Wikis_WikiPageHierarchy_Title_TableOfContents">Table of Contents</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="CF_Wiki_SelectGroupAndWiki">选择要从中拉取内容的 Wiki</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Wikis_WikiPageHierarchy_Description">用层次结构显示特定 Wiki 的页面。</resource>
+  <resource name="Wikis_WikiPageHierarchy_Name">Wiki - 目录</resource>
+  <resource name="Wikis_WikiPageHierarchy_Title_TableOfContents">目录</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="CF_Wiki_SelectGroupAndWiki">選取要從中提取內容的 Wiki</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Wikis_WikiPageHierarchy_Description">顯示特定 Wiki 的階層頁面。</resource>
+  <resource name="Wikis_WikiPageHierarchy_Name">Wiki - 目錄</resource>
+  <resource name="Wikis_WikiPageHierarchy_Title_TableOfContents">目錄</resource>
+</language></languageResources>
+		<files>
+			<file name="pages.vm">I3NldCgkcGFyZW50UGFnZUlkID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUludCgkY29yZV92Ml9wYWdlLkdldFF1ZXJ5U3RyaW5nVmFsdWUoJ3dfcGFyZW50UGFnZUlkJykpKQ0KI3NldCgkd2lraUlkID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUludCgkY29yZV92Ml9wYWdlLkdldFF1ZXJ5U3RyaW5nVmFsdWUoJ3dfd2lraUlkJykpKQ0KI2lmICgkd2lraUlkID4gMCAmJiAkcGFyZW50UGFnZUlkID4gMCkNCgkjZm9yZWFjaCgkcGFnZSBpbiAkY29yZV92Ml93aWtpVG9jLkxpc3QoJHdpa2lJZCwgJHBhcmVudFBhZ2VJZCkpDQoJI2JlZm9yZWFsbA0KCQk8ZGl2IGNsYXNzPSJoaWVyYXJjaHktY2hpbGRyZW4iPg0KCQkJPHVsIGNsYXNzPSJoaWVyYXJjaHktbGlzdCI+DQoJI2VhY2gNCgkgICAgI2lmICghJHBhZ2UuSGlkZGVuSW5UYWJsZU9mQ29udGVudHMpDQogICAgCQk8bGkgZGF0YS1wYWdlaWQ9IiRwYWdlLklkIj4NCiAgICAJCQk8ZGl2IGNsYXNzPSJoaWVyYXJjaHktaXRlbSNpZigkY3VycmVudFBhZ2UgJiYgJGN1cnJlbnRQYWdlLklkID09ICRwYWdlLklkKSBzZWxlY3RlZCNlbmQjaWYoJHBhZ2UuQ2hpbGRyZW4uQ291bnQgPiAwKSB3aXRoLWNoaWxkcmVuI2Vsc2Ugd2l0aG91dC1jaGlsZHJlbiNlbmQiPg0KICAgIAkJCSNpZiAoJHBhZ2UuSGFzVmlzaWJsZUNoaWxkcmVuKQ0KICAgIAkJCQkJPGEgaHJlZj0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkY29yZV92Ml93aWtpVXJscy5QYWdlKCRwYWdlLklkKSkiPjxzcGFuIGNsYXNzPSJleHBhbmQtY29sbGFwc2UgY29sbGFwc2VkIj4rPC9zcGFuPiRwYWdlLlRpdGxlPC9hPg0KICAgIAkJCQk8L2Rpdj4NCiAgICAJCQkjZWxzZQ0KICAgIAkJCQkJPGEgaHJlZj0iJGNvcmVfdjJfZW5jb2RpbmcuSHRtbEF0dHJpYnV0ZUVuY29kZSgkY29yZV92Ml93aWtpVXJscy5QYWdlKCRwYWdlLklkKSkiPiRwYWdlLlRpdGxlPC9hPg0KICAgIAkJCQk8L2Rpdj4NCiAgICAJCQkjZW5kDQogICAgCQk8L2xpPg0KICAgIAkjZW5kDQoJI2FmdGVyYWxsDQoJCQk8L3VsPg0KCQk8L2Rpdj4NCgkjZW5kDQojZW5k</file>
+			<file name="ui.js">KGZ1bmN0aW9uKCQsIGdsb2JhbCl7DQoNCgkkLnRlbGxpZ2VudCA9ICQudGVsbGlnZW50IHx8IHt9Ow0KCSQudGVsbGlnZW50LmV2b2x1dGlvbiA9ICQudGVsbGlnZW50LmV2b2x1dGlvbiB8fCB7fTsNCgkkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9ICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzIHx8IHt9Ow0KDQoJdmFyIHNwZWVkID0gMTAwLA0KCQlsb2NrcyA9IHt9Ow0KDQoJZnVuY3Rpb24gaGFuZGxlVHJlZVRyYXZlcnNhbChjb250ZXh0LCBoaWVyYXJjaHkpIHsNCgkJaGllcmFyY2h5Lm9uKCdjbGljaycsICcuaGllcmFyY2h5LWl0ZW0ud2l0aC1jaGlsZHJlbiAuZXhwYW5kLWNvbGxhcHNlJywgZnVuY3Rpb24oZSl7DQoJCQllLnByZXZlbnREZWZhdWx0KCk7DQoNCgkJCXZhciBleHBhbmRDb2xsYXBzZSA9ICQodGhpcyk7DQoJCQl2YXIgY3VycmVudEl0ZW0gPSBleHBhbmRDb2xsYXBzZS5jbG9zZXN0KCdsaScpOw0KCQkJdmFyIGNoaWxkcmVuID0gY3VycmVudEl0ZW0uY2hpbGRyZW4oJy5oaWVyYXJjaHktY2hpbGRyZW4nKTsNCg0KCQkJaWYgKGNoaWxkcmVuICYmIGNoaWxkcmVuLmxlbmd0aCA+IDApIHsNCgkJCQlpZiAoIWNoaWxkcmVuLmlzKCc6dmlzaWJsZScpKQ0KCQkJCQljaGlsZHJlbi5zbGlkZURvd24oc3BlZWQsIGZ1bmN0aW9uKCkgew0KCQkJCQkJZXhwYW5kQ29sbGFwc2UuaHRtbCgnLScpLnJlbW92ZUNsYXNzKCdjb2xsYXBzZWQnKS5hZGRDbGFzcygnZXhwYW5kZWQnKTsNCgkJCQkJfSk7DQoJCQkJZWxzZQ0KCQkJCQljaGlsZHJlbi5zbGlkZVVwKHNwZWVkLCBmdW5jdGlvbigpIHsNCgkJCQkJCWV4cGFuZENvbGxhcHNlLmh0bWwoJysnKS5yZW1vdmVDbGFzcygnZXhwYW5kZWQnKS5hZGRDbGFzcygnY29sbGFwc2VkJyk7DQoJCQkJCX0pOw0KCQkJfSBlbHNlIHsNCgkJCQlsb2FkQ2hpbGRyZW4oY29udGV4dCwgY3VycmVudEl0ZW0pOw0KCQkJfQ0KCQl9KTsNCgl9Ow0KDQoJZnVuY3Rpb24gbG9hZENoaWxkcmVuKGNvbnRleHQsIHBhcmVudCkgew0KCQl2YXIgcGFyZW50UGFnZWlkID0gcGFyZW50LmRhdGEoJ3BhZ2VpZCcpOw0KDQoJCWlmIChsb2Nrc1twYXJlbnRQYWdlaWRdKQ0KCQkJcmV0dXJuOw0KDQoJCWxvY2tzW3BhcmVudFBhZ2VpZF0gPSB0cnVlOw0KDQoJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5nZXQoew0KCQkJdXJsOiBjb250ZXh0LnBhZ2VzVXJsLA0KCQkJZGF0YTogew0KCQkJCXdfd2lraUlkOiBjb250ZXh0Lndpa2lJZCwNCgkJCQl3X3BhcmVudFBhZ2VpZDogcGFyZW50UGFnZWlkDQoJCQl9DQoJCX0pLnRoZW4oZnVuY3Rpb24ocmVzcG9uc2Upew0KCQkJJChyZXNwb25zZSkuaGlkZSgpDQoJCQkJLmFwcGVuZFRvKHBhcmVudCkNCgkJCQkuc2xpZGVEb3duKHNwZWVkLCBmdW5jdGlvbigpIHsNCgkJCQkJcGFyZW50LmZpbmQoJy5leHBhbmQtY29sbGFwc2U6Zmlyc3QnKQ0KCQkJCQkJLmh0bWwoJy0nKS5yZW1vdmVDbGFzcygnY29sbGFwc2VkJykuYWRkQ2xhc3MoJ2V4cGFuZGVkJyk7DQoJCQkJfSk7DQoJCQlsb2Nrc1twYXJlbnRQYWdlaWRdID0gZmFsc2U7DQoJCX0pDQoJfTsNCg0KCXZhciBtYXhIZWlnaHQgPSAwLA0KCQl3aW4gPSAkKGdsb2JhbCksDQoJCWNvbnRleHR1YWxCYW5uZXIgPSAkKCcuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0LXJlZ2lvbi5jb250ZW50JyksDQoJCXNpZGVCYXIgPSAkKCcubGF5b3V0LXJlZ2lvbi5yaWdodC1zaWRlYmFyLCAubGF5b3V0LXJlZ2lvbi5sZWZ0LXNpZGViYXInKTsNCg0KCWZ1bmN0aW9uIHJlc2l6ZShjb250ZXh0KSB7DQoJCXZhciBhdmFpbGFibGVDb250ZW50SGVpZ2h0ID0gZ2V0QXZhaWxhYmxlQ29udGVudEhlaWdodCgpOw0KCQl2YXIgbm9uVG9jU2lkZWJhckhlaWdodCA9IHNpZGVCYXIuaGVpZ2h0KCkgLSBjb250ZXh0LndyYXBwZXIuaGVpZ2h0KCk7DQoJCXZhciBtZWFzdXJlZE1heEhlaWdodCA9IChhdmFpbGFibGVDb250ZW50SGVpZ2h0IC0gbm9uVG9jU2lkZWJhckhlaWdodCk7DQoNCgkJaWYgKG1lYXN1cmVkTWF4SGVpZ2h0ICE9IG1heEhlaWdodCkgew0KCQkJbWF4SGVpZ2h0ID0gbWVhc3VyZWRNYXhIZWlnaHQ7DQoJCQljb250ZXh0LndyYXBwZXIuY3NzKHsnb3ZlcmZsb3cnOiAnYXV0bycsICdtYXgtaGVpZ2h0JzogbWF4SGVpZ2h0IH0pOw0KCQl9DQoJfQ0KDQoJZnVuY3Rpb24gZ2V0QXZhaWxhYmxlQ29udGVudEhlaWdodCgpIHsNCgkJcmV0dXJuIHdpbi5oZWlnaHQoKSAtIGNvbnRleHR1YWxCYW5uZXIuaGVpZ2h0KCkgLSBjb250ZXh0dWFsQmFubmVyLnBvc2l0aW9uKCkudG9wOw0KCX0NCg0KCWZ1bmN0aW9uIGhhbmRsZVNpemluZyhjb250ZXh0KSB7DQoJCWNvbnRleHQud3JhcHBlciA9ICQoY29udGV4dC53cmFwcGVyKTsNCg0KCQlyZXNpemUoY29udGV4dCk7DQoJCXNldFRpbWVvdXQoZnVuY3Rpb24oKXsNCgkJCXJlc2l6ZShjb250ZXh0KTsNCgkJfSwgMjUwKTsNCgkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm1lc3NhZ2luZy5zdWJzY3JpYmUoJ3dpbmRvdy5zY3JvbGxhYmxlaGVpZ2h0JywgZnVuY3Rpb24oZGF0YSkgew0KCQkJcmVzaXplKGNvbnRleHQpOw0KCQl9KTsNCgl9DQoNCglmdW5jdGlvbiBzY3JvbGxUb1NlbGVjdGVkSXRlbShjb250ZXh0KSB7DQoJCXZhciBpdGVtID0gJCgiZGl2LmhpZXJhcmNoeS1pdGVtLnNlbGVjdGVkIik7DQoJCXZhciBjb250YWluZXIgPSAkKCJkaXYuaGllcmFyY2h5LWl0ZW0uc2VsZWN0ZWQiKS5jbG9zZXN0KCIuY29udGVudC1mcmFnbWVudC53aWtpLXBhZ2UtaGllcmFyY2h5Iik7DQoJCXNjcm9sbENvbnRhaW5lclRvRm9jdXNPblNlbGVjdGlvbihjb250YWluZXIsIGl0ZW0pOw0KCX0NCg0KCWZ1bmN0aW9uIHNjcm9sbENvbnRhaW5lclRvRm9jdXNPblNlbGVjdGlvbiAoY29udGFpbmVyLCBpdGVtLCBzY3JvbGxPZmZzZXRGYWN0b3IpIHsNCgkJc2Nyb2xsT2Zmc2V0RmFjdG9yID0gc2Nyb2xsT2Zmc2V0RmFjdG9yIHx8IDE7DQoJCS8vIGdldCBjdXJyZW50IG9mZnNldHMNCgkJdmFyIGNvbnRhaW5lck9mZnNldCA9IGNvbnRhaW5lci5vZmZzZXQoKTsNCgkJaWYoIWNvbnRhaW5lck9mZnNldCkNCgkJCXJldHVybjsNCgkJdmFyIGl0ZW1PZmZzZXQgPSBpdGVtLm9mZnNldCgpOw0KCQlpZighaXRlbU9mZnNldCkNCgkJCXJldHVybjsNCg0KCQkvLyBpZiBub3QgY3VycmVudGx5IHZpc2libGUgKGFib3ZlIG9yIGJlbmVhdGggY3VycmVudGx5IHZpc2libGUgd2luZG93LCB0aGVuIHNjcm9sbCBpdCkNCgkJaWYoaXRlbU9mZnNldC50b3AgPCBjb250YWluZXJPZmZzZXQudG9wIHx8IChpdGVtT2Zmc2V0LnRvcCArIGl0ZW0uaGVpZ2h0KCkpID4gKGNvbnRhaW5lck9mZnNldC50b3AgKyBjb250YWluZXIuaGVpZ2h0KCkpKSB7DQoJCQljb250YWluZXIuc3RvcCgpLmFuaW1hdGUoew0KCQkJCXNjcm9sbFRvcDogKGNvbnRhaW5lci5zY3JvbGxUb3AoKSAtIGNvbnRhaW5lck9mZnNldC50b3AgKyBpdGVtT2Zmc2V0LnRvcCAtIChpdGVtLmhlaWdodCgpICogc2Nyb2xsT2Zmc2V0RmFjdG9yKSkNCgkJCX0sIDUwKTsNCgkJfQ0KCX0NCg0KCSQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzLndpa2lQYWdlSGllcmFyY2h5ID0gew0KCQlyZWdpc3RlcjogZnVuY3Rpb24oY29udGV4dCkgew0KCQkJaGFuZGxlVHJlZVRyYXZlcnNhbChjb250ZXh0LCBjb250ZXh0LmhpZXJhcmNoeSk7DQoJCQloYW5kbGVTaXppbmcoY29udGV4dCk7DQoJCQlzY3JvbGxUb1NlbGVjdGVkSXRlbSgpOw0KCQl9DQoJfTsNCg0KfSkoalF1ZXJ5LCB3aW5kb3cpOw0K</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

@@ -1,0 +1,125 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="Arm - Tag Management" version="10.1.8.10498" description="" instanceIdentifier="54103dec4d64442b96384b0e81004485" theme="" isCacheable="false" varyCacheByUser="false" showHeaderByDefault="true" cssClass="tag-management">
+		<contentScript><![CDATA[#set($roles = $core_v2_utility.MakeList('Administrators'))
+#if (!$core_v2_roleUsers.IsUserInRoles($core_v2_user.Accessing.Username, $roles))
+    $core_v2_widget.Hide()
+#end
+<style>
+    fieldset .field-list .field-item .field-item-validation {
+        font-weight: bold; margin-top: 20px;
+        padding: 10px 20px; display:block;
+        background-color: #f1f1f1;
+    }
+    fieldset .field-list .field-item .field-item-validation.success{ color: green; }
+    
+    .tag-management .files-header div, .tag-management ul.file-list li.file div { display: inline-block; vertical-align: top; }
+    .tag-management ul.file-list li.file div.fileinfo { margin-left: 10px; }
+    .tag-management .files-header div.avatar { clear: both; margin-right: 10px; }
+    .tag-management .files-header .avatar a, .tag-management ul.file-list li.file div.avatar a { display: inline-block; vertical-align: top; }
+    .tag-management .field-item-input.preview { display: inline-block; float: right; max-width: 740px; position:relative; top: -120px; }
+    .tag-management ul.file-list { max-height: 350px; max-width: 300px; overflow: scroll; font-size: 13px; }
+    .tag-management ul.file-list .file { margin: 5px 0; border-bottom: 1px solid #e6e6e6; }
+    .tag-management .files {float: left; }
+    .tag-management .files-header { font-size: 13px; }
+    .tag-management .files-header>span { margin: 10px 0;}
+    
+    
+    /*.tag-management ul.file-list li.file { line-height: 25px; vertical-align: middle; Padding-top: 5px; }
+    .tag-management ul.file-list li.file a { display: inline-block; }
+    .tag-management ul.file-list li.file a img.avatar { display: inline-block; margin-right: 5px; }*/
+</style>
+<div class="form">
+<fieldset>
+<ul class="field-list">
+    <li class="field-item required post-attachment upload-with-preview" id="$core_v2_widget.UniqueId('attachment')" data-upload="$canUpload" data-link="$canLink">
+    	<label for="$core_v2_widget.UniqueId('attachment_input')" class="field-item-name">$core_v2_language.GetResource('TagManagement_File')</label>
+    	<span class="field-item-description">$core_v2_language.GetResource('TagManagement_Upload')</span>
+        <span class="field-item-input file">
+       	    <input type="text" columns="100" id="$core_v2_widget.UniqueId('attachment_input')" #if($attachmentUrl && $attachmentIsRemote)value="$core_v2_encoding.HtmlAttributeEncode($attachmentUrl)"#elseif($attachmentFileName)value="$core_v2_encoding.HtmlAttributeEncode($attachmentFileName)"#end />
+        </span>
+        
+        <span class="field-item-input upload">
+    		<a href="#" class="upload add button" id="$core_v2_widget.UniqueId('upload')">$core_v2_language.GetResource('UploadFile')</a>
+    	</span>
+    	<span class="field-item-input import">
+    	    <a href="#" class="import button" id="$core_v2_widget.UniqueId('import')" style="display: none;">$core_v2_language.GetResource('Import')</a>
+    	</span><br/>
+        <span class="field-item-validation" style="display: none;"></span>
+        <br/>
+        
+        <div class="files" id="$core_v2_widget.UniqueId('files')">
+            #set($files = $arm_v1_tagging.GetFiles())
+            #set($i = 0)
+            #foreach ($file in $files)
+            #each
+                #if($i == 0)
+                    <div class="files-header"> Current Version: <br/> 
+                        <span> $core_v2_widget.ExecuteFile('file.vm')</span>
+                        <span style="display:block;"><a href="#" id="$core_v2_widget.UniqueId('Showall')">Show all files.</a></span>
+                    </div>
+                    <ul class="file-list" style="display:none;">
+                #else
+                    <li class="file">$core_v2_widget.ExecuteFile('file.vm')</li>
+                #end
+               #set($i = $i+1)
+            #afterall
+                </ul>
+            #nodata
+                <div class="no-data">No files found.</div>
+            #end
+        </div>
+        
+        <span class="field-item-input preview"> </span> <br/>
+    </li>
+</ul>
+</fieldset>
+</div>
+
+<div class="tags"></div>
+
+#set($contextId = $core_v2_uploadedFile.CreateContextId())
+
+#registerEndOfPageHtml('telligent.evolution.widgets.TagManagement')
+    <script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl("ui.js"))"></script>
+#end
+
+#registerEndOfPageHtml()
+    <script type="text/javascript">
+        jQuery(function(j){
+            j.telligent.evolution.widgets.TagManagement.register({
+                wrapperId: '$core_v2_widget.WrapperElementId',
+                attachmentAddText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('UploadFile'))',
+                uploadLink: '#$core_v2_widget.UniqueId('upload')',
+                uploadFileUrl : '$core_v2_encoding.JavascriptEncode($core_v2_uploadedFile.GetUploadUrl($contextId))',
+                attachmentId : '#$core_v2_widget.UniqueId('attachment')',
+                contextId: '$core_v2_encoding.JavascriptEncode($contextId)',
+                previewAttachmentUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('preview.vm'))',
+                saveTagsUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('save.vm'))',
+                importLink: '#$core_v2_widget.UniqueId('import')',
+                showallLink: '#$core_v2_widget.UniqueId('Showall')',
+                filelistDiv: '#$core_v2_widget.UniqueId('files') .file-list'
+            });
+        });
+    </script>
+#end]]></contentScript>
+		<languageResources><language key="en-us">
+  <resource name="Import">Import</resource>
+  <resource name="RemoveFile">Remove file</resource>
+  <resource name="TagManagement_File"></resource>
+  <resource name="TagManagement_Upload">Upload a CSV file</resource>
+  <resource name="UploadFile">Upload file</resource>
+</language></languageResources>
+		<additionalCssScript><![CDATA[.preview span.tag {
+    border: 1px blue solid;
+    padding: 5px;
+    border-radius: 5px;
+    display: inline-block;
+}]]></additionalCssScript>
+		<files>
+			<file name="file.vm">CiAgICA8ZGl2IGNsYXNzPSJhdmF0YXIiPgogICAgICAgIDxhIGhyZWY9IiRmaWxlLlVzZXIuUHJvZmlsZVVybCI+PGltZyBjbGFzcz0iYXZhdGFyIiB3aWR0aD0yMCBoZWlnaHQ9MjAgc3JjPSIkZmlsZS5Vc2VyLkF2YXRhclVybCIgLz48L2E+CiAgICAgICAgPGEgaHJlZj0iJGZpbGUuVXNlci5Qcm9maWxlVXJsIiBzcGFuPSJ2ZXJ0aWNhbC1hbGlnbjogdG9wOyI+JGZpbGUuVXNlci5EaXNwbGF5TmFtZTwvYT4KICAgIDwvZGl2PgogICAgPGRpdiBjbGFzcz0iZmlsZWluZm8iPiAKICAgICAgICA8c3BhbiBjbGFzcz0ibmFtZSI+JGZpbGUuRmlsZU5hbWU8L3NwYW4+PGJyLz48c3BhbiBjbGFzcz0iZGF0ZSI+JGZpbGUuVXBsb2FkRGF0ZTwvc3Bhbj4KICAgIDwvZGl2Pgo=</file>
+			<file name="preview.vm">IyMgTG9hZHMgQXR0YWNobWVudCBQcmV2aWV3CjxzdHlsZT4KLnByZXZpZXcgc3Bhbi50YWcgewogICAgYm9yZGVyOiAycHggIzVmYWVlMyBzb2xpZDsKICAgIHBhZGRpbmc6IDVweDsKICAgIGJvcmRlci1yYWRpdXM6IDVweDsKICAgIGRpc3BsYXk6IGlubGluZS1ibG9jazsKICAgIG1hcmdpbjogMnB4Owp9Cjwvc3R5bGU+CiNzZXQoJHVybCA9IGZhbHNlKQojc2V0ICgkZmlsZU5hbWUgPSBmYWxzZSkKI3NldCAoJGZpbGVOYW1lID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ3dfZmlsZW5hbWUnKSkKI3NldCAoJHVwbG9hZENvbnRleHRJZCA9IGZhbHNlKQojc2V0ICgkdXBsb2FkQ29udGV4dElkID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ3dfdXBsb2FkQ29udGV4dElkJykpCiNpZiAoJGZpbGVOYW1lICYmICR1cGxvYWRDb250ZXh0SWQpCgkjc2V0ICgkZmlsZSA9IGZhbHNlKQoJI3NldCAoJGZpbGUgPSAkY29yZV92Ml91cGxvYWRlZEZpbGUuR2V0KCR1cGxvYWRDb250ZXh0SWQsICRmaWxlTmFtZSkpCgkjaWYgKCRmaWxlKQoJICAgI3NldCAoJHVybCA9ICRmaWxlLlVybCkKCSNlbmQKCgkjIyQhY29yZV92Ml91aS5HZXRQcmV2aWV3SHRtbCgkdXJsLCAiJXtXaWR0aD0zMjAsIEhlaWdodD0yNDAsIE91dHB1dElzUGVyc2lzdGVkPSdGYWxzZSd9IikKICAgICNzZXQoJHRhZ3MgPSAkYXJtX3YxX3RhZ2dpbmcuR2V0VGFnc0Zyb21GaWxlKCRmaWxlTmFtZSwgJHVwbG9hZENvbnRleHRJZCwgJGZpbGUuRmlsZURhdGEpKQogICAgI2lmKCR0YWdzLkNvdW50ID4gMCkKICAgICAgICA8SDM+Rm9sbG93aW5nICR0YWdzLkNvdW50IHRhZ3Mgd2lsbCBiZSBpbXBvcnRlZC48L0gzPgogICAgICAgICNmb3JlYWNoKCR0IGluICR0YWdzKQogICAgICAgICAgICA8c3BhbiBjbGFzcz0idGFnIj4kdDwvc3Bhbj4KICAgICAgICAjZW5kCiAgICAjZW5kCiNlbmQ=</file>
+			<file name="save.vm">JGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpCiNzZXQoJHVybCA9IGZhbHNlKQojc2V0ICgkZmlsZU5hbWUgPSBmYWxzZSkKI3NldCAoJGZpbGVOYW1lID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ3dfZmlsZW5hbWUnKSkKI3NldCAoJHVwbG9hZENvbnRleHRJZCA9IGZhbHNlKQojc2V0ICgkdXBsb2FkQ29udGV4dElkID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ3dfdXBsb2FkQ29udGV4dElkJykpCiNpZiAoJGZpbGVOYW1lICYmICR1cGxvYWRDb250ZXh0SWQpCgkjc2V0ICgkZmlsZSA9IGZhbHNlKQoJCgkjIyQhY29yZV92Ml91aS5HZXRQcmV2aWV3SHRtbCgkdXJsLCAiJXtXaWR0aD0zMjAsIEhlaWdodD0yNDAsIE91dHB1dElzUGVyc2lzdGVkPSdGYWxzZSd9IikKICAgICNzZXQoJGZpbGUgPSAkY29yZV92Ml91cGxvYWRlZEZpbGUuR2V0KCR1cGxvYWRDb250ZXh0SWQsICRmaWxlTmFtZSkpCiAgICAjc2V0KCRzdWNjZXNzID0gJGFybV92MV90YWdnaW5nLlNhdmVUYWdzKCRmaWxlTmFtZSwgJHVwbG9hZENvbnRleHRJZCwgJGZpbGUuRmlsZURhdGEpKQogICAgeyJTdWNjZXNzIjogIiRzdWNjZXNzIiwgIk1lc3NhZ2UiOiIifQojZWxzZQogICAgeyJTdWNjZXNzIjogIjAiLCAiTWVzc2FnZSI6IkludmFsaWQgRmlsZSJ9CiNlbmQ=</file>
+			<file name="ui.js">KGZ1bmN0aW9uICgkKSB7CiAgICBpZiAodHlwZW9mICQudGVsbGlnZW50ID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudCA9IHt9OyB9CiAgICBpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbiA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID0ge307IH0KICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID0ge307IH0KICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzLlRhZ01hbmFnZW1lbnQgPSB7CiAgICAgICAgcmVnaXN0ZXI6IGZ1bmN0aW9uIChjb250ZXh0KSB7CiAgICAgICAgICAgIC8qJChjb250ZXh0LnVwbG9hZExpbmspLmdsb3dVcGxvYWQoCiAgICAgICAgICAgICAgICBmaWxlRmlsdGVyOiBudWxsLAogICAgICAgICAgICAgICAgdXBsb2FkVXJsOiBjb250ZXh0LnVwbG9hZEZpbGVVcmwsCiAgICAgICAgICAgICAgICByZW5kZXJNb2RlOiAnbGluaycKICAgICAgICAgICAgKQogICAgICAgICAgICAuYmluZCgnZ2xvd1VwbG9hZENvbXBsZXRlJywgZnVuY3Rpb24gKGUsIGZpbGUpIHsKICAgICAgICAgICAgICAgIGFsZXJ0KCJoZXJlISEiKTsKICAgICAgICAgICAgfTsqLwogICAgICAgICAgICAKICAgICAgICAgICAgIC8vYWxlcnQoY29udGV4dC51cGxvYWRGaWxlVXJsKTsKICAgICAgICAgICAgdmFyIGZpbGVVcGxvYWQgPSAkKGNvbnRleHQudXBsb2FkTGluayk7CiAgICAgICAgICAgIHZhciB1cGxvYWRGaWxlVXJsID0gY29udGV4dC51cGxvYWRGaWxlVXJsOwogICAgICAgICAgICB2YXIgcHJvZ3Jlc3NNZXNzYWdlPSAiVXBsb2FkaW5nICh7MH0lKS4uLiI7CiAgICAgICAgICAgIHZhciBjaGFuZ2VGaWxlTWVzc2FnZT0gIkNoYW5nZSBmaWxlIjsKICAgIAogICAgICAgICAgICBjb250ZXh0LmF0dGFjaG1lbnQgPSAkKGNvbnRleHQuYXR0YWNobWVudElkKTsKICAgICAgICAgICAgY29udGV4dC5hdHRhY2htZW50VXBsb2FkID0gY29udGV4dC5hdHRhY2htZW50LmZpbmQoJ2EudXBsb2FkJyk7CiAgICAgICAgICAgIGNvbnRleHQuYXR0YWNobWVudFJlbW92ZSA9IGNvbnRleHQuYXR0YWNobWVudC5maW5kKCdhLnJlbW92ZScpOwogICAgICAgICAgICBjb250ZXh0LmF0dGFjaG1lbnROYW1lID0gY29udGV4dC5hdHRhY2htZW50LmZpbmQoJ2lucHV0Jyk7CiAgICAgICAgICAgIGNvbnRleHQuYXR0YWNobWVudFByZXZpZXcgPSBjb250ZXh0LmF0dGFjaG1lbnQuZmluZCgnLnByZXZpZXcnKTsKCiAgICAgICAgICAgIGZ1bmN0aW9uIGxvYWRQcmV2aWV3KGNvbnRleHQsIGZpbGVuYW1lKSB7CiAgICAgICAgICAgICAgICBpZiAoY29udGV4dC5maWxlLmZpbGVOYW1lKSB7CiAgICAgICAgICAgICAgICAgICAgLy9jbGVhclRpbWVvdXQoY29udGV4dC5hdHRhY2htZW50UHJldmlld1RpbWVvdXQpOwogICAgICAgICAgICAgICAgICAgIHZhciBkYXRhID0gewogICAgICAgICAgICAgICAgICAgICAgICB3X3VwbG9hZENvbnRleHRJZDogY29udGV4dC5jb250ZXh0SWQKICAgICAgICAgICAgICAgICAgICB9OwogICAgICAgICAgICAgICAgICAgIGlmIChjb250ZXh0LmZpbGUuZmlsZU5hbWUpIHsKICAgICAgICAgICAgICAgICAgICAgICAgZGF0YS53X2ZpbGVuYW1lID0gZmlsZW5hbWU7CiAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5wb3N0KHsKICAgICAgICAgICAgICAgICAgICAgICAgdXJsOiBjb250ZXh0LnByZXZpZXdBdHRhY2htZW50VXJsLAogICAgICAgICAgICAgICAgICAgICAgICBkYXRhOiBkYXRhLAogICAgICAgICAgICAgICAgICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsKICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJlc3BvbnNlID0gJC50cmltKHJlc3BvbnNlKTsKICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmIChyZXNwb25zZSAmJiByZXNwb25zZS5sZW5ndGggPiAwICYmIHJlc3BvbnNlICE9PSBjb250ZXh0LmF0dGFjaG1lbnRQcmV2aWV3Q29udGVudCkgewogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNvbnRleHQuYXR0YWNobWVudFByZXZpZXdDb250ZW50ID0gcmVzcG9uc2U7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5hdHRhY2htZW50UHJldmlldy5odG1sKGNvbnRleHQuYXR0YWNobWVudFByZXZpZXdDb250ZW50KS5yZW1vdmVDbGFzcygnZW1wdHknKTsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAkKGNvbnRleHQuaW1wb3J0TGluaykuc2hvdygpOwogICAgICAgICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5hdHRhY2htZW50LmZpbmQoJy5maWVsZC1pdGVtLXZhbGlkYXRpb24nKS5oaWRlKCk7CiAgICAgICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICB9KTsKICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgIH0gZWxzZSB7CiAgICAgICAgICAgICAgICAgICAgY29udGV4dC5hdHRhY2htZW50UHJldmlld0NvbnRlbnQgPSAnJzsKICAgICAgICAgICAgICAgICAgICBjb250ZXh0LmF0dGFjaG1lbnRQcmV2aWV3Lmh0bWwoJycpLmFkZENsYXNzKCdlbXB0eScpOwogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CiAgICAgICAgICAgIAoJCQkkKGZpbGVVcGxvYWQpLmdsb3dVcGxvYWQoewogICAgICAgICAgICAgICAgZmlsZUZpbHRlcjogW3t0aXRsZSA6ICJDU1YgZmlsZXMiLCAgZXh0ZW5zaW9ucyA6ICJjc3YifV0sCiAgICAgICAgICAgICAgICB1cGxvYWRVcmw6IGNvbnRleHQudXBsb2FkRmlsZVVybCwKICAgICAgICAgICAgICAgIHJlbmRlck1vZGU6ICdsaW5rJwogICAgICAgICAgICB9KS5vbih7CiAgICAgICAgICAgICAgICBnbG93VXBsb2FkQmVndW46IGZ1bmN0aW9uKGUpIHsKICAgICAgICAgICAgICAgICAgICBmaWxlVXBsb2FkLmh0bWwocHJvZ3Jlc3NNZXNzYWdlLnJlcGxhY2UoJ3swfScsIDApKTsKICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICBnbG93VXBsb2FkRmlsZVByb2dyZXNzOiBmdW5jdGlvbihlLCBkZXRhaWxzKSB7CiAgICAgICAgICAgICAgICAgICAgZmlsZVVwbG9hZC5odG1sKHByb2dyZXNzTWVzc2FnZS5yZXBsYWNlKCd7MH0nLCBkZXRhaWxzLnBlcmNlbnQpKTsKICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICBnbG93VXBsb2FkQ29tcGxldGU6IGZ1bmN0aW9uKGUsIGZpbGUpIHsKICAgICAgICAgICAgICAgICAgICAvL2FsZXJ0KCJsb2MgMyIpOwogICAgICAgICAgICAgICAgICAgIGlmIChmaWxlICYmIGZpbGUubmFtZS5sZW5ndGggPiAwKSB7CgkgICAgICAgICAgICAgICAgICAgIGNvbnRleHQuZmlsZSA9IHsKCSAgICAgICAgICAgICAgICAgICAgICAgIGZpbGVOYW1lOiBmaWxlLm5hbWUsCgkgICAgICAgICAgICAgICAgICAgICAgICBpc1JlbW90ZTogZmFsc2UsCgkgICAgICAgICAgICAgICAgICAgICAgICBpc05ldzogdHJ1ZQoJICAgICAgICAgICAgICAgICAgICB9CgkgICAgICAgICAgICAgICAgICAgIAoJICAgICAgICAgICAgICAgICAgICBsb2FkUHJldmlldyhjb250ZXh0LCBmaWxlLm5hbWUpOwoJICAgICAgICAgICAgICAgICAgICBjb250ZXh0LmF0dGFjaG1lbnROYW1lLnZhbChjb250ZXh0LmZpbGUuZmlsZU5hbWUpLmF0dHIoJ3JlYWRvbmx5JywgJ3JlYWRvbmx5Jyk7CiAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgIC8vbG9hZFByZXZpZXcoY29udGV4dCwgZmlsZS5uYW1lKTsKICAgICAgICAgICAgICAgICAgICBmaWxlVXBsb2FkLmh0bWwoY2hhbmdlRmlsZU1lc3NhZ2UpLnJlbW92ZUNsYXNzKCd1cGxvYWQnKS5hZGRDbGFzcygnY2hhbmdlJyk7CiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0pOwogICAgICAgICAgICAKICAgICAgICAgICAgJChjb250ZXh0LmltcG9ydExpbmspLmNsaWNrKGZ1bmN0aW9uKCkgewogICAgICAgICAgICAgICAgLy9hbGVydCgibG9jIDQiKTsKICAgICAgICAgICAgICAgIHZhciBkYXRhID0gewogICAgICAgICAgICAgICAgICAgIHdfdXBsb2FkQ29udGV4dElkOiBjb250ZXh0LmNvbnRleHRJZAogICAgICAgICAgICAgICAgfTsKICAgICAgICAgICAgICAgIGlmIChjb250ZXh0LmZpbGUuZmlsZU5hbWUpIHsKICAgICAgICAgICAgICAgICAgICBkYXRhLndfZmlsZW5hbWUgPSBjb250ZXh0LmF0dGFjaG1lbnROYW1lLnZhbCgpOwogICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ucG9zdCh7CiAgICAgICAgICAgICAgICAgICAgdXJsOiBjb250ZXh0LnNhdmVUYWdzVXJsLAogICAgICAgICAgICAgICAgICAgIGRhdGE6IGRhdGEsCiAgICAgICAgICAgICAgICAgICAgc3VjY2VzczogZnVuY3Rpb24gKHJlc3BvbnNlKSB7CiAgICAgICAgICAgICAgICAgICAgICAgIC8vU2F2ZWQuIENoZWNrIGlmIHRoZSBwcm9jZXNzIHdhcyBzdWNjZXNzZnVsLgogICAgICAgICAgICAgICAgICAgICAgICB2YXIgbWVzc2FnZSA9ICIiOwogICAgICAgICAgICAgICAgICAgICAgICB2YXIgbXNnQ2xhc3MgPSAiIjsKICAgICAgICAgICAgICAgICAgICAgICAgaWYocmVzcG9uc2UuU3VjY2VzcyA9PSAiVHJ1ZSIpewogICAgICAgICAgICAgICAgICAgICAgICAgICAgbWVzc2FnZSA9ICJUYWdzIHdlcmUgc3VjY2Vzc2Z1bGx5IGltcG9ydGVkLiI7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICBtc2dDbGFzcyA9ICJzdWNjZXNzIjsKICAgICAgICAgICAgICAgICAgICAgICAgfSBlbHNlIHsgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBpZihyZXNwb25zZS5NZXNzYWdlLmxlbmd0aCA+IDApIHsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBtZXNzYWdlID0gcmVzcG9uc2UuTWVzc2FnZTsKICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICAgICAgICAgIGVsc2UgewogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIG1lc3NhYWdlID0gIkVycm9yIDogUGxlYXNlIHNlZSB0aGUgZXhjZXB0aW9uIGxvZyBmb3IgbW9yZSBkZXRhaWxzLiIKICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICAgICAgICAgIG1zZ0NsYXNzID0gImVycm9yIjsKICAgICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0LmF0dGFjaG1lbnQuZmluZCgnLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpLmh0bWwobWVzc2FnZSkuYWRkQ2xhc3MobXNnQ2xhc3MpLnNob3coKTsKICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICB9KTsKICAgICAgICAgICAgfSk7CiAgICAgICAgCiAgICAgICAgICAgICQoY29udGV4dC5zaG93YWxsTGluaykuY2xpY2soZnVuY3Rpb24oKSB7CiAgICAgICAgICAgICAgICAkKGNvbnRleHQuZmlsZWxpc3REaXYpLnNsaWRlVG9nZ2xlKCk7CiAgICAgICAgICAgIH0pOwogICAgICAgIH0KICAgIH07Cn0pKGpRdWVyeSk7Cg==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

@@ -1,0 +1,124 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Wikis_WikiTitle_Name}" version="10.1.8.10498" description="${resource:Wikis_WikiTitle_Description}" instanceIdentifier="7ea28463ab8b4e0ca289e07f18b9e421" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="wiki-title">
+		<contentScript><![CDATA[#set($page = $core_v2_wikiUrls.Current)
+#set($wiki = $core_v2_wiki.Current)
+#set($wikiPage = $core_v2_wikiPage.CurrentOrDefault)
+#set($wikiPageRevision = $core_v2_wikiPageRevision.Current)
+
+#if ($page == 'AddPage')
+	#set($title = $core_v2_language.GetResource('Wikis_AddPage'))
+#elseif ($page == 'Tags')
+	#set($title = $core_v2_language.GetResource('TagBrowser_Title'))
+#elseif ($page == 'EditPage')
+	#if ($wikiPage && $wikiPage.Id)
+		#set($title = $core_v2_language.FormatString($core_v2_language.GetResource('Wikis_Page_Editing'), $wikiPage.Title))
+	#else
+		#set($title = $core_v2_language.GetResource('Wikis_AddPage'))
+	#end
+#elseif ($page == 'DeletePage' && $wikiPage)
+	#set($title = "$core_v2_language.GetResource('Delete') $wikiPage.Title")
+#elseif ($page == 'AddChildPage')
+	#set($title = $core_v2_language.GetResource('Wikis_AddPage'))
+#elseif ($page == 'PageComments' && $wikiPage)
+	#set($title = "$wikiPage.Title $core_v2_language.GetResource('Wikis_Page_Comments')")
+#elseif ($page == 'Revision')
+	#if($wikiPageRevision && $wikiPageRevision.RevisionNumber > 1)
+		#set($title = "$core_v2_language.GetResource('Revision') #${wikiPageRevision.RevisionNumber}")
+	#else
+		#set($title = $core_v2_language.GetResource('Original'))
+	#end
+#elseif ($page == 'PageHistory' && $wikiPage)
+	#set($title = "$wikiPage.Title - $core_v2_language.GetResource('History')")
+#elseif ($wikiPage)
+	 #set($pageTitle = false)
+    #set($pageTitle =  $wikiPage.MetaTitle)
+    #if(!$pageTitle || $pageTitle == '')
+        #set($pageTitle =  $wikiPage.Title)
+    #end
+
+	#if(!($wiki && $wiki.Id))
+		#set($title = "$core_v2_language.GetResource('wikis') $pageTitle")
+	#else
+		#set($title = $pageTitle)
+	#end
+#else
+	#if (!$wiki)
+		#set($title = $core_v2_language.GetResource('wikis'))
+	#else
+		#set($title = $wiki.Name)
+	#end
+#end
+
+#if($title)
+	$core_v2_page.SetTitle($title, true, true)
+	#if ($core_v2_widget.GetBoolValue('visible', false))
+		<h1 class="title">$title</h1>
+	#end
+#else
+	$core_v2_widget.Hide()
+#end
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Wikis_WikiTitle_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Wikis_WikiTitle_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="visible" resourceName="Title_Visible" dataType="bool" defaultValue="False" />
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Delete">Delete</resource>
+  <resource name="History">History</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Original">Original</resource>
+  <resource name="Revision">Revision</resource>
+  <resource name="TagBrowser_Title">Browse by Tags</resource>
+  <resource name="Title_Visible">Show the title in the page</resource>
+  <resource name="wikis">Wikis</resource>
+  <resource name="Wikis_AddPage">Add Page</resource>
+  <resource name="Wikis_Page_Comments">Comments</resource>
+  <resource name="Wikis_Page_Editing">Edit '{0}' </resource>
+  <resource name="Wikis_WikiTitle_Description">Displays the title for wiki pages.</resource>
+  <resource name="Wikis_WikiTitle_Name">Wikis - Title</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Delete">删除</resource>
+  <resource name="History">历史记录</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Original">原始</resource>
+  <resource name="Revision">修订</resource>
+  <resource name="TagBrowser_Title">按标记浏览</resource>
+  <resource name="Title_Visible">在页面中显示标题</resource>
+  <resource name="wikis">Wiki</resource>
+  <resource name="Wikis_AddPage">添加页面</resource>
+  <resource name="Wikis_Page_Adding">添加新页面</resource>
+  <resource name="Wikis_Page_Comments">评论</resource>
+  <resource name="Wikis_Page_Editing">编辑:</resource>
+  <resource name="Wikis_WikiTitle_Description">显示 Wiki 页面的标题。</resource>
+  <resource name="Wikis_WikiTitle_Name">Wiki - 标题</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Delete">刪除</resource>
+  <resource name="History">記錄</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Original">原始</resource>
+  <resource name="Revision">修訂</resource>
+  <resource name="TagBrowser_Title">依標記瀏覽</resource>
+  <resource name="Title_Visible">在頁面中顯示標題</resource>
+  <resource name="wikis">Wiki</resource>
+  <resource name="Wikis_AddPage">新增頁面</resource>
+  <resource name="Wikis_Page_Adding">加入新的頁面</resource>
+  <resource name="Wikis_Page_Comments">留言</resource>
+  <resource name="Wikis_Page_Editing">編輯:</resource>
+  <resource name="Wikis_WikiTitle_Description">顯示 Wiki 頁面的標題。</resource>
+  <resource name="Wikis_WikiTitle_Name">Wiki - 標題</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="438f4b20be39493c908f292b4592f6fc" />
+		</requiredContext>
+	</scriptedContentFragment>
+</scriptedContentFragments>

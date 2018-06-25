@@ -1,0 +1,100 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Forums_Details}" version="10.1.8.10498" description="${resource:Forums_Details_Description}" instanceIdentifier="36d01e0513d242b4bbe68f4ee8b3a66c" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="forum-details">
+		<contentScript><![CDATA[
+#set ($forum = $core_v2_forum.Current)
+#if (!$forum)
+	$core_v2_widget.Hide()
+#end
+
+#set ($supportsDiscussionThreads = false)
+#set ($supportsQuestionThreads = false)
+#foreach ($threadType in $forum.AllowedThreadTypes)
+	#if ($threadType == 'Discussion')
+		#set($supportsDiscussionThreads = true)
+	#elseif($threadType == 'QuestionAndAnswer')
+		#set ($supportsQuestionThreads = true)
+	#end
+#end
+
+<div class="content-details minimal">
+	<ul class="attribute-list">
+		#if ($forum.Description && $forum.Description.length > 0)
+			<li class="attribute-item">
+				<span class="attribute-name">$core_v2_language.GetResource('Description')</span>
+				<span class="attribute-value">$forum.Description</span>
+			</li>
+		#end
+		<li class="attribute-item supplementary">
+			<span class="attribute-name">$core_v2_language.GetResource('Threads')</span>
+			<span class="attribute-value">
+				#if ($supportsDiscussionThreads && $forum.ThreadCount != 1)
+					#set ($formatString = $core_v2_language.GetResource('ThreadCountPlural_Discussion'))
+				#elseif ($supportsDiscussionThreads && $forum.ThreadCount == 1)
+					#set ($formatString = $core_v2_language.GetResource('ThreadCountSingular_Discussion'))
+				#elseif (!$supportsDiscussionThreads && $forum.ThreadCount != 1)
+					#set ($formatString = $core_v2_language.GetResource('ThreadCountPlural_QA'))
+				#elseif (!$supportsDiscussionThreads && $forum.ThreadCount == 1)
+					#set ($formatString = $core_v2_language.GetResource('ThreadCountSingular_QA'))
+				#end
+				$core_v2_language.FormatString($formatString, $forum.ThreadCount.ToString())
+			</span>
+		</li>
+	</ul>
+</div>
+		]]></contentScript>
+		<headerScript><![CDATA[
+#set($header = $core_v2_widget.GetStringValue('fragmentHeader', ''))
+#set ($forum = $core_v2_forum.Current)
+
+#if(($header == '' || $header == '${resource:Forums_Details}') && $forum)
+	$forum.Name
+#else
+	$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Forums_Details}'))
+#end
+		]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Forums_Details}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Description">Description</resource>
+  <resource name="Forums_Details">Forums - Details</resource>
+  <resource name="Forums_Details_Description">Displays details about a forum</resource>
+  <resource name="Options">Options</resource>
+  <resource name="ThreadCountPlural_Discussion">{0} Discussions</resource>
+  <resource name="ThreadCountPlural_QA">{0} Questions</resource>
+  <resource name="ThreadCountSingular_Discussion">{0} Discussion</resource>
+  <resource name="ThreadCountSingular_QA">{0} Question</resource>
+  <resource name="Threads">Threads</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Description">描述</resource>
+  <resource name="Forums_Details">论坛 - 详细信息</resource>
+  <resource name="Forums_Details_Description">显示有关论坛的详细信息</resource>
+  <resource name="Options">选项</resource>
+  <resource name="ThreadCountPlural_Discussion">{0} 个讨论</resource>
+  <resource name="ThreadCountPlural_QA">{0} 个问题</resource>
+  <resource name="ThreadCountSingular_Discussion">{0} 个讨论</resource>
+  <resource name="ThreadCountSingular_QA">{0} 个问题</resource>
+  <resource name="Threads">话题</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Description">描述</resource>
+  <resource name="Forums_Details">論壇 - 詳細資料</resource>
+  <resource name="Forums_Details_Description">顯示論壇的相關詳細資料</resource>
+  <resource name="Options">選項</resource>
+  <resource name="ThreadCountPlural_Discussion">{0} 個討論</resource>
+  <resource name="ThreadCountPlural_QA">{0} 個問題</resource>
+  <resource name="ThreadCountSingular_Discussion">{0} 個討論</resource>
+  <resource name="ThreadCountSingular_QA">{0} 個問題</resource>
+  <resource name="Threads">對話</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="ad5b66803de14b2d9ee9cfe27ecea026" />
+		</requiredContext>
+	</scriptedContentFragment>
+</scriptedContentFragments>

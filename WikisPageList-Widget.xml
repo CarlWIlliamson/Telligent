@@ -1,0 +1,157 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Wikis_PageList_Name}" version="10.1.8.10498" description="${resource:Wikis_PageList_Description}" instanceIdentifier="6fe4c6b4f6f44c2b817d671c168fa6f0" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="page-list">
+		<contentScript><![CDATA[#set ($pageSize = 5)
+#set ($pageIndex = $core_v2_ui.GetCurrentPageIndex())
+#set ($user = $core_v2_user.Accessing)
+#set ($queryType = 'All')
+#set ($queryType = $core_v2_page.GetQueryStringValue('QueryType'))
+#set ($query = "%{ PageSize = $pageSize, PageIndex = $pageIndex }")
+
+#if ($queryType == 'UserAll')
+	$query.Add('QueryType', 'All')
+	$query.Add('AuthorID', $user.Id)
+#else
+	$query.Add('QueryType', $queryType)
+#end
+
+#set ($wiki = $core_v2_wiki.Current)
+#if (!$wiki)
+	$core_v2_widget.Hide()
+#end
+
+#set ($group = $core_v2_group.Current)
+#if ($group && $group.Id == -1)
+	$query.Add("GroupId", $group.Id)
+#end
+
+#if ($group && $group.ParentGroupId <= 0)
+	$query.Add("IncludeSubGroupContent", true)
+#end
+
+#set ($tags = $core_v2_tags.Current)
+#if($tags && $tags.Count > 0)
+	#set ($tagString = $core_v2_utility.Join(",", $tags))
+	$query.Add('Tags', $tagString)
+#end
+
+#set ($wikiPages = $core_v2_wikiPage.List($wiki.Id, $query))
+
+<div class="filter-selector">
+	<div>
+		<select class="ui-select" id="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.UniqueId('filter'))">
+			<option value="All" #if($queryType == 'All') selected #end>$core_v2_language.GetResource('Wikis_PageSort_All')</option>
+			<option value="New" #if($queryType == 'New') selected #end>$core_v2_language.GetResource('Wikis_PageSort_New')</option>
+			<option value="Updated" #if($queryType == 'Updated') selected #end>$core_v2_language.GetResource('Wikis_PageSort_Updated')</option>
+			<option value="UserAll" #if($queryType == 'UserAll') selected #end>$core_v2_language.GetResource('Wiki_PageList_MyPages')</option>
+		</select>
+	</div>
+</div>
+
+#foreach ($page in $wikiPages)
+#beforeall
+	<ul class="content-list content margin-bottom">
+#each
+	<li class="content-item" data-href="$core_v2_encoding.HtmlAttributeEncode($page.Url)">
+		<div class="content abbreviated">
+			<div class="summary">
+				<h3 class="name">
+					<a href="$core_v2_encoding.HtmlAttributeEncode($page.Url)">$page.Title</a>
+				</h3>
+				<div class="content">
+					$core_v2_language.Truncate($page.Body('WebQuote'), 165, '...')
+				</div>
+			</div>
+			<div class="attributes">
+				<ul class="attribute-list">
+					<li class="attribute-item page-revision-count">
+						<span class="attribute-name">$core_v2_language.GetResource('Wikis_Page_Revision')</span>
+						<span class="attribute-value">#${page.RevisionCount}</span>
+					</li>
+					<li class="attribute-item page-last-modified">
+						<span class="attribute-name">$core_v2_language.GetResource('on')</span>
+						<span class="attribute-value">$core_v2_language.FormatDateAndTime($page.LastModifiedDate)</span>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</li>
+#afterall
+	</ul>
+	$core_v2_ui.Pager($pageIndex, $wikiPages.PageSize, $wikiPages.TotalCount)
+#nodata
+	<div class="message norecords">
+		$core_v2_language.GetResource('Wikis_Pages_NoneExist')
+	</div>
+#end
+
+#registerEndOfPageHtml()
+	<script>
+	jQuery(function(){
+		var selector = jQuery('#$core_v2_widget.UniqueId('filter')');
+		selector.on('change', function(){
+			window.location = jQuery.telligent.evolution.url.modify({
+				query: {
+					'QueryType': selector.val(),
+					'$core_v2_ui.PageIndexQueryStringKey': 1
+				}
+			});
+		});
+	})
+	</script>
+#end
+		]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Wikis_PageList_Name}'))
+		]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Wikis_PageList_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="on">on</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Show">Show</resource>
+  <resource name="Wiki_PageList_MyPages">My Pages</resource>
+  <resource name="Wikis_Page_Revision">Revision</resource>
+  <resource name="Wikis_PageList_Description">Displays wiki pages related to an individual wiki.</resource>
+  <resource name="Wikis_PageList_Name">Wikis - Page List</resource>
+  <resource name="Wikis_Pages_NoneExist">There are no pages in the wiki that match your current filter settings.</resource>
+  <resource name="Wikis_PageSort_All">All Pages</resource>
+  <resource name="Wikis_PageSort_New">New Pages</resource>
+  <resource name="Wikis_PageSort_Updated">Updated Pages</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="on">位于</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Show">显示</resource>
+  <resource name="Wiki_PageList_MyPages">我的页面</resource>
+  <resource name="Wikis_Page_Revision">修订</resource>
+  <resource name="Wikis_PageList_Description">显示与单个 Wiki 相关的 Wiki 页面。</resource>
+  <resource name="Wikis_PageList_Name">Wiki - 页面列表</resource>
+  <resource name="Wikis_Pages_NoneExist">Wiki 中没有与您的当前筛选器设置相符的页面。</resource>
+  <resource name="Wikis_PageSort_All">所有页面</resource>
+  <resource name="Wikis_PageSort_New">新建页面</resource>
+  <resource name="Wikis_PageSort_Updated">已更新页面</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="on">在</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Show">顯示</resource>
+  <resource name="Wiki_PageList_MyPages">我的頁面</resource>
+  <resource name="Wikis_Page_Revision">修訂</resource>
+  <resource name="Wikis_PageList_Description">顯示與個別 Wiki 相關的 Wiki 頁面。</resource>
+  <resource name="Wikis_PageList_Name">Wiki - 頁面清單</resource>
+  <resource name="Wikis_Pages_NoneExist">沒有任何 Wiki 頁面符合您目前的篩選設定。</resource>
+  <resource name="Wikis_PageSort_All">所有頁面</resource>
+  <resource name="Wikis_PageSort_New">新頁面</resource>
+  <resource name="Wikis_PageSort_Updated">更新的頁面</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="578aa547a44c45d39159cab85e3002cc" />
+		</requiredContext>
+	</scriptedContentFragment>
+</scriptedContentFragments>

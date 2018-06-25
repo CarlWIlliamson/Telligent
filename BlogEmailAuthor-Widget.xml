@@ -1,0 +1,136 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Blogs_ContactBlog_Name}" version="10.1.8.10498" description="${resource:Blogs_ContactBlog_Description}" instanceIdentifier="843230ce227f4d8ba28b5b01312f180d" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="true" cssClass="contact-blog">
+		<contentScript><![CDATA[
+#set ($blog = false)
+#set ($blog = $core_v2_blog.Current)
+#if (!$blog)
+	$core_v2_widget.Hide()
+#end
+#if (!$blog.ShowContact)
+	#if ($core_v2_widget.IsInWidgetPreviewMode)
+		<div class="message warning">$core_v2_language.GetResource('Blogs_ContactBlog_Disabled_Message')</div>
+	#else
+		$core_v2_widget.Hide()
+	#end
+#else
+	#set ($nameId = $core_v2_widget.UniqueId('name'))
+	#set ($emailId = $core_v2_widget.UniqueId('email'))
+	#set ($subjectId = $core_v2_widget.UniqueId('subject'))
+	#set ($bodyId = $core_v2_widget.UniqueId('body'))
+	#set ($submitId = $core_v2_widget.UniqueId('submit'))
+
+	<fieldset>
+		<h1>$core_v2_language.GetResource('Contact')</h1>
+		<ul class="field-list">
+			<li class="field-item">
+				<label for="$core_v2_encoding.HtmlAttributeEncode($nameId)" class="field-item-name">$core_v2_language.GetResource('Weblog_ContactForm_Name')</label>
+				<span class="field-item-input"><input name="$core_v2_encoding.HtmlAttributeEncode($nameId)" type="text" size="50" id="$core_v2_encoding.HtmlAttributeEncode($nameId)" /></span>
+				<span class="field-item-validation" style="display:none;"></span>
+			</li>
+			<li class="field-item">
+				<label for="$core_v2_encoding.HtmlAttributeEncode($emailId)" class="field-item-name">$core_v2_language.GetResource('Weblog_ContactForm_Email')</label>
+				<span class="field-item-input"><input name="$core_v2_encoding.HtmlAttributeEncode($emailId)" type="text" size="50" id="$core_v2_encoding.HtmlAttributeEncode($emailId)" /></span>
+				<span class="field-item-validation" style="display:none;"></span>
+			</li>
+			<li class="field-item">
+				<label for="$core_v2_encoding.HtmlAttributeEncode($subjectId)" class="field-item-name">$core_v2_language.GetResource('Weblog_ContactForm_Subject')</label>
+				<span class="field-item-input"><input name="$core_v2_encoding.HtmlAttributeEncode($subjectId)" type="text" size="50" id="$core_v2_encoding.HtmlAttributeEncode($subjectId)" /></span>
+				<span class="field-item-validation" style="display:none;"></span>
+			</li>
+			<li class="field-item">
+				<label for="$core_v2_encoding.HtmlAttributeEncode($bodyId)" class="field-item-name">$core_v2_language.GetResource('Weblog_ContactForm_Body')</label>
+				<span class="field-item-input"><textarea name="$core_v2_encoding.HtmlAttributeEncode($bodyId)" rows="8" cols="50" id="$core_v2_encoding.HtmlAttributeEncode($bodyId)"></textarea></span>
+				<span class="field-item-validation" style="display:none;"></span>
+			</li>
+			<li class="field-item">
+				<span class="field-item-description"></span>
+				<span class="field-item-input">
+					<a id="$core_v2_encoding.HtmlAttributeEncode($submitId)" class="button internal-link send-email" href="#"><span></span>$core_v2_language.GetResource('Send')</a>
+				</span>
+			</li>
+		</ul>
+	</fieldset>
+	#registerEndOfPageHtml('telligent.evolution.widgets.contactBlog')
+		<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl("ui.js"))"></script>
+	#end
+	#registerEndOfPageHtml()
+		<script type="text/javascript">
+			jQuery(function(){
+				jQuery.telligent.evolution.widgets.contactBlog.register({
+					wrapper: '#$core_v2_encoding.JavascriptEncode($core_v2_widget.WrapperElementId)',
+					subject: '#$core_v2_encoding.JavascriptEncode($subjectId)',
+					name: '#$core_v2_encoding.JavascriptEncode($nameId)',
+					email: '#$core_v2_encoding.JavascriptEncode($emailId)',
+					body: '#$core_v2_encoding.JavascriptEncode($bodyId)',
+					submit: '#$core_v2_encoding.JavascriptEncode($submitId)',
+					successMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Weblog_ContactForm_Sent'))',
+					blogUrl: '$core_v2_encoding.JavascriptEncode($blog.Url)',
+					ipAddress: '$core_v2_encoding.JavascriptEncode($core_v2_page.IpAddress)',
+					blogId: $blog.Id
+				});
+			});
+		</script>
+	#end
+#end
+	]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Blogs_ContactBlog_Name}'))
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Blogs_ContactBlog_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+	]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Blogs_ContactBlog_Description">Displays the form used to email blog owners.</resource>
+  <resource name="Blogs_ContactBlog_Disabled_Message">To enable this widget, you must edit this blog's settings, enable the "Email Blog Author" form, and enter an e-mail address.</resource>
+  <resource name="Blogs_ContactBlog_Name">Blog - Email Author</resource>
+  <resource name="Blogs_ContactBlog_Title_Contact">Contact</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Contact">Contact</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Send">Send</resource>
+  <resource name="Weblog_ContactForm_Body">Message</resource>
+  <resource name="Weblog_ContactForm_Email">Email</resource>
+  <resource name="Weblog_ContactForm_Name">Name</resource>
+  <resource name="Weblog_ContactForm_Sent">Your contact request has been sent successfully.</resource>
+  <resource name="Weblog_ContactForm_Subject">Subject</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Blogs_ContactBlog_Description">显示用于向博客所有者发送电子邮件的窗体。</resource>
+  <resource name="Blogs_ContactBlog_Disabled_Message">要启用此小组件，您必须编辑此博客的设置、启用“向博客作者发送电子邮件”窗体并输入电子邮件地址。</resource>
+  <resource name="Blogs_ContactBlog_Name">博客 - 向作者发送电子邮件</resource>
+  <resource name="Blogs_ContactBlog_Title_Contact">联系人</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Contact">联系人</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Send">发送</resource>
+  <resource name="Weblog_ContactForm_Body">消息</resource>
+  <resource name="Weblog_ContactForm_Email">电子邮件</resource>
+  <resource name="Weblog_ContactForm_Name">名称</resource>
+  <resource name="Weblog_ContactForm_Sent">您的联系人请求已成功发送。</resource>
+  <resource name="Weblog_ContactForm_Subject">主题</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Blogs_ContactBlog_Description">顯示用來傳送電子郵件給部落格擁有者的表單。</resource>
+  <resource name="Blogs_ContactBlog_Disabled_Message">若要啟用這個 Widget，您必須啟用此部落格的設定、啟用 [傳送電子郵件給部落格作者] 表單，並且輸入電子郵件地址。</resource>
+  <resource name="Blogs_ContactBlog_Name">部落格 - 傳送電子郵件給作者</resource>
+  <resource name="Blogs_ContactBlog_Title_Contact">連絡人</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Contact">連絡人</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Send">傳送</resource>
+  <resource name="Weblog_ContactForm_Body">訊息</resource>
+  <resource name="Weblog_ContactForm_Email">電子郵件</resource>
+  <resource name="Weblog_ContactForm_Name">名稱</resource>
+  <resource name="Weblog_ContactForm_Sent">已成功傳送您的連絡人要求。</resource>
+  <resource name="Weblog_ContactForm_Subject">主旨</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="94b4a7db70934b0abcce06169b6f2272" />
+		</requiredContext>
+		<files>
+			<file name="ui.js">KGZ1bmN0aW9uKCQpew0KDQoJdmFyIHZhbGlkYXRpb25NZXNzYWdlID0gJyonLA0KCQljcmVhdGVDb250YWN0UmVxdWVzdCA9IGZ1bmN0aW9uKGNvbnRleHQpIHsNCgkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5wb3N0KHsNCgkJCQl1cmw6ICQudGVsbGlnZW50LmV2b2x1dGlvbi5zaXRlLmdldEJhc2VVcmwoKSArICdhcGkuYXNoeC92Mi9ibG9ncy97QmxvZ0lkfS9jb250YWN0cmVxdWVzdHMuanNvbicsDQoJCQkJZGF0YTogew0KCQkJCQlCbG9nSWQ6IGNvbnRleHQuYmxvZ0lkLA0KCQkJCQlTdWJqZWN0OiBjb250ZXh0LnN1YmplY3QudmFsKCksDQoJCQkJCUJvZHk6IGNvbnRleHQuYm9keS52YWwoKSwNCgkJCQkJTmFtZTogY29udGV4dC5uYW1lLnZhbCgpLA0KCQkJCQlFbWFpbEFkZHJlc3M6IGNvbnRleHQuZW1haWwudmFsKCksDQoJCQkJCUlQQWRkcmVzczogY29udGV4dC5pcEFkZHJlc3MNCgkJCQl9LA0KCQkJCXN1Y2Nlc3M6IGZ1bmN0aW9uKHJlc3BvbnNlKSB7DQoJCQkJCWFsZXJ0KGNvbnRleHQuc3VjY2Vzc01lc3NhZ2UpOw0KCQkJCQl3aW5kb3cubG9jYXRpb24uaHJlZiA9IGNvbnRleHQuYmxvZ1VybDsNCgkJCQl9DQoJCQl9KTsNCgkJfSwNCgkJYXBpID0gew0KCQkJcmVnaXN0ZXI6IGZ1bmN0aW9uKGNvbnRleHQpIHsNCgkJCQljb250ZXh0LnN1YmplY3QgPSAkKGNvbnRleHQuc3ViamVjdCk7DQoJCQkJY29udGV4dC53cmFwcGVyID0gJChjb250ZXh0LndyYXBwZXIpOw0KCQkJCWNvbnRleHQubmFtZSA9ICQoY29udGV4dC5uYW1lKTsNCgkJCQljb250ZXh0LmVtYWlsID0gJChjb250ZXh0LmVtYWlsKTsNCgkJCQljb250ZXh0LmJvZHkgPSAkKGNvbnRleHQuYm9keSk7DQoJCQkJY29udGV4dC5zdWNjZXNzID0gJChjb250ZXh0LnN1Y2Nlc3MpOw0KCQkJCWNvbnRleHQuc3VibWl0ID0gJChjb250ZXh0LnN1Ym1pdCkNCgkJCQkJLmV2b2x1dGlvblZhbGlkYXRpb24oew0KCQkJCQkJb25WYWxpZGF0ZWQ6IGZ1bmN0aW9uKGlzVmFsaWQsIGJ1dHRvbkNsaWNrZWQsIGMpIHsgfSwNCgkJCQkJCW9uU3VjY2Vzc2Z1bENsaWNrOiBmdW5jdGlvbihlKSB7DQoJCQkJCQkJZS5wcmV2ZW50RGVmYXVsdCgpOw0KCQkJCQkJCWNyZWF0ZUNvbnRhY3RSZXF1ZXN0KGNvbnRleHQpOw0KCQkJCQkJfX0pDQoJCQkJCS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRGaWVsZCcsDQoJCQkJCQljb250ZXh0LnN1YmplY3QsIHsNCgkJCQkJCQlyZXF1aXJlZDogdHJ1ZSwNCgkJCQkJCQltZXNzYWdlczogew0KCQkJCQkJCQlyZXF1aXJlZDogdmFsaWRhdGlvbk1lc3NhZ2UNCgkJCQkJCQl9DQoJCQkJCQl9LA0KCQkJCQkJY29udGV4dC5zdWJqZWN0LmNsb3Nlc3QoJy5maWVsZC1pdGVtJykuZmluZCgnLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpLCBudWxsKQ0KCQkJCQkuZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkRmllbGQnLA0KCQkJCQkJY29udGV4dC5uYW1lLCB7DQoJCQkJCQkJcmVxdWlyZWQ6IHRydWUsDQoJCQkJCQkJbWVzc2FnZXM6IHsNCgkJCQkJCQkJcmVxdWlyZWQ6IHZhbGlkYXRpb25NZXNzYWdlDQoJCQkJCQkJfQ0KCQkJCQkJfSwNCgkJCQkJCWNvbnRleHQubmFtZS5jbG9zZXN0KCcuZmllbGQtaXRlbScpLmZpbmQoJy5maWVsZC1pdGVtLXZhbGlkYXRpb24nKSwgbnVsbCkNCgkJCQkJLmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEZpZWxkJywNCgkJCQkJCWNvbnRleHQuZW1haWwsIHsNCgkJCQkJCQlyZXF1aXJlZDogdHJ1ZSwNCgkJCQkJCQllbWFpbDogdHJ1ZSwNCgkJCQkJCQltZXNzYWdlczogew0KCQkJCQkJCQlyZXF1aXJlZDogdmFsaWRhdGlvbk1lc3NhZ2UsDQoJCQkJCQkJCWVtYWlsOiB2YWxpZGF0aW9uTWVzc2FnZQ0KCQkJCQkJCX0NCgkJCQkJCX0sDQoJCQkJCQljb250ZXh0LmVtYWlsLmNsb3Nlc3QoJy5maWVsZC1pdGVtJykuZmluZCgnLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpLCBudWxsKQ0KCQkJCQkuZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkRmllbGQnLA0KCQkJCQkJY29udGV4dC5ib2R5LCB7DQoJCQkJCQkJcmVxdWlyZWQ6IHRydWUsDQoJCQkJCQkJbWVzc2FnZXM6IHsNCgkJCQkJCQkJcmVxdWlyZWQ6IHZhbGlkYXRpb25NZXNzYWdlDQoJCQkJCQkJfQ0KCQkJCQkJfSwNCgkJCQkJCWNvbnRleHQuYm9keS5jbG9zZXN0KCcuZmllbGQtaXRlbScpLmZpbmQoJy5maWVsZC1pdGVtLXZhbGlkYXRpb24nKSwgbnVsbCk7DQoJCQl9DQoJfTsNCg0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50ID0ge307IH0NCglpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbiA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID0ge307IH0NCglpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9IHt9OyB9DQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMuY29udGFjdEJsb2cgPSBhcGk7DQoNCn0oalF1ZXJ5KSk7DQo=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

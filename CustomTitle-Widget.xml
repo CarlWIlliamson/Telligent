@@ -1,0 +1,46 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_CustomTitle_Name}" version="10.1.8.10498" description="${resource:Core_CustomTitle_Description}" instanceIdentifier="1e91a5c5c2684e9e9ce6d91086c702dd" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="custom-title">
+		<contentScript><![CDATA[
+#set ($title = false)
+#set ($title = $core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('title', '${resource:Core_CustomTitle_Name}')))
+#if ($title)
+	$core_v2_page.SetTitle($title, true, true)
+	#if ($core_v2_widget.GetBoolValue('visible', false))
+		<h1 class="title">$title</h1>
+	#end
+#else
+	$core_v2_widget.Hide()
+#end
+	]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('title', '${resource:Core_CustomTitle_Name}'))
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="title" resourceName="Core_CustomTitle_Title_Name" dataType="string" defaultValue="${resource:Core_CustomTitle_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="visible" resourceName="Title_Visible" dataType="bool" defaultValue="False" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Core_CustomTitle_Description">Define a custom page title.</resource>
+  <resource name="Core_CustomTitle_Name">Custom Title</resource>
+  <resource name="Core_CustomTitle_Title_Name">Custom Title</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Title_Visible">Show the title in the page</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Core_CustomTitle_Description">定义自定义页面标题。</resource>
+  <resource name="Core_CustomTitle_Name">自定义标题</resource>
+  <resource name="Core_CustomTitle_Title_Name">自定义标题</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Title_Visible">在页面中显示标题</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Core_CustomTitle_Description">定義自訂頁面標題。</resource>
+  <resource name="Core_CustomTitle_Name">自訂標題</resource>
+  <resource name="Core_CustomTitle_Title_Name">自訂標題</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Title_Visible">在頁面中顯示標題</resource>
+</language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

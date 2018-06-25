@@ -1,0 +1,9 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="Arm - Redirect to Login" version="10.1.8.10498" description="Redirects the user to the IDaaS login page" instanceIdentifier="19cf19eee8364ee182d32c278134e557" theme="" isCacheable="false" varyCacheByUser="false" showHeaderByDefault="false" cssClass="">
+		<contentScript><![CDATA[#if(!$core_v2_widget.IsInWidgetPreviewMode && $azure_v1_ad)
+    ##$core_v2_page.Redirect("/signin?returnurl=$core_v2_encoding.UrlEncode($core_v2_urls.FullPath($core_v2_page.ReturnUrl))")
+    $core_v2_urls.FullPath($core_v2_page.ReturnUrl)
+#end
+]]></contentScript>
+	</scriptedContentFragment>
+</scriptedContentFragments>

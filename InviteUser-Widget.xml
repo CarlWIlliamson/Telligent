@@ -1,0 +1,100 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_InviteUser_Name}" version="10.1.8.10498" description="${resource:Core_InviteUser_Description}" instanceIdentifier="9f268aafcc6b4e1eb74ee21eabd11322" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="invite-user">
+		<contentScript><![CDATA[
+#set($user = $core_v2_user.Accessing)
+#if(!$core_v2_user.IsRegistered($user.Id))
+	$core_v2_widget.Hide()
+#end
+
+<fieldset>
+	<h2>$core_v2_language.GetResource('Core_InviteUser_Name')</h2>
+	<p>$core_v2_language.GetResource("InviteUser_Instructions")</p>
+	<ul class="field-list">
+		<li class="field-item email-address">
+			<label class="field-item-name" for="$core_v2_widget.UniqueId('email')">${core_v2_language.GetResource("InviteUser_Email")}</label>
+			<span class="field-item-input"><input type="text" id="$core_v2_widget.UniqueId('email')" size="60" maxlength="5000" /></span>
+			<span class="field-item-validation" style="display: none;"></span>
+		</li>
+		<li class="field-item">
+			<label class="field-item-name" for="$core_v2_widget.UniqueId('message')">${core_v2_language.GetResource("InviteUser_Message")}</label>
+			<span class="field-item-input"><textarea id="$core_v2_widget.UniqueId('message')" rows="5" size="60"></textarea></span>
+		</li>
+		<li class="field-item">
+			<span class="field-item-input">
+				<a class="button" href="#" id="$core_v2_widget.UniqueId('send')">$core_v2_language.GetResource('Send')</a>
+				<span class="processing" style="visibility: hidden;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+			</span>
+		</li>
+	</ul>
+</fieldset>
+
+#registerEndOfPageHtml('telligent.evolution.widgets.inviteUser')
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl("ui.js"))"></script>
+#end
+#registerEndOfPageHtml()
+	<script type="text/javascript">
+		jQuery(function(){
+			jQuery.telligent.evolution.widgets.inviteUser.register({
+				wrapperId : '$core_v2_widget.WrapperElementId',
+				emailInput : jQuery('#$core_v2_widget.UniqueId('email')'),
+				messageInput : jQuery('#$core_v2_widget.UniqueId('message')'),
+				sendButton : jQuery('#$core_v2_widget.UniqueId('send')'),
+				successMessage : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource("InviteUser_SendSuccess"))',
+				successUrl: '$core_v2_encoding.JavascriptEncode($core_v2_urls.Home())',
+				createUrl : '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('create.vm'))',
+				createErrorMessage : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource("InviteUser_CreateError"))'
+			});
+		});
+	</script>
+#end
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Core_InviteUser_Name}'))
+					]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Core_InviteUser_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+					]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Core_InviteUser_Description">Displays a form for a user to invite a person to join the community.</resource>
+  <resource name="Core_InviteUser_Name">Invite User</resource>
+  <resource name="InviteUser_CreateError">An error occurred while trying to create the invitation to send to the user.</resource>
+  <resource name="InviteUser_Email">Email Address(es):</resource>
+  <resource name="InviteUser_Instructions">Enter the email addresses of people you would like to invite to join this community along with a brief message. Multiple email addresses can be entered, delimited by semi-colons.</resource>
+  <resource name="InviteUser_Message">Message:</resource>
+  <resource name="InviteUser_SendSuccess">Your invitations have been sent successfully.</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Send">Send</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Core_InviteUser_Description">显示供用户邀请人员加入社区的窗体。</resource>
+  <resource name="Core_InviteUser_Name">邀请用户</resource>
+  <resource name="InviteUser_CreateError">尝试创建要发送给用户的邀请时出现错误。</resource>
+  <resource name="InviteUser_Email">电子邮件地址:</resource>
+  <resource name="InviteUser_Instructions">输入您要邀请加入此社区的人员的电子邮件地址及简短消息。可以输入多个电子邮件地址(用分号隔开)。</resource>
+  <resource name="InviteUser_Message">消息:</resource>
+  <resource name="InviteUser_SendSuccess">您的邀请已成功发送。</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Send">发送</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Core_InviteUser_Description">顯示可讓使用者邀請他人加入社群的表單。</resource>
+  <resource name="Core_InviteUser_Name">邀請使用者</resource>
+  <resource name="InviteUser_CreateError">嘗試建立要傳送給使用者的邀請時發生錯誤。</resource>
+  <resource name="InviteUser_Email">電子郵件地址:</resource>
+  <resource name="InviteUser_Instructions">輸入您想要邀請加入此社群之人員的電子郵件地址，以及一段簡短的訊息。您可以輸入多個以分號隔開的電子郵件地址。</resource>
+  <resource name="InviteUser_Message">訊息:</resource>
+  <resource name="InviteUser_SendSuccess">已成功傳送您的邀請。</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Send">傳送</resource>
+</language></languageResources>
+		<files>
+			<file name="create.vm">77u/I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkNCgkjc2V0KCRlbWFpbEFkZHJlc3MgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnZW1haWxBZGRyZXNzJykpDQoJI3NldCgkbWVzc2FnZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdtZXNzYWdlJykpDQoNCgkkY29yZV92Ml9wYWdlLlNldENvbnRlbnRUeXBlKCdhcHBsaWNhdGlvbi9qc29uJykNCg0KCSNpZigkZW1haWxBZGRyZXNzLkluZGV4T2YoIjsiKSA+IDApDQoJICAgICNzZXQoJGVtYWlsQWRkcmVzc2VzID0gJGNvcmVfdjJfdXRpbGl0eS5TcGxpdCgiOyIsICRlbWFpbEFkZHJlc3MpKQ0KCSAgICAjc2V0KCR1c2VySW52aXRhdGlvbiA9ICRjb3JlX3YyX3VzZXJJbnZpdGF0aW9uLkNyZWF0ZSgkZW1haWxBZGRyZXNzZXMsICRtZXNzYWdlKSkNCgkjZWxzZQ0KCSAgICAjc2V0KCR1c2VySW52aXRhdGlvbiA9ICRjb3JlX3YyX3VzZXJJbnZpdGF0aW9uLkNyZWF0ZSgkZW1haWxBZGRyZXNzLCAkbWVzc2FnZSkpDQoJI2VuZA0KDQoJI2lmICgkdXNlckludml0YXRpb24uSGFzRXJyb3JzKCkpDQoJCSRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcigkdXNlckludml0YXRpb24uRXJyb3JzKQ0KCSNlbmQNCg0KCXsiaW52aXRhdGlvbkNyZWF0ZWQiOnRydWV9DQojZW5k</file>
+			<file name="ui.js">KGZ1bmN0aW9uKCQpDQp7DQoJaWYgKHR5cGVvZiAkLnRlbGxpZ2VudCA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQgPSB7fTsgfQ0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSB7fTsgfQ0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID0ge307IH0NCg0KCXZhciBfY3JlYXRlSW52aXRlID0gZnVuY3Rpb24oY29udGV4dCkNCgkJew0KCQkJdmFyIGRhdGEgPSB7IA0KCQkJCQllbWFpbEFkZHJlc3M6Y29udGV4dC5lbWFpbElucHV0LnZhbCgpLA0KCQkJCQltZXNzYWdlOmNvbnRleHQubWVzc2FnZUlucHV0LnZhbCgpDQoJCQkJfTsNCgkJCQ0KCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3Qoew0KCQkJCXVybDogY29udGV4dC5jcmVhdGVVcmwsDQoJCQkJZGF0YTogZGF0YSwNCgkJCQlkYXRhVHlwZTogJ2pzb24nLA0KCQkJCXN1Y2Nlc3M6IGZ1bmN0aW9uKHJlc3BvbnNlKQ0KCQkJCXsNCgkJCQkJYWxlcnQoY29udGV4dC5zdWNjZXNzTWVzc2FnZSk7DQoJCQkJCXdpbmRvdy5sb2NhdGlvbi5ocmVmID0gY29udGV4dC5zdWNjZXNzVXJsOw0KCQkJCX0sDQoJCQkJZGVmYXVsdEVycm9yTWVzc2FnZTogY29udGV4dC5jcmVhdGVFcnJvck1lc3NhZ2UsDQoJCQkJZXJyb3I6IGZ1bmN0aW9uKHhociwgZGVzYywgZXgpIA0KCQkJCXsgDQoJCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coZGVzYyx7dHlwZTonZXJyb3InfSk7DQoJCQkJCWNvbnRleHQuc2VuZEJ1dHRvbi5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsNCgkJCQkJJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LnNlbmRCdXR0b24ucGFyZW50KCkpLmNzcygidmlzaWJpbGl0eSIsICJoaWRkZW4iKTsNCgkJCQl9DQoJCQl9KTsNCgkJfTsNCg0KCSQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzLmludml0ZVVzZXIgPQ0KCXsNCgkJcmVnaXN0ZXI6IGZ1bmN0aW9uKGNvbnRleHQpDQoJCXsNCgkJCWNvbnRleHQuc2VuZEJ1dHRvbi5ldm9sdXRpb25WYWxpZGF0aW9uKA0KCQkJew0KCQkJCXZhbGlkYXRlT25Mb2FkIDogZmFsc2UsDQoJCQkJb25WYWxpZGF0ZWQ6IGZ1bmN0aW9uKGlzVmFsaWQsIGJ1dHRvbkNsaWNrZWQsIGMpIA0KCQkJCXsgDQoJCQkJCWlmIChpc1ZhbGlkKSANCgkJCQkJCWNvbnRleHQuc2VuZEJ1dHRvbi5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsgDQoJCQkJCWVsc2UNCgkJCQkJCWNvbnRleHQuc2VuZEJ1dHRvbi5hZGRDbGFzcygnZGlzYWJsZWQnKTsNCgkJCQl9LA0KCQkJCW9uU3VjY2Vzc2Z1bENsaWNrOiBmdW5jdGlvbihlKSANCgkJCQl7DQoJCQkJCWNvbnRleHQuc2VuZEJ1dHRvbi5hZGRDbGFzcygnZGlzYWJsZWQnKTsNCgkJCQkJJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LnNlbmRCdXR0b24ucGFyZW50KCkpLmNzcygidmlzaWJpbGl0eSIsICJ2aXNpYmxlIik7DQoJCQkJCV9jcmVhdGVJbnZpdGUoY29udGV4dCk7DQoJCQkJCWUucHJldmVudERlZmF1bHQoKTsNCgkJCQl9DQoJCQl9KS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRGaWVsZCcsIGNvbnRleHQuZW1haWxJbnB1dCwJDQoJCQl7IA0KCQkJCXJlcXVpcmVkOiB0cnVlLA0KCQkJCWVtYWlsczogdHJ1ZQ0KCQkJfSwgJyMnICsgY29udGV4dC53cmFwcGVySWQgKyAnIC5maWVsZC1pdGVtLmVtYWlsLWFkZHJlc3MgLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicsIG51bGwpOw0KCQl9DQoJfTsNCn0pKGpRdWVyeSk7DQo=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

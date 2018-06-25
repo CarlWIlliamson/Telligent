@@ -1,0 +1,11 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="Arm - Support CTA" version="10.1.8.10498" description="Provides a call to action for Arm Support entitled members" instanceIdentifier="8dfe86944b194fc2a051dcf38d92cda4" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="user-defined-markup">
+		<contentScript><![CDATA[<p>With a support entitlement you can also get direct access to our team of highly-qualified Arm experts 24-hours a day</p>
+<p><a class="button blue cta-square" title="Open a support case with Arm - support entitlement required" href="https://silver.arm.com/support/preload.tsh?wm=fb" rel="noopener noreferrer" target="_blank"><i class="fa fa-pull-right fa-external-link"></i>Open a support case</a></p>]]></contentScript>
+		<headerScript><![CDATA[$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Arm_Support_CTA_Name}'))]]></headerScript>
+		<configuration><![CDATA[<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Arm_Support_CTA_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>]]></configuration>
+		<languageResources><language key="en-us"><resource name="Arm_Support_CTA_Name">Support</resource><resource name="CF_Title">Widget Title</resource></language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

@@ -1,0 +1,213 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_Message_Name}" version="10.1.8.10498" description="${resource:Core_Message_Description}" instanceIdentifier="4532f631b5944ff3ab105bda9569ee99" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="core-message">
+		<contentScript><![CDATA[
+#set($message = $core_v2_message.Current)
+#set($user = $core_v2_user.Accessing)
+#set($dq = '"')
+
+#if ($message.Id == 9 || $message.Id == 6 || $message.Id == 14 || $message.Id == 33 || $message.Id == 33 || $message.Id == 34 || $message.Id == 57 || $message.Id ==  5 || $message.Id == 18 || $message.Id == 20 || $message.Id == 20 || $message.Id == 21 || $message.Id == 45 || $message.Id == 53 || $message.Id == 104)
+	$core_v2_page.SetStatusCode(404)
+#end
+
+#if ($message.Id == 24)
+	#set($homeAnchor = "<a href=${dq}${core_v2_urls.Home()}${dq}><span></span>${core_v2_language.GetResource('CreateNewAccount_NewUserMessage_Home')}</a>")
+	#set($editProfileAnchor = "<a href=${dq}${core_v2_editableGroup.GetEditUrl('User', ${core_v2_urls.User(${user.Id})})}${dq} class=${dq}internal-link edit-user-profile${dq}><span></span>${core_v2_language.GetResource('CreateNewAccount_EditProfileLink')}</a>")
+	#set($returnUrl = false)
+	#set($returnUrl = $core_v2_page.ReturnUrl)
+	<fieldset class="field-list">
+		<h2>$message.Name</h2>
+		$core_v2_language.FormatString($core_v2_language.GetResource("CreateNewAccount_NewUserMessage"), $message.Body, $homeAnchor, $editProfileAnchor)
+		#if (!$returnUrl || $returnUrl == '')
+			#set ($returnUrl = $core_v2_urls.Home())
+		#end
+			<ul class="field-list">
+				<li class="field-item">
+					<span class="field-item-input">
+						<a href="$core_v2_encoding.HtmlAttributeEncode($returnUrl)" class="button">$core_v2_language.GetResource('CreateNewAccount_NewUserMessage_ReturnUrl')</a>
+					</span>
+				</li>
+			</ul>
+	</fieldlist>
+#elseif ($message.Id == 14)
+	<h2>$message.Name</h2>
+	#set($userSearchAnchor = "<a href='${core_v2_urls.Search()}' class='internal-link view-user-search'><span></span>${core_v2_language.GetResource('UserNotFound_Message_Here')}</a>")
+	<p>
+		$core_v2_language.FormatString($core_v2_language.GetResource("UserNotFound_Message"), $message.Body, $userSearchAnchor)
+	</p>
+#elseif ($message.Id == 26)
+	<h2>$message.Name</h2>
+	<p>
+		$message.Body
+	</p>
+	#if ($core_v2_page.GetQueryStringValue("BanReason"))
+		<div class="message">
+			$core_v2_language.GetResource("Reason"):  $core_v2_encoding.HtmlEncode($core_v2_language.GetResource($core_v2_language.FormatString('Utility_UserBanReason_{0}', $core_v2_page.GetQueryStringValue("BanReason"))))
+		</div>
+	#end
+	#if ($core_v2_page.GetQueryStringValue("BanExpiration"))
+		<div class="message">
+			$core_v2_language.GetResource("EditProfile_BanedUntilDate"):$core_v2_encoding.HtmlEncode($core_v2_page.GetQueryStringValue("BanExpiration"))
+		</div>
+	#end
+#elseif ($message.Id == 9 || $message.Id == 104)
+	<h2>$message.Name</h2>
+	<p>
+		$message.Body
+		<div class="field-list-header"></div>
+		<fieldset class="field-list">
+			<ul class="field-list">
+				<li class="field-item search">
+					<label for="$core_v2_widget.UniqueId('searchInput')" class="field-item-header hidden">$core_v2_language.GetResource('CF_Search_SearchSite')</label>
+					<span class="field-item-input">
+						<input type="text" size="45" maxlength="128" id="$core_v2_widget.UniqueId('searchInput')" value="$core_v2_language.GetResource("CF_Search_SearchSite")" />
+					</span>
+					<span class="field-item-validation" style="display:none;"></span>
+				</li>
+				<li class="field-item">
+					<span class="field-item-input">
+						<input type="button" id="$core_v2_widget.UniqueId('searchButton')" value="$core_v2_language.GetResource("Search")" />
+					</span>
+				</li>
+			</ul>
+		</fieldset>
+		<div class="field-list-footer"></div>
+
+		#registerEndOfPageHtml('telligent.evolution.widgets.message')
+			<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl("ui.js"))"></script>
+		#end
+		#registerEndOfPageHtml()
+			<script type="text/javascript">
+				jQuery(function(){
+					jQuery.telligent.evolution.widgets.message.register({
+						wrapperId : '$core_v2_widget.WrapperElementId',
+						searchButton : jQuery('#$core_v2_widget.UniqueId('searchButton')'),
+						searchInput : jQuery('#$core_v2_widget.UniqueId('searchInput')'),
+						searchInputText : '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource("CF_Search_SearchSite"))',
+						searchInputRequiredText : '*',
+						searchUrlTemplate : '$core_v2_urls.Search("%{ QueryString = 'q={SearchQuery}' }")'
+					});
+				});
+			</script>
+		#end
+	</p>
+#else
+	<h2>$message.Name</h2>
+	<p>
+		$message.Body
+	</p>
+	#if($core_v2_page.ReturnUrl)
+	<p>
+	    #set($label = $core_v2_language.GetResource("Return_Url_Label"))
+	    #if($core_v2_page.GetQueryStringValue("Label"))
+	        #set($label = $core_v2_language.RemoveHtml($core_v2_page.GetQueryStringValue("Label")))
+	    #end
+	    $core_v2_language.GetResource("Return_Url_BackTo")&nbsp;
+		#if ($message.Id == 17)
+	        <a href="$core_v2_urls.LogIn()">$core_v2_language.GetResource("Return_Url_LoginPage")</a>
+	    #else
+	        <a href="$core_v2_page.ReturnUrl">$label</a>
+	    #end
+	</p>
+	#end
+#end
+			]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Core_Message_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Core_Message_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Search_SearchSite">Search...</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Core_Message_Description">Used for displaying common site messages.</resource>
+  <resource name="Core_Message_Name">Core - Message</resource>
+  <resource name="Core_Message_Title_Message">Message</resource>
+  <resource name="CreateNewAccount_EditProfileLink">update your profile</resource>
+  <resource name="CreateNewAccount_NewUserMessage">&lt;p&gt;Welcome to the community! Your account has been created and you are signed in.&lt;/p&gt;&lt;p&gt;You can take a few minutes now and {2} or go back to the {1} of the community. Or, just click the "Ok" button to go back to the page you were just on.&lt;/p&gt;</resource>
+  <resource name="CreateNewAccount_NewUserMessage_Home">home page</resource>
+  <resource name="CreateNewAccount_NewUserMessage_ReturnUrl">Ok</resource>
+  <resource name="EditProfile_BanedUntilDate">Expiration Date</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Reason">Reason</resource>
+  <resource name="Return_Url_BackTo">Back to</resource>
+  <resource name="Return_Url_Label">valid page</resource>
+  <resource name="Return_Url_LoginPage">login page</resource>
+  <resource name="Search">Search</resource>
+  <resource name="UserNotFound_Message">{0} You can try searching for users {1}.</resource>
+  <resource name="UserNotFound_Message_Here">here</resource>
+  <resource name="Utility_UserBanReason_Advertising">Advertising</resource>
+  <resource name="Utility_UserBanReason_Aggresive">Attacking other members</resource>
+  <resource name="Utility_UserBanReason_BadSignature">Inappropriate Links or Signature</resource>
+  <resource name="Utility_UserBanReason_BadUsername">Inappropriate username</resource>
+  <resource name="Utility_UserBanReason_BanDodging">Ban Dodging</resource>
+  <resource name="Utility_UserBanReason_Other">Other</resource>
+  <resource name="Utility_UserBanReason_Profanity">Profanity</resource>
+  <resource name="Utility_UserBanReason_Spam">Spam</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Search_SearchSite">搜索...</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Core_Message_Description">用于显示通用网站消息。</resource>
+  <resource name="Core_Message_Name">核心 - 消息</resource>
+  <resource name="Core_Message_Title_Message">消息</resource>
+  <resource name="CreateNewAccount_EditProfileLink">更新您的个人资料</resource>
+  <resource name="CreateNewAccount_NewUserMessage">&lt;p&gt;欢迎使用社区!您的帐户已创建并且您已登录。&lt;/p&gt;&lt;p&gt;您可以用几分钟时间 {2} 或返回至社区的 {1}。您也可以仅单击“确定”按钮返回至您刚刚所在的页面。&lt;/p&gt;</resource>
+  <resource name="CreateNewAccount_NewUserMessage_Home">主页</resource>
+  <resource name="CreateNewAccount_NewUserMessage_ReturnUrl">确定</resource>
+  <resource name="EditProfile_BanedUntilDate">到期日期</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Reason">原因</resource>
+  <resource name="Return_Url_BackTo">返回至</resource>
+  <resource name="Return_Url_Label">有效页面</resource>
+  <resource name="Return_Url_LoginPage">登录页面</resource>
+  <resource name="Search">搜索</resource>
+  <resource name="UserNotFound_Message">{0} 您可以尝试搜索用户 {1}。</resource>
+  <resource name="UserNotFound_Message_Here">此处</resource>
+  <resource name="Utility_UserBanReason_Advertising">广告</resource>
+  <resource name="Utility_UserBanReason_Aggresive">攻击其他成员</resource>
+  <resource name="Utility_UserBanReason_BadSignature">链接或签名不恰当</resource>
+  <resource name="Utility_UserBanReason_BadUsername">用户名不恰当</resource>
+  <resource name="Utility_UserBanReason_BanDodging">规避封禁</resource>
+  <resource name="Utility_UserBanReason_Other">其他</resource>
+  <resource name="Utility_UserBanReason_Profanity">猥亵语言</resource>
+  <resource name="Utility_UserBanReason_Spam">垃圾邮件</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Search_SearchSite">搜尋...</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Core_Message_Description">用於顯示一般網站訊息。</resource>
+  <resource name="Core_Message_Name">核心 - 訊息</resource>
+  <resource name="Core_Message_Title_Message">訊息</resource>
+  <resource name="CreateNewAccount_EditProfileLink">更新您的個人檔案</resource>
+  <resource name="CreateNewAccount_NewUserMessage">&lt;p&gt;歡迎加入社群!您的帳戶已經建立完成，而且您已登入。&lt;/p&gt;&lt;p&gt;您可以花幾分鐘的時間 {2}，或回到社群的 {1}。或者您也可以按一下 [確定] 按鈕回到您剛剛的頁面。&lt;/p&gt;</resource>
+  <resource name="CreateNewAccount_NewUserMessage_Home">首頁</resource>
+  <resource name="CreateNewAccount_NewUserMessage_ReturnUrl">確定</resource>
+  <resource name="EditProfile_BanedUntilDate">到期日</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Reason">原因</resource>
+  <resource name="Return_Url_BackTo">回到</resource>
+  <resource name="Return_Url_Label">有效頁面</resource>
+  <resource name="Return_Url_LoginPage">登入頁面</resource>
+  <resource name="Search">搜尋</resource>
+  <resource name="UserNotFound_Message">{0} 您可以嘗試搜尋使用者 {1}。</resource>
+  <resource name="UserNotFound_Message_Here">在這裡</resource>
+  <resource name="Utility_UserBanReason_Advertising">廣告</resource>
+  <resource name="Utility_UserBanReason_Aggresive">攻擊其他成員</resource>
+  <resource name="Utility_UserBanReason_BadSignature">不適當的連結或簽名</resource>
+  <resource name="Utility_UserBanReason_BadUsername">不適當的使用者名稱</resource>
+  <resource name="Utility_UserBanReason_BanDodging">規避禁令</resource>
+  <resource name="Utility_UserBanReason_Other">其他</resource>
+  <resource name="Utility_UserBanReason_Profanity">不雅內容</resource>
+  <resource name="Utility_UserBanReason_Spam">垃圾郵件</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="48e0297561ad46b98fdcbcd01e8857a3" />
+		</requiredContext>
+		<files>
+			<file name="ui.js">KGZ1bmN0aW9uKCQpDQp7DQoJaWYgKHR5cGVvZiAkLnRlbGxpZ2VudCA9PT0gJ3VuZGVmaW5lZCcpDQoJICAgICAgICAkLnRlbGxpZ2VudCA9IHt9Ow0KDQoJaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPT09ICd1bmRlZmluZWQnKQ0KCSAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSB7fTsNCg0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPT09ICd1bmRlZmluZWQnKQ0KCSAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9IHt9Ow0KDQoJdmFyIHNlYXJjaENsaWNrID0gZnVuY3Rpb24oY29udGV4dCkNCgkJew0KCQkJd2luZG93LmxvY2F0aW9uID0gY29udGV4dC5zZWFyY2hVcmxUZW1wbGF0ZS5yZXBsYWNlKC9ce1NlYXJjaFF1ZXJ5XH0vZywgZW5jb2RlVVJJQ29tcG9uZW50KGNvbnRleHQuc2VhcmNoSW5wdXQudmFsKCkpKTsNCgkJfTsNCg0KCSQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzLm1lc3NhZ2UgPSANCgl7DQoJCXJlZ2lzdGVyOiBmdW5jdGlvbihjb250ZXh0KSANCgkJew0KCQkJLy8gY29udGV4dCA9IHsgd3JhcHBlcklkLCBzZWFyY2hCdXR0b24sIHNlYXJjaElucHV0LCBzZWFyY2hJbnB1dFRleHQsIHNlYXJjaFVybFRlbXBsYXRlIH0NCgkJCWNvbnRleHQuc2VhcmNoQnV0dG9uLmV2b2x1dGlvblZhbGlkYXRpb24oDQoJCQl7DQoJCQkJdmFsaWRhdGVPbkxvYWQ6IGZhbHNlLA0KCQkJCW9uVmFsaWRhdGVkOiBmdW5jdGlvbihpc1ZhbGlkLCBidXR0b25DbGlja2VkLCBjKSANCgkJCQl7IA0KCQkJCQlpZiAoaXNWYWxpZCkgDQoJCQkJCQljb250ZXh0LnNlYXJjaEJ1dHRvbi5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsgDQoJCQkJCWVsc2UNCgkJCQkJCWNvbnRleHQuc2VhcmNoQnV0dG9uLmFkZENsYXNzKCdkaXNhYmxlZCcpOw0KCQkJCX0sDQoJCQkJb25TdWNjZXNzZnVsQ2xpY2s6IGZ1bmN0aW9uKGUpIA0KCQkJCXsNCgkJCQkJY29udGV4dC5zZWFyY2hCdXR0b24uYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7DQoJCQkJCXNlYXJjaENsaWNrKGNvbnRleHQpOw0KCQkJCX0NCgkJCX0pOw0KDQoJCQl2YXIgZiA9IGNvbnRleHQuc2VhcmNoQnV0dG9uLmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEN1c3RvbVZhbGlkYXRpb24nLCAnc2VhcmNodGV4dCcsIGZ1bmN0aW9uKCkgDQoJCQl7DQoJCQkJcmV0dXJuIGNvbnRleHQuc2VhcmNoSW5wdXQudmFsKCkubGVuZ3RoID4gMCAmJiBjb250ZXh0LnNlYXJjaElucHV0LnZhbCgpICE9IGNvbnRleHQuc2VhcmNoSW5wdXRUZXh0OyANCgkJCX0sIGNvbnRleHQuc2VhcmNoSW5wdXRSZXF1aXJlZFRleHQsICcjJyArIGNvbnRleHQud3JhcHBlcklkICsgJyAuZmllbGQtaXRlbS5zZWFyY2ggLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicsIG51bGwpOw0KCQkJDQoJCQljb250ZXh0LnNlYXJjaElucHV0LmtleXByZXNzKGZ1bmN0aW9uKGUpDQoJCQl7DQoJCQkJaWYgKChlLmtleUNvZGUgfHwgZS53aGljaCkgPT0gMTMpDQoJCQkJew0KCQkJCQlpZiAoY29udGV4dC5zZWFyY2hCdXR0b24uZXZvbHV0aW9uVmFsaWRhdGlvbigndmFsaWRhdGUnKSkNCgkJCQkJCXNlYXJjaENsaWNrKGNvbnRleHQpOw0KCQkJCQkNCgkJCQkJcmV0dXJuIGZhbHNlOw0KCQkJCX0NCgkJCX0pOw0KCQkJDQoJCQljb250ZXh0LnNlYXJjaElucHV0LmZvY3VzKGZ1bmN0aW9uKCkNCgkJCXsNCgkJCQlpZiAoY29udGV4dC5zZWFyY2hJbnB1dC52YWwoKSA9PSBjb250ZXh0LnNlYXJjaElucHV0VGV4dCkNCgkJCQkJY29udGV4dC5zZWFyY2hJbnB1dC52YWwoJycpOw0KCQkJfSk7DQoJCQkNCgkJCWNvbnRleHQuc2VhcmNoSW5wdXQuYmx1cihmdW5jdGlvbigpDQoJCQl7DQoJCQkJaWYgKGNvbnRleHQuc2VhcmNoSW5wdXQudmFsKCkubGVuZ3RoID09IDApDQoJCQkJCWNvbnRleHQuc2VhcmNoSW5wdXQudmFsKGNvbnRleHQuc2VhcmNoSW5wdXRUZXh0KTsNCgkJCX0pOw0KCQl9DQoJfTsNCn0pKGpRdWVyeSk7DQo=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

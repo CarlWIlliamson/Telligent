@@ -1,0 +1,229 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Wikis_History_Name}" version="10.1.8.10498" description="${resource:Wikis_History_Description}" instanceIdentifier="be2489b0472c4ce88243bf2d9d5f0c61" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="history">
+		<contentScript><![CDATA[#set ($currentPage = $core_v2_wikiPage.CurrentOrDefault)
+
+## hide this widget if the content is abusive and accessing user does not have permission to review
+#set ($abusiveContent = false)
+#set ($abusiveContent = $core_v2_abusiveContent.Get($currentPage.ContentId, $currentPage.ContentTypeId))
+#set ($abusiveAndCanReviewAppealsInGroup = false)
+#if ($abusiveContent && $abusiveContent.IsAbusive)
+	#set ($currentGroup = $core_v2_group.Current)
+	#set ($abusiveAndCanReviewAppealsInGroup = $core_v2_nodePermission.Get('groups',$currentGroup.Id,$core_v2_groupPermissions.ReviewAbuse).IsAllowed)
+	#if (!$abusiveAndCanReviewAppealsInGroup)
+		$core_v2_widget.Hide()
+	#end
+#end
+
+#set ($deleteCompleteSingleText = $core_v2_language.GetResource('Wikis_History_Delete_Complete_Single'))
+#set ($deleteCompleteMultipleText = $core_v2_language.GetResource('Wikis_History_Delete_Complete_Multiple'))
+#if ($abusiveAndCanReviewAppealsInGroup)
+	#set ($deleteCompleteSingleText = $core_v2_language.GetResource('Wikis_History_Delete_Complete_Abusive_Single'))
+	#set ($deleteCompleteMultipleText = $core_v2_language.GetResource('Wikis_History_Delete_Complete_Abusive_Multiple'))
+#end
+
+#set ($canDeleteVersions = false)
+#set ($canDeleteVersions = $core_v2_nodePermission.Get('wikis',$currentPage.WikiId,$core_v2_wikiPermissions.DeletePage,"%{PostType='pages',PostId=$currentPage.Id}").IsAllowed)
+
+#set ($currentPageSize = 10)
+#set ($currentPageIndex = $core_v2_ui.GetCurrentPageIndex())
+#set ($revisions = $core_v2_wikiPageRevision.List($currentPage.WikiId, "%{PageId = $currentPage.Id, PageIndex = $currentPageIndex, PageSize = $currentPageSize}"))
+
+<div class="content full">
+	<h1 class="name">
+		<a href="$core_v2_encoding.HtmlAttributeEncode($currentPage.Url)" class="internal-link view-post">$currentPage.Title</a>
+	</h1>
+	<div class="content margin-bottom">
+		<table id="$core_v2_widget.UniqueId('revisionListing')" class="table-list">
+			<thead>
+			<tr class="table-header">
+				<th class="table-header-column" colspan="2">$core_v2_language.GetResource("Wikis_History_Revision")</th>
+				<th class="table-header-column">$core_v2_language.GetResource("Wikis_History_Date")</th>
+				<th class="table-header-column">$core_v2_language.GetResource("Wikis_History_Author")</th>
+			</tr>
+			</thead>
+			<tbody>
+				<tr class="table-item">
+					#if ($revisions && $revisions.Count > 0)
+						<td class="table-column">
+							<label for="$core_v2_widget.UniqueId('SelectAll')" class="hidden">$core_v2_language.GetResource('SelectAll')</label>
+							<input type="checkbox" name="0" checked="checked" id="$core_v2_widget.UniqueId('SelectAll')" />
+						</td>
+						<td class="table-column">
+					#else
+						<td class="table-column" colspan="2">
+					#end
+						$core_v2_language.GetResource("Wikis_History_CurrentRevision")</td>
+					<td class="table-column">$core_v2_language.FormatDateAndTime($currentPage.LastModifiedDate)</td>
+					<td class="table-column">
+						#if ($currentPage.User.ProfileUrl)
+							<a href="$core_v2_encoding.HtmlAttributeEncode($currentPage.User.ProfileUrl)" class="internal-link view-user-profile">$currentPage.User.DisplayName</a>
+						#else
+							$currentPage.User.DisplayName
+						#end
+					</td>
+				</tr>
+
+		#foreach ($revision in $revisions)
+		#each
+				<tr class="table-item">
+					<td class="table-column">
+						#set ($id = "${core_v2_widget.UniqueId('Revision')}-${revision.RevisionNumber}")
+						<label for="$id" class="field-item-header hidden">$revision.RevisionNumber</label>
+						<input type="checkbox" name="$revision.RevisionNumber" id="$id" />
+					</td>
+					<td class="table-column">
+						<a href="$core_v2_encoding.HtmlAttributeEncode($core_v2_wikiUrls.Revision($currentPage.Id, $revision.RevisionNumber))">$core_v2_language.GetResource("Revision") #$revision.RevisionNumber</a>
+					</td>
+					<td class="table-column">
+						$core_v2_language.FormatDateAndTime($revision.LastModifiedDate)
+					</td>
+					<td class="table-column">
+						#if ($revision.User.ProfileUrl)
+							<a href="$core_v2_encoding.HtmlAttributeEncode($revision.User.ProfileUrl)" class="internal-link view-user-profile">$revision.User.DisplayName</a>
+						#else
+							$revision.User.DisplayName
+						#end
+					</td>
+				</tr>
+		#end
+
+			</tbody>
+		</table>
+	</div>
+</div>
+
+$core_v2_ui.Pager($currentPageIndex, $revisions.PageSize, $revisions.TotalCount)
+
+<fieldset class="margin-top">
+	<ul class="field-list">
+		<li class="field-item">
+			<span class="field-item-input">
+				#if ($revisions && $revisions.Count > 0)
+					<a href="#" class="button" id="$core_v2_widget.UniqueId('compareVersionsButton')">$core_v2_language.GetResource('Wikis_History_Compare')</a>
+					#if ($canDeleteVersions)
+						<a href="#" class="button" id="$core_v2_widget.UniqueId('deleteVersionsButton')">$core_v2_language.GetResource('Wikis_History_Delete')</a>
+					#end
+				#end
+				<a href='$core_v2_encoding.HtmlAttributeEncode($core_v2_wikiUrls.Page($currentPage.Id))' class='internal-link view-post'><span></span>$core_v2_language.GetResource('Wikis_History_ViewCurrent')</a>
+			</span>
+		</li>
+	</ul>
+</fieldset>
+
+#registerEndOfPageHtml('telligent.evolution.widgets.history')
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+#end
+#registerEndOfPageHtml()
+	<script type="text/javascript">
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+		jQuery(document).ready(function()
+		{
+			jQuery.telligent.evolution.widgets.history.register({
+				compareVersionsButton:jQuery('#$core_v2_widget.UniqueId('compareVersionsButton')'),
+				deleteVersionsButton:jQuery('#$core_v2_widget.UniqueId('deleteVersionsButton')'),
+				revisionListingContainer:jQuery('#$core_v2_widget.UniqueId('revisionListing')'),
+				tooManyVersionsText:"$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Wikis_History_TooManyVersionsSelected'))",
+				notEnoughVersionsText:"$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Wikis_History_NotEnoughVersionsSelected'))",
+				deleteNotEnoughText:"$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Wikis_History_Delete_NotEnoughVersionsSelected'))",
+				deleteCurrentText:"$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Wikis_History_Delete_CurrentVersion'))",
+				deleteConfirmText:"$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Wikis_History_Delete_Confirm'))",
+				deleteCompleteSingleText:"$core_v2_encoding.JavascriptEncode($deleteCompleteSingleText)",
+				deleteCompleteMultipleText:"$core_v2_encoding.JavascriptEncode($deleteCompleteMultipleText)",
+				wikiId: $currentPage.WikiId,
+				wikiPageId: $currentPage.Id,
+				revisionCount: $currentPage.RevisionCount
+			});
+		});
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+	</script>
+#end
+		]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Wikis_History_Name}'))
+		]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Wikis_History_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Revision">Revision</resource>
+  <resource name="SelectAll">Select All</resource>
+  <resource name="Wikis_History_Author">Revision Author</resource>
+  <resource name="Wikis_History_Compare">Compare Versions</resource>
+  <resource name="Wikis_History_CurrentRevision">Current Revision</resource>
+  <resource name="Wikis_History_Date">Creation Date</resource>
+  <resource name="Wikis_History_Delete">Delete Versions</resource>
+  <resource name="Wikis_History_Delete_Complete_Abusive_Multiple">Revisions {0} have been deleted. This wiki page is still considered abusive. You must still restore the page.</resource>
+  <resource name="Wikis_History_Delete_Complete_Abusive_Single">Revision {0} has been deleted. This wiki page is still considered abusive. You must still restore the page.</resource>
+  <resource name="Wikis_History_Delete_Complete_Multiple">Revisions {0} have been deleted.</resource>
+  <resource name="Wikis_History_Delete_Complete_Single">Revision {0} has been deleted.</resource>
+  <resource name="Wikis_History_Delete_Confirm">Are you sure you want to delete the selected revisions?</resource>
+  <resource name="Wikis_History_Delete_CurrentVersion">The current revision version cannot be deleted.</resource>
+  <resource name="Wikis_History_Delete_NotEnoughVersionsSelected">Please select at least one version to delete.</resource>
+  <resource name="Wikis_History_Description">Displays history for wikis.</resource>
+  <resource name="Wikis_History_Name">Wikis - History</resource>
+  <resource name="Wikis_History_NotEnoughVersionsSelected">Please select two versions to compare</resource>
+  <resource name="Wikis_History_Revision">Revision</resource>
+  <resource name="Wikis_History_TooManyVersionsSelected">Please only select two versions to compare</resource>
+  <resource name="Wikis_History_ViewCurrent">View current version</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Revision">修订版</resource>
+  <resource name="SelectAll">全选</resource>
+  <resource name="Wikis_History_Author">修订版作者</resource>
+  <resource name="Wikis_History_Compare">比较版本</resource>
+  <resource name="Wikis_History_CurrentRevision">当前修订版</resource>
+  <resource name="Wikis_History_Date">创建日期</resource>
+  <resource name="Wikis_History_Delete">删除版本</resource>
+  <resource name="Wikis_History_Delete_Complete_Abusive_Multiple">已删除修订版 {0}。此 wiki 页面仍被视为不良信息。您仍必须恢复此页面。</resource>
+  <resource name="Wikis_History_Delete_Complete_Abusive_Single">已删除修订版 {0}。此 wiki 页面仍被视为不良信息。您仍必须恢复此页面。</resource>
+  <resource name="Wikis_History_Delete_Complete_Multiple">已删除修订版 {0}。</resource>
+  <resource name="Wikis_History_Delete_Complete_Single">已删除修订版 {0}。</resource>
+  <resource name="Wikis_History_Delete_Confirm">是否确定要删除所选修订版?</resource>
+  <resource name="Wikis_History_Delete_CurrentVersion">无法删除当前修订版。</resource>
+  <resource name="Wikis_History_Delete_NotEnoughVersionsSelected">请至少选择一个要删除的版本。</resource>
+  <resource name="Wikis_History_Description">显示 Wiki 的历史记录。</resource>
+  <resource name="Wikis_History_Name">Wiki - 历史记录</resource>
+  <resource name="Wikis_History_NotEnoughVersionsSelected">请选择两个版本进行比较</resource>
+  <resource name="Wikis_History_Revision">修订版</resource>
+  <resource name="Wikis_History_TooManyVersionsSelected">请只选择两个版本进行比较</resource>
+  <resource name="Wikis_History_ViewCurrent">查看当前版本</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Revision">修訂</resource>
+  <resource name="SelectAll">全選</resource>
+  <resource name="Wikis_History_Author">修訂作者</resource>
+  <resource name="Wikis_History_Compare">比較版本</resource>
+  <resource name="Wikis_History_CurrentRevision">目前修訂</resource>
+  <resource name="Wikis_History_Date">建立日期</resource>
+  <resource name="Wikis_History_Delete">刪除版本</resource>
+  <resource name="Wikis_History_Delete_Complete_Abusive_Multiple">修訂 {0} 已刪除。Wiki 頁面仍視為是不當使用。您必須還原頁面。</resource>
+  <resource name="Wikis_History_Delete_Complete_Abusive_Single">修訂 {0} 已刪除。Wiki 頁面仍視為是不當使用。您必須還原頁面。</resource>
+  <resource name="Wikis_History_Delete_Complete_Multiple">修訂 {0} 已刪除。</resource>
+  <resource name="Wikis_History_Delete_Complete_Single">修訂 {0} 已刪除。</resource>
+  <resource name="Wikis_History_Delete_Confirm">您確定要刪除選取的修訂嗎?</resource>
+  <resource name="Wikis_History_Delete_CurrentVersion">無法刪除目前的修訂版本。</resource>
+  <resource name="Wikis_History_Delete_NotEnoughVersionsSelected">請選取至少一個要刪除的版本。</resource>
+  <resource name="Wikis_History_Description">顯示 Wiki 的記錄。</resource>
+  <resource name="Wikis_History_Name">Wiki - 記錄</resource>
+  <resource name="Wikis_History_NotEnoughVersionsSelected">請選取兩個版本來比較</resource>
+  <resource name="Wikis_History_Revision">修訂</resource>
+  <resource name="Wikis_History_TooManyVersionsSelected">只能選取兩個版本來比較</resource>
+  <resource name="Wikis_History_ViewCurrent">檢視目前版本</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="438f4b20be39493c908f292b4592f6fc" />
+		</requiredContext>
+		<files>
+			<file name="lock.vm">77u/I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkNCgkjc2V0KCR0eXBlID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ3R5cGUnKSkNCgkjc2V0KCRsb2NrID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUJvb2woJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ2xvY2snKSkpDQoJJGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoNCgkjaWYgKCR0eXBlID09ICd3aWtpUGFnZScpDQoJCXsibG9jayI6I2lmKCRjb3JlX3YyX3dpa2lQYWdlLlVwZGF0ZSgkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCd3aWtpUGFnZUlkJykpLCAiJXsgSXNMb2NrZWQgPSAkbG9jaywgU2F2ZVJldmlzaW9uID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUJvb2woJ0ZhbHNlJykgfSIpLklzTG9ja2VkKSB0cnVlI2Vsc2UgZmFsc2UjZW5kfQ0KCSNlbHNlDQoJCSRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcignVW5yZWNvZ25pemVkIGxvY2sgdHlwZS4nKQ0KCSNlbmQNCiNlbmQ=</file>
+			<file name="ui.js">OyhmdW5jdGlvbigkKSB7DQoNCgl2YXIgV2lraVNlcnZpY2UgPSAoZnVuY3Rpb24oKXsNCgkJcmV0dXJuIHsNCgkJCWRlbGV0ZVJldmlzaW9uOiBmdW5jdGlvbih3aWtpSWQsIHBhZ2VJZCwgcmV2aXNpb25JZCkgew0KCQkJCXJldHVybiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uZGVsKHsNCgkJCQkJdXJsOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvd2lraXMve1dpa2lJZH0vcGFnZXMve1BhZ2VJZH0vcmV2aXNpb25zL3tSZXZpc2lvbk51bWJlcn0uanNvbicsDQoJCQkJCWRhdGE6IHsNCgkJCQkJCVdpa2lJZDogd2lraUlkLA0KCQkJCQkJUGFnZUlkOiBwYWdlSWQsDQoJCQkJCQlSZXZpc2lvbk51bWJlcjogcmV2aXNpb25JZA0KCQkJCQl9DQoJCQkJfSk7DQoJCQl9DQoJCX0NCgl9KSgpOw0KDQoJdmFyIGdldFNlbGVjdGVkUmV2aXNpb25zID0gZnVuY3Rpb24oY29udGV4dCkgew0KCQkJcmV0dXJuICQoImlucHV0OmNoZWNrZWQiLCBjb250ZXh0LnJldmlzaW9uTGlzdGluZ0NvbnRhaW5lcikubWFwKGZ1bmN0aW9uKCl7DQoJCQkJcmV0dXJuIHRoaXMubmFtZTsNCgkJCX0pOw0KCQl9LA0KCQloYW5kbGVWZXJzaW9uQ29tcGFyaXNvbnMgPSBmdW5jdGlvbihjb250ZXh0KSB7DQoJCQl2YXIgcmVzdWx0ID0gJycsDQoJCQkJbnVtQ2hlY2tzID0gMDsNCgkJCQl2ZXJzaW9ucyA9IGdldFNlbGVjdGVkUmV2aXNpb25zKGNvbnRleHQpOw0KDQoJCQlpZih2ZXJzaW9ucy5sZW5ndGggPiAyKSB7DQoJCQkJYWxlcnQoY29udGV4dC50b29NYW55VmVyc2lvbnNUZXh0KTsNCgkJCX0gZWxzZSBpZih2ZXJzaW9ucy5sZW5ndGggPCAyKSB7DQoJCQkJYWxlcnQoY29udGV4dC5ub3RFbm91Z2hWZXJzaW9uc1RleHQpOw0KCQkJfSBlbHNlIHsNCgkJCQl3aW5kb3cubG9jYXRpb24gPSAkLnRlbGxpZ2VudC5ldm9sdXRpb24udXJsLm1vZGlmeSh7DQoJCQkJCXVybDogJ2NvbXBhcmUnLA0KCQkJCQlxdWVyeTogew0KCQkJCQkJcmV2QTogdmVyc2lvbnNbMV0sDQoJCQkJCQlyZXZCOiB2ZXJzaW9uc1swXQ0KCQkJCQl9DQoJCQkJfSk7DQoJCQl9DQoJCX0sDQoJCWhhbmRsZVZlcnNpb25EZWxldGlvbnMgPSBmdW5jdGlvbihjb250ZXh0KSB7DQoJCQl2YXIgdmVyc2lvbnMgPSBnZXRTZWxlY3RlZFJldmlzaW9ucyhjb250ZXh0KSwNCgkJCQlyZXZpc2lvbkRlbGV0aW9uUmVxdWVzdHMgPSBbXTsNCg0KCQkJaWYodmVyc2lvbnMubGVuZ3RoID09PSAwKSB7DQoJCQkJYWxlcnQoY29udGV4dC5kZWxldGVOb3RFbm91Z2hUZXh0KTsNCgkJCX0gZWxzZSBpZih2ZXJzaW9uc1swXSA9PSAnMCcpIHsNCgkJCQlhbGVydChjb250ZXh0LmRlbGV0ZUN1cnJlbnRUZXh0KTsNCgkJCX0gZWxzZSBpZihjb25maXJtKGNvbnRleHQuZGVsZXRlQ29uZmlybVRleHQpKSB7DQoNCgkJCQl2YXIgdmVyc2lvbkxpc3QgPSAkLm1ha2VBcnJheSh2ZXJzaW9ucyk7DQoJCQkJdmVyc2lvbkxpc3Quc29ydCgpOw0KCQkJCXZhciB2ZXJzaW9uc0RlbGV0aW9uQ29uZmlybWF0aW9uVGV4dCA9IHZlcnNpb25MaXN0LmpvaW4oJywgJyksDQoJCQkJCWRlbGV0aW9uQ29uZmlybWF0aW9uVGV4dCA9IHZlcnNpb25zLmxlbmd0aCA+IDEgPyBjb250ZXh0LmRlbGV0ZUNvbXBsZXRlTXVsdGlwbGVUZXh0LnJlcGxhY2UoL1x7MFx9L2dpLCB2ZXJzaW9uc0RlbGV0aW9uQ29uZmlybWF0aW9uVGV4dCkgOiBjb250ZXh0LmRlbGV0ZUNvbXBsZXRlU2luZ2xlVGV4dC5yZXBsYWNlKC9cezBcfS9naSwgdmVyc2lvbnNEZWxldGlvbkNvbmZpcm1hdGlvblRleHQpOw0KDQoJCQkJcmV2aXNpb25EZWxldGlvblJlcXVlc3RzID0gJC5tYXAodmVyc2lvbnMsIGZ1bmN0aW9uKHZlcnNpb24pIHsNCgkJCQkJcmV0dXJuIFdpa2lTZXJ2aWNlLmRlbGV0ZVJldmlzaW9uKGNvbnRleHQud2lraUlkLCBjb250ZXh0Lndpa2lQYWdlSWQsIHZlcnNpb24pOw0KCQkJCX0pOw0KDQoJCQkJJC53aGVuLmFwcGx5KCQsIHJldmlzaW9uRGVsZXRpb25SZXF1ZXN0cykuZG9uZShmdW5jdGlvbigpew0KCQkJCQlpZihjb250ZXh0LnJldmlzaW9uQ291bnQgPiAodmVyc2lvbnMubGVuZ3RoICsgMSkpIHsNCgkJCQkJCSQoImlucHV0OmNoZWNrZWQiLCBjb250ZXh0LnJldmlzaW9uTGlzdGluZ0NvbnRhaW5lcikuY2xvc2VzdCgndHInKS5yZW1vdmUoKTsNCgkJCQkJfQ0KCQkJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ubm90aWZpY2F0aW9ucy5zaG93KGRlbGV0aW9uQ29uZmlybWF0aW9uVGV4dCwgew0KCQkJCQkJdHlwZTogJ3N1Y2Nlc3MnLA0KCQkJCQkJZHVyYXRpb246IDUwMDAsDQoJCQkJCQlvbkhpZGU6IGZ1bmN0aW9uKCkgew0KCQkJCQkJCWlmKGNvbnRleHQucmV2aXNpb25Db3VudCA9PT0gKHZlcnNpb25zLmxlbmd0aCArIDEpKSB7DQoJCQkJCQkJCXdpbmRvdy5sb2NhdGlvbi5yZWxvYWQodHJ1ZSk7DQoJCQkJCQkJfQ0KCQkJCQkJfQ0KCQkJCQl9KTsNCgkJCQl9KTsNCgkJCX0NCgkJfTsNCg0KCXZhciBhcGkgPSB7DQoJCXJlZ2lzdGVyOiBmdW5jdGlvbihjb250ZXh0KSB7DQoJCQljb250ZXh0LmNvbXBhcmVWZXJzaW9uc0J1dHRvbi5jbGljayhmdW5jdGlvbigpIHsNCgkJCQloYW5kbGVWZXJzaW9uQ29tcGFyaXNvbnMoY29udGV4dCk7DQoJCQl9KTsNCgkJCWNvbnRleHQuZGVsZXRlVmVyc2lvbnNCdXR0b24uY2xpY2soZnVuY3Rpb24oKXsNCgkJCQloYW5kbGVWZXJzaW9uRGVsZXRpb25zKGNvbnRleHQpOw0KCQkJfSk7DQoNCgkJCWlmICgkKCI6Y2hlY2tib3giLCBjb250ZXh0LnJldmlzaW9uTGlzdGluZ0NvbnRhaW5lcikubGVuZ3RoID4gMSkgew0KCQkJCSQoIjpjaGVja2JveCIsIGNvbnRleHQucmV2aXNpb25MaXN0aW5nQ29udGFpbmVyKS5nZXQoMSkuc2V0QXR0cmlidXRlKCdjaGVja2VkJywgJ2NoZWNrZWQnKTsNCgkJCX0NCgkJfQ0KCX07DQoNCgkkLnRlbGxpZ2VudCA9ICQudGVsbGlnZW50IHx8IHt9Ow0KCSQudGVsbGlnZW50LmV2b2x1dGlvbiA9ICQudGVsbGlnZW50LmV2b2x1dGlvbiB8fCB7fTsNCgkkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9ICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzIHx8IHt9Ow0KCSQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzLmhpc3RvcnkgPSAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cy5oaXN0b3J5IHx8IGFwaTsNCg0KfSkoalF1ZXJ5KTsNCg==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

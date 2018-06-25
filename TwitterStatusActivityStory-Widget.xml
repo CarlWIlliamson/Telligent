@@ -1,0 +1,6 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:TweetActivityStory_Name}" version="10.1.8.10498" description="${resource:TweetActivityStory_Description}" instanceIdentifier="d83c68905d554318bf62eaaa9920d091" theme="" isCacheable="false" varyCacheByUser="true" showHeaderByDefault="false" cssClass="">
+		<contentScript><![CDATA[$core_v2_widget.Hide()]]></contentScript>
+		<languageResources><language key="en-us"><resource name="TweetActivityStory_Name">Twitter Status Activity Story</resource><resource name="TweetActivityStory_Description">Stories associated with syndicated Twitter statuses</resource><resource name="follow">Follow</resource><resource name="reply">Reply</resource><resource name="retweet">Retweet</resource><resource name="favorite">Favorite</resource><resource name="via">via Twitter</resource><resource name="retweetedBy">retweeted by</resource></language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

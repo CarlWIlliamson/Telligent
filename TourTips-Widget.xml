@@ -1,0 +1,133 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:TourTips_Name}" version="10.1.8.10498" description="${resource:TourTips_Description}" instanceIdentifier="22e271b19ea14e54a503441c1f4f167e" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="tour-tips">
+		<contentScript><![CDATA[
+#set ($suppressDuration = $core_v2_widget.GetIntValue('SuppressDuration', 86400))
+#set ($tipTemplateId = $core_v2_widget.UniqueId('tip_template'))
+#if ($core_v2_widget.IsInWidgetPreviewMode)
+	$core_v2_widget.Hide()
+#end
+
+#set($currentPage = false)
+#set($currentPage = $core_v2_urls.Current)
+#if ($currentPage == 'LogIn' || $currentPage == 'LogOut' || $currentPage == 'Message' || $currentPage == 'AddUser')
+	$core_v2_widget.Hide()
+#end
+
+#set ($skipTitle = '')
+#if ($suppressDuration == 0)
+	#set ($skipTitle = $core_v2_language.GetResource('skip_title'))
+#elseif($suppressDuration < 60)
+	#set ($skipTitle = $core_v2_language.FormatString($core_v2_language.GetResource('skip_title_seconds'), $suppressDuration.ToString()))
+#elseif($suppressDuration < 7200)
+	#set ($minutes = $suppressDuration / 60)
+	#set ($skipTitle = $core_v2_language.FormatString($core_v2_language.GetResource('skip_title_minutes'), $minutes.ToString()))
+#else
+	#set ($hours = $suppressDuration / 3600)
+	#set ($skipTitle = $core_v2_language.FormatString($core_v2_language.GetResource('skip_title_hours'), $hours.ToString()))
+#end
+
+#registerEndOfPageHtml('telligent.evolution.widgets.tourTips')
+	<script type="text/html" id="$core_v2_encoding.HtmlAttributeEncode($tipTemplateId)">
+		<div class="tourtip">
+			<div class="tourtip-message">
+				<%= message %>
+			</div>
+			<ul class="tourtip-actions">
+				<% if(state.index() > 0) { %>
+					<li>
+						<a href="#" class="tourtip-previous">$core_v2_language.GetResource('previous')</a>
+					</li>
+				<% } %>
+				<% if(state.index() < (state.count() - 1)) { %>
+					<li>
+						<a href="#" class="tourtip-next">$core_v2_language.GetResource('next')</a>
+					</li>
+				<% } %>
+				<% if(state.index() === (state.count() - 1)) { %>
+					<li>
+						<a href="#" class="tourtip-finish">$core_v2_language.GetResource('complete')</a>
+					</li>
+				<% } else { %>
+					<li>
+						<a href="#" class="ui-tip tourtip-skip" title="$core_v2_encoding.HtmlAttributeEncode($skipTitle)">$core_v2_language.GetResource('skip')</a>
+					</li>
+				<% } %>
+			</ul>
+		</div>
+	</script>
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+#end
+#registerEndOfPageHtml()
+	<script type="text/javascript">
+	jQuery(function(){
+		jQuery.telligent.evolution.widgets.tourTips.register({
+			tipTemplate: '$core_v2_encoding.JavascriptEncode($tipTemplateId)',
+			minWidth: 750,
+			suppressDuration: $suppressDuration
+		});
+	});
+	</script>
+#end
+
+]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('Title', '${resource:TourTips_Name}'))
+]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="group1" resourceName="Property_Options">
+	<property id="Title" resourceName="Property_Title" dataType="String" defaultValue="${resource:TourTips_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	<property id="SuppressDuration" resourceName="Property_Suppress" descriptionResourceName="Property_Suppress_Description" dataType="int" defaultValue="86400">
+		<propertyRule type="Telligent.Evolution.Controls.PropertyRules.MinMaxValueRule, Telligent.Evolution.Platform" minValue="0" maxValue="31536000" />
+	</property>
+</propertyGroup>
+]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="complete">Ok, got it!</resource>
+  <resource name="next">Next</resource>
+  <resource name="previous">Previous</resource>
+  <resource name="Property_Suppress">Suppress Duration</resource>
+  <resource name="Property_Suppress_Description">Time (in seconds) to suppress tour tips if 'Later' is selected</resource>
+  <resource name="Property_Title">Widget title</resource>
+  <resource name="skip">Later</resource>
+  <resource name="skip_title">Continue this tour later.</resource>
+  <resource name="skip_title_hours">Continue this tour in {0} hours.</resource>
+  <resource name="skip_title_minutes">Continue this tour in {0} minutes.</resource>
+  <resource name="skip_title_seconds">Continue this tour in {0} seconds.</resource>
+  <resource name="TourTips_Description">This widget renders tour tips defined by other widgets.</resource>
+  <resource name="TourTips_Name">Tour Tips</resource>
+</language>
+<language key="zh-cn">
+  <resource name="complete">好的，明白!</resource>
+  <resource name="next">下一个</resource>
+  <resource name="previous">上一个</resource>
+  <resource name="Property_Suppress">禁用持续时间</resource>
+  <resource name="Property_Suppress_Description">选择“稍后”时禁用浏览提示的时间(以秒为单位)</resource>
+  <resource name="Property_Title">小组件标题</resource>
+  <resource name="skip">稍后</resource>
+  <resource name="skip_title">稍后继续此浏览。</resource>
+  <resource name="skip_title_hours">{0} 小时后继续此浏览。</resource>
+  <resource name="skip_title_minutes">{0} 分钟后继续此浏览。</resource>
+  <resource name="skip_title_seconds">{0} 秒后继续此浏览。</resource>
+  <resource name="TourTips_Description">此小组件显示由其他小组件定义的浏览提示。</resource>
+  <resource name="TourTips_Name">浏览提示</resource>
+</language>
+<language key="zh-tw">
+  <resource name="complete">好的，知道了!</resource>
+  <resource name="next">下一個</resource>
+  <resource name="previous">上一個</resource>
+  <resource name="Property_Suppress">隱藏持續時間</resource>
+  <resource name="Property_Suppress_Description">選取 [稍後] 時，隱藏導覽提示的時間 (秒)</resource>
+  <resource name="Property_Title">Widget 標題</resource>
+  <resource name="skip">稍後</resource>
+  <resource name="skip_title">稍後繼續此導覽。</resource>
+  <resource name="skip_title_hours">{0} 小時後繼續此導覽。</resource>
+  <resource name="skip_title_minutes">{0} 分鐘後繼續此導覽。</resource>
+  <resource name="skip_title_seconds">{0} 秒後繼續此導覽。</resource>
+  <resource name="TourTips_Description">這個 Widget 會呈現其他 Widget 定義的導覽提示。</resource>
+  <resource name="TourTips_Name">導覽提示</resource>
+</language></languageResources>
+		<files>
+			<file name="ui.js">KGZ1bmN0aW9uKCQsIGdsb2JhbCwgdW5kZWYpew0KDQoJdmFyIHdpbiA9ICQoZ2xvYmFsKTsNCgl2YXIgcmVnaXN0ZXJlZCA9IGZhbHNlOw0KDQoJZnVuY3Rpb24gaGlkZVRpcChjb250ZXh0KXsNCgkJY29udGV4dC52aXNpYmxlID0gZmFsc2U7DQoJCWNvbnRleHQudGlwV3JhcHBlci5oaWRlKCk7DQoJfQ0KDQoJZnVuY3Rpb24gdmlld3BvcnRPZmZzZXQoZWxtKSB7DQoJCXZhciBvZmZzZXQgPSAkKGVsbSkub2Zmc2V0KCk7DQoNCgkJcmV0dXJuIHsNCgkJCWxlZnQ6IG9mZnNldC5sZWZ0IC0gd2luLnNjcm9sbExlZnQoKSwNCgkJCXRvcDogb2Zmc2V0LnRvcCAtIHdpbi5zY3JvbGxUb3AoKQ0KCQl9Ow0KCX0NCg0KCWZ1bmN0aW9uIHNjcm9sbFRvKGNvbnRleHQsIG9mZnNldCkgew0KCQkkKCdodG1sLCBib2R5JykuYW5pbWF0ZSh7IHNjcm9sbFRvcDogb2Zmc2V0IH0sIDMwMCk7DQoJfQ0KDQoJZnVuY3Rpb24gcmVuZGVyVGlwQXRDdXJyZW50SW5kZXgoY29udGV4dCkgew0KCQloaWRlVGlwKGNvbnRleHQpOw0KDQoJCXZhciB0aXAgPSBjb250ZXh0LnRpcHNbY29udGV4dC5pbmRleF07DQoJCWlmKCF0aXApDQoJCQlyZXR1cm4gZmFsc2U7DQoNCgkJY29udGV4dC52aXNpYmxlID0gdHJ1ZTsNCg0KCQl2YXIgdGFyZ2V0ID0gJCh0aXAudGFyZ2V0KTsNCgkJLy8gaWYgdGFyZ2V0IGlzIGN1cnJlbnRseSBoaWRkZW4sIG1vdmUgb24gdG8gdGhlIG5leHQgdGlwDQoJCWlmKCF0YXJnZXQuaXMoJzp2aXNpYmxlJykpIHsNCgkJCXJldHVybiBmYWxzZTsNCgkJfQ0KDQoJCS8vIGl0J3MgZWZmZWN0aXZlbHkgZml4ZWQgaWYgaXQncyBmaXhlZCBvciBoYXMgYXQgbGVhc3Qgb25lIHBhcmVudCB0aGF0IGlzDQoJCXZhciBpc0VmZmVjdGl2ZWx5Rml4ZWQgPSAoDQoJCQkodGFyZ2V0LmNzcygncG9zaXRpb24nKSA9PSAnZml4ZWQnKSB8fA0KCQkJKHRhcmdldC5wYXJlbnRzKCkuZmlsdGVyKGZ1bmN0aW9uKCkgeyByZXR1cm4gJCh0aGlzKS5jc3MoInBvc2l0aW9uIikgPT09ICdmaXhlZCc7IH0pLmxlbmd0aCA+IDApDQoJCQkpOw0KDQoJCXZhciB0YXJnZXRQb3NpdGlvbiA9IGlzRWZmZWN0aXZlbHlGaXhlZCA/IHZpZXdwb3J0T2Zmc2V0KHRhcmdldCkgOiB0YXJnZXQub2Zmc2V0KCk7DQoNCgkJdmFyIHRhcmdldFdpZHRoID0gdGFyZ2V0LndpZHRoKCksDQoJCQl0YXJnZXRIZWlnaHQgPSB0YXJnZXQuaGVpZ2h0KCksDQoJCQl3aW5kb3dXaWR0aCA9ICQod2luZG93KS53aWR0aCgpLA0KCQkJd2luZG93SGVpZ2h0ID0gJCh3aW5kb3cpLmhlaWdodCgpOw0KDQoJCS8vIHNjcm9sbCB0byB0YXJnZXQncyBwb3NpdGlvbiBvbiBwYWdlIGlmIGl0IGlzbid0IGZpeGVkDQoJCWlmKCFpc0VmZmVjdGl2ZWx5Rml4ZWQpIHsNCgkJCXNjcm9sbFRvKGNvbnRleHQsIHRhcmdldFBvc2l0aW9uLnRvcCAtIDE1MCk7DQoJCX0NCg0KCQkvLyByZW5kZXIgdGlwJ3MgY29udGVudA0KCQljb250ZXh0LnRpcFdyYXBwZXIuaHRtbChjb250ZXh0LnRlbXBsYXRlKCQuZXh0ZW5kKHsNCgkJCW1lc3NhZ2U6ICdNZXNzYWdlIENvbnRlbnQnLA0KCQkJaW5kZXg6IDAsDQoJCQljb3VudDogMQ0KCQl9LCB0aXApKSk7DQoNCgkJdmFyIHRpcEhlaWdodERpZmZlcmVuY2UgPSBjb250ZXh0LnRpcFdyYXBwZXIuY2hpbGRyZW4oKS5vdXRlckhlaWdodCh0cnVlKTsNCg0KCQkvLyBkZXRlcm1pbmUgd2hlcmUgdG8gcG9zaXRpb24NCgkJdmFyIGFsaWduQWJvdmUgPSBmYWxzZSwNCgkJCWFsaWduUmlnaHQgPSBmYWxzZTsNCgkJaWYgKCh0YXJnZXRQb3NpdGlvbi50b3AgKyB0YXJnZXRIZWlnaHQgKyBjb250ZXh0LnRpcFdyYXBwZXIuaGVpZ2h0KCkgKyB0aXBIZWlnaHREaWZmZXJlbmNlID49ICh3aW5kb3dIZWlnaHQgLSAyMDApKSAmJg0KCQkJKHRhcmdldFBvc2l0aW9uLnRvcCAtIGNvbnRleHQudGlwV3JhcHBlci5oZWlnaHQoKSAtIHRpcEhlaWdodERpZmZlcmVuY2UgPj0gMCkpDQoJCQlhbGlnbkFib3ZlID0gdHJ1ZTsNCgkJaWYodGFyZ2V0UG9zaXRpb24ubGVmdCArIGNvbnRleHQudGlwV3JhcHBlci53aWR0aCgpID49IHdpbmRvd1dpZHRoIC0gMjAwKQ0KCQkJYWxpZ25SaWdodCA9IHRydWU7DQoNCgkJdmFyIHRpcFBvc2l0aW9uID0gew0KCQkJbGVmdDogKGFsaWduUmlnaHQgPyAoKHRhcmdldFBvc2l0aW9uLmxlZnQgKyB0YXJnZXRXaWR0aCkgLSBjb250ZXh0LnRpcFdyYXBwZXIud2lkdGgoKSkgOiB0YXJnZXRQb3NpdGlvbi5sZWZ0KSwNCgkJCXRvcDogKGFsaWduQWJvdmUgPyB0YXJnZXRQb3NpdGlvbi50b3AgLSBjb250ZXh0LnRpcFdyYXBwZXIuaGVpZ2h0KCkgLSB0aXBIZWlnaHREaWZmZXJlbmNlIDogdGFyZ2V0UG9zaXRpb24udG9wICsgdGFyZ2V0SGVpZ2h0KQ0KCQl9Ow0KDQoJCS8vIGJ1aWxkIGRpcmVjdGlvbmFsIGFycm93IGNsYXNzIG5hbWUNCgkJdmFyIGFycm93Q2xhc3MgPSAoYWxpZ25BYm92ZSA/ICdhYm92ZScgOiAnYmVsb3cnKSArIChhbGlnblJpZ2h0ID8gJ3JpZ2h0JyA6ICdsZWZ0Jyk7DQoJCWNvbnRleHQudGlwV3JhcHBlci5maW5kKCcudG91cnRpcCcpDQoJCQkucmVtb3ZlQ2xhc3MoJ2JlbG93bGVmdCBiZWxvd3JpZ2h0IGFib3ZlbGVmdCBhYm92ZXJpZ2h0JykNCgkJCS5hZGRDbGFzcyhhcnJvd0NsYXNzKTsNCg0KCQl2YXIgaG9yaXpvbnRhbE9mZnNldCA9IC05Ow0KCQlpZihhbGlnblJpZ2h0KQ0KCQkJaG9yaXpvbnRhbE9mZnNldCA9IDk7DQoNCgkJLy8gcG9zaXRpb24gYW5kIHNob3cNCgkJY29udGV4dC50aXBXcmFwcGVyLmNzcyh7DQoJCQlwb3NpdGlvbjogKGlzRWZmZWN0aXZlbHlGaXhlZCA/ICdmaXhlZCcgOiAnYWJzb2x1dGUnKSwNCgkJCWxlZnQ6IHRpcFBvc2l0aW9uLmxlZnQgKyBob3Jpem9udGFsT2Zmc2V0LA0KCQkJdG9wOiB0aXBQb3NpdGlvbi50b3ANCgkJfSkuc2hvdygpOw0KDQoJCXJldHVybiB0cnVlOw0KCX0NCg0KCWZ1bmN0aW9uIG1vdmVOZXh0KGNvbnRleHQpIHsNCgkJLy8gbWFyayBjdXJyZW50IHRpcCBhcyByZWFkIGJlZm9yZSBtb3ZpbmcgZm9yd2FyZA0KCQl2YXIgdGlwID0gY29udGV4dC50aXBzW2NvbnRleHQuaW5kZXhdOw0KCQlpZih0aXApDQoJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24udG91clRpcHMubWFyayh0aXAua2V5LCB0cnVlKTsNCg0KCQljb250ZXh0LmluZGV4Kys7DQoJCXZhciByZW5kZXJlZCA9IHJlbmRlclRpcEF0Q3VycmVudEluZGV4KGNvbnRleHQpOw0KCQkvLyBpZiBjb3VsZG4ndCByZW5kZXIsIG1vdmUgdG8gbmV4dCBpZiB0aGVyZSBhcmUgbW9yZSB0byBzaG93DQoJCWlmKCFyZW5kZXJlZCAmJiBjb250ZXh0LmluZGV4IDwgKGNvbnRleHQudGlwcy5sZW5ndGggLSAxKSkNCgkJCW1vdmVOZXh0KGNvbnRleHQpDQoJfQ0KDQoJZnVuY3Rpb24gbW92ZVByZXZpb3VzKGNvbnRleHQpIHsNCgkJY29udGV4dC5pbmRleC0tOw0KDQoJCS8vIG1hcmsgcHJldmlvdXMgdGlwIGFzIHVucmVhZA0KCQl2YXIgdGlwID0gY29udGV4dC50aXBzW2NvbnRleHQuaW5kZXhdOw0KCQlpZih0aXApDQoJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24udG91clRpcHMubWFyayh0aXAua2V5LCBmYWxzZSk7DQoNCgkJdmFyIHJlbmRlcmVkID0gcmVuZGVyVGlwQXRDdXJyZW50SW5kZXgoY29udGV4dCk7DQoJCS8vIGlmIGNvdWxkbid0IHJlbmRlciwgbW92ZSB0byBwcmV2IGlmIHRoZXJlIGFyZSBtb3JlIHRvIHNob3cNCgkJaWYoIXJlbmRlcmVkICYmIGNvbnRleHQuaW5kZXggPiAwKQ0KCQkJbW92ZVByZXZpb3VzKGNvbnRleHQpDQoJfQ0KDQoJZnVuY3Rpb24gcXVpdChjb250ZXh0LCBmaW5pc2hlZCkgew0KCQlpZihmaW5pc2hlZCkgew0KCQkJLy8gbWFyayBjdXJyZW50IHRpcCBhcyByZWFkDQoJCQl2YXIgdGlwID0gY29udGV4dC50aXBzW2NvbnRleHQuaW5kZXhdOw0KCQkJaWYodGlwKQ0KCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi50b3VyVGlwcy5tYXJrKHRpcC5rZXksIHRydWUpOw0KCQl9DQoJCXNjcm9sbFRvKGNvbnRleHQsIDApOw0KCQljb250ZXh0LnRpcHMuc3BsaWNlKDAsIGNvbnRleHQuaW5kZXggKyAxKTsNCgkJaGlkZVRpcChjb250ZXh0KTsNCgl9DQoNCglmdW5jdGlvbiBidWlsZENvbnRleHQob3B0aW9ucykgew0KCQl2YXIgY29udGV4dCA9IHsNCgkJCXRlbXBsYXRlOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24udGVtcGxhdGUuY29tcGlsZShvcHRpb25zLnRlbXBsYXRlKSwNCgkJCXRpcHM6IFtdLA0KCQkJaW5kZXg6IDAsDQoJCQl2aXNpYmxlOiBmYWxzZSwNCgkJCXN1cHByZXNzRHVyYXRpb246IG9wdGlvbnMuc3VwcHJlc3NEdXJhdGlvbiwNCgkJCXRpcFN0YXRlOiB7DQoJCQkJaW5kZXg6IGZ1bmN0aW9uKCkgew0KCQkJCQlyZXR1cm4gY29udGV4dC5pbmRleDsNCgkJCQl9LA0KCQkJCWNvdW50OiBmdW5jdGlvbigpIHsNCgkJCQkJcmV0dXJuIGNvbnRleHQudGlwcy5sZW5ndGg7DQoJCQkJfQ0KCQkJfQ0KCQl9Ow0KDQoJCWNvbnRleHQudGlwV3JhcHBlciA9ICQoJzxkaXY+PC9kaXY+JykNCgkJCS5jc3MoeyBwb3NpdGlvbjogJ2Fic29sdXRlJywgZGlzcGxheTogJ25vbmUnLCB6SW5kZXg6IDcwMDAgfSkNCgkJCS5hcHBlbmRUbygnYm9keScpDQoJCQkub24oJ2NsaWNrJywgJy50b3VydGlwLXByZXZpb3VzJywgZnVuY3Rpb24oZSl7DQoJCQkJZS5wcmV2ZW50RGVmYXVsdCgpOw0KCQkJCSQuZm4uZXZvbHV0aW9uVGlwLmhpZGUoKTsNCgkJCQltb3ZlUHJldmlvdXMoY29udGV4dCk7DQoJCQl9KQ0KCQkJLm9uKCdjbGljaycsICcudG91cnRpcC1uZXh0JywgZnVuY3Rpb24oZSl7DQoJCQkJZS5wcmV2ZW50RGVmYXVsdCgpOw0KCQkJCSQuZm4uZXZvbHV0aW9uVGlwLmhpZGUoKTsNCgkJCQltb3ZlTmV4dChjb250ZXh0KTsNCgkJCX0pDQoJCQkub24oJ2NsaWNrJywgJy50b3VydGlwLWZpbmlzaCcsIGZ1bmN0aW9uKGUpew0KCQkJCWUucHJldmVudERlZmF1bHQoKTsNCgkJCQkkLmZuLmV2b2x1dGlvblRpcC5oaWRlKCk7DQoJCQkJcXVpdChjb250ZXh0LCB0cnVlKTsNCgkJCX0pDQoJCQkub24oJ2NsaWNrJywgJy50b3VydGlwLXNraXAnLCBmdW5jdGlvbihlKXsNCgkJCQllLnByZXZlbnREZWZhdWx0KCk7DQoJCQkJJC5mbi5ldm9sdXRpb25UaXAuaGlkZSgpOw0KCQkJCSQudGVsbGlnZW50LmV2b2x1dGlvbi50b3VyVGlwcy5zdXBwcmVzcyhjb250ZXh0LnN1cHByZXNzRHVyYXRpb24gKiAxMDAwKTsNCgkJCQlxdWl0KGNvbnRleHQsIGZhbHNlKTsNCgkJCX0pOw0KDQoJCXJldHVybiBjb250ZXh0Ow0KCX0NCg0KCWZ1bmN0aW9uIHNob3dUaXBzKGNvbnRleHQpIHsNCgkJaWYoY29udGV4dC52aXNpYmxlKQ0KCQkJcmV0dXJuOw0KDQoJCWNvbnRleHQuaW5kZXggPSAwOw0KCQl2YXIgcmVuZGVyZWQgPSByZW5kZXJUaXBBdEN1cnJlbnRJbmRleChjb250ZXh0KTsNCgkJLy8gaWYgY291bGRuJ3QgcmVuZGVyLCBtb3ZlIHRvIG5leHQgaWYgdGhlcmUgYXJlIG1vcmUgdG8gc2hvdw0KCQlpZighcmVuZGVyZWQgJiYgY29udGV4dC5pbmRleCA8IChjb250ZXh0LnRpcHMubGVuZ3RoIC0gMSkpDQoJCQltb3ZlTmV4dChjb250ZXh0KQ0KCX07DQoNCgkvLyBBZGQgdGlwcyB0byBkaXNwbGF5LiBJZiB0aXBzIGFyZSBhbHJlYWR5IGJlaW5nIGRpc3BsYXllZA0KCS8vIHRoZW4gaXQgYWRkcyB0byB0aGUgbGlzdCBvZiB0aXBzIGFscmVhZHkgYmVpbmcgc2hvd24NCglmdW5jdGlvbiBlbnF1ZXVlVGlwc1RvRGlzcGxheShjb250ZXh0LCB0aXBzKSB7DQoJCWlmKCF0aXBzIHx8IHRpcHMubGVuZ3RoID09PSAwKSB7DQoJCQlyZXR1cm47DQoJCX0NCg0KCQkkLmVhY2godGlwcywgZnVuY3Rpb24oaSwgdGlwKSB7DQoJCQlpZigkKHRpcC5lbGVtZW50KS5pcygnOnZpc2libGUnKSkgew0KCQkJCWNvbnRleHQudGlwcy5wdXNoKHsNCgkJCQkJbWVzc2FnZTogdGlwLm1lc3NhZ2UsDQoJCQkJCWtleTogdGlwLmtleSwNCgkJCQkJc3RhdGU6IGNvbnRleHQudGlwU3RhdGUsDQoJCQkJCXRhcmdldDogdGlwLmVsZW1lbnQNCgkJCQl9KTsNCgkJCX0NCgkJfSk7DQoJfQ0KDQoJdmFyIGFwaSA9IHsNCgkJcmVnaXN0ZXI6IGZ1bmN0aW9uKG9wdGlvbnMpIHsNCgkJCS8vIG9ubHkgYWxsb3cgMSByZWdpc3RyYXRpb24NCgkJCWlmKHJlZ2lzdGVyZWQpDQoJCQkJcmV0dXJuOw0KCQkJcmVnaXN0ZXJlZCA9IHRydWU7DQoNCgkJCXZhciBjb250ZXh0ID0gYnVpbGRDb250ZXh0KHsNCgkJCQl0ZW1wbGF0ZTogb3B0aW9ucy50aXBUZW1wbGF0ZSwNCgkJCQlzdXBwcmVzc0R1cmF0aW9uOiBvcHRpb25zLnN1cHByZXNzRHVyYXRpb24NCgkJCX0pOw0KDQoJCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ubWVzc2FnaW5nLnN1YnNjcmliZSgndWkudG91cnRpcHMnLCBmdW5jdGlvbihkYXRhKXsNCgkJCQllbnF1ZXVlVGlwc1RvRGlzcGxheShjb250ZXh0LCBkYXRhLnRpcHMpOw0KCQkJCS8vIG9ubHkgc2hvdyB0aXBzIGlmIHdpZGUgZW5vdWdoDQoJCQkJaWYoJCh3aW5kb3cpLndpZHRoKCkgPj0gb3B0aW9ucy5taW5XaWR0aCkNCgkJCQkJc2hvd1RpcHMoY29udGV4dCk7DQoJCQl9KTsNCg0KCQkJJChkb2N1bWVudCkub24oJ2N1c3RvbWl6ZXBhZ2UnLCBmdW5jdGlvbigpew0KCQkJCWhpZGVUaXAoY29udGV4dCk7DQoJCQl9KTsNCgkJfQ0KCX07DQoNCgkkLnRlbGxpZ2VudCA9ICQudGVsbGlnZW50IHx8IHt9Ow0KCSQudGVsbGlnZW50LmV2b2x1dGlvbiA9ICQudGVsbGlnZW50LmV2b2x1dGlvbiB8fCB7fTsNCgkkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9ICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzIHx8IHt9Ow0KCSQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzLnRvdXJUaXBzID0gYXBpOw0KDQp9KShqUXVlcnksIHdpbmRvdyk7DQo=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

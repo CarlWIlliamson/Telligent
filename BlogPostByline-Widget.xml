@@ -1,0 +1,62 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Blogs_BlogPostByline_Name}" version="10.1.8.10498" description="${resource:Blogs_BlogPostByline_Description}" instanceIdentifier="0328bff06a7f46bcaf3464e3b4c442f7" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="blog-post-byline">
+		<contentScript><![CDATA[#set ($accessingUserIsRegistered = $core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+#set ($blogPost = $core_v2_blogPost.Current)
+
+#if(!$blogPost)
+	$core_v2_widget.Hide()
+#end
+
+<div class="content-details">
+	<div class="content-author">
+		<div class="avatar">
+			#if ($blogPost.Author.ProfileUrl)
+				<a rel="nofollow" href="$core_v2_encoding.HtmlAttributeEncode($blogPost.Author.ProfileUrl)">
+					$core_v2_ui.GetResizedImageHtml($blogPost.Author.AvatarUrl, 80, 80, "%{border='0px', alt=$blogPost.Author.DisplayName, ResizeMethod = 'ZoomAndCrop' }")
+				</a>
+			#else
+				$core_v2_ui.GetResizedImageHtml($blogPost.Author.AvatarUrl, 80, 80, "%{border='0px', alt=$blogPost.Author.DisplayName, ResizeMethod = 'ZoomAndCrop' }")
+			#end
+		</div>
+		<span class="user-name">
+		    $core_v2_ui.UserPresence($blogPost.Author.Id)
+			#if ($blogPost.Author.ProfileUrl)
+				<a href="$core_v2_encoding.HtmlAttributeEncode($blogPost.Author.ProfileUrl)" rel="nofollow" class="internal-link view-user-profile">
+					$blogPost.Author.DisplayName
+				</a>
+			#else
+				$blogPost.Author.DisplayName
+			#end
+		</span>
+	</div>
+	<div class="content-date">
+	    <a href="$core_v2_encoding.HtmlAttributeEncode($blogPost.Url)">$core_v2_ui.AgoDate($blogPost.PublishedDate)</a>
+	</div>
+</div>
+
+		]]></contentScript>
+		<headerScript><![CDATA[
+#set($blog = false)
+#set($blog = $core_v2_blog.Current)
+#if ($blog)
+	<a class="internal-link view-application weblog" href="$core_v2_encoding.HtmlAttributeEncode($blog.Url)"><span></span>$blog.Name</a>
+#else
+	$core_v2_language.GetResource('Blogs_BlogPostByline_Name')
+#end
+		]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Blogs_BlogPostByline_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Blogs_BlogPostByline_Description">Displays a blog post's byline.</resource>
+  <resource name="Blogs_BlogPostByline_Name">Blog - Post Byline</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Options">Options</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="24fa6951ab1244f5be3df20cc46b361b" />
+		</requiredContext>
+	</scriptedContentFragment>
+</scriptedContentFragments>

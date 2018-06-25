@@ -1,0 +1,408 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Wikis_PageEdit_Name}" version="10.1.8.10498" description="${resource:Wikis_PageEdit_Description}" instanceIdentifier="83a683d0bed64dd6b10581cc6c977e24" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="page-edit">
+		<contentScript><![CDATA[#set($page = false)
+#set($page = $core_v2_wikiPage.Current)
+#set($parentPage = false)
+#set($pageTitle = '')
+#set($pageBody = '')
+#set($pageRevision = -1)
+#set($wiki = $core_v2_wiki.Current)
+#set ($tabsContainerId = $core_v2_widget.UniqueId('tabsContainer'))
+#set ($writeTabId = $core_v2_widget.UniqueId('writeTab'))
+#set ($optionsTabId = $core_v2_widget.UniqueId('optionsTab'))
+#set($parentPage = $core_v2_wikiPage.CurrentParent)
+#if (!$parentPage && $page && $page.ParentPageId > 0)
+	#set($parentPage = $core_v2_wikiPage.Get("%{Id=$page.ParentPageId}"))
+#end
+
+##This logic handles retrieving a current page, a temporarily stored page from the quick post widget, or a stubbed page from an existing wiki page
+#if($page)
+	#set($pageTitle = $page.Title)
+	#set($pageBody = $page.Body('raw'))
+	#set($pageRevision = $page.RevisionNumber)
+#elseif($core_v2_page.GetQueryStringValue('tsid'))
+	#set($tempData = $core_v2_page.ParseQueryString($core_v2_utility.GetTemporaryData($core_v2_page.GetQueryStringValue('tsid'))))
+	#set($pageTitle = '')
+	#set($pageTitle = $tempData.Value('Subject'))
+	#set($pageBody = '')
+	#set($pageBody = $tempData.Value('Body'))
+	#if (!$pageBody || $pageBody.length == 0)
+		#set($pageBody = $tempData.Value('body'))
+	#end
+#else
+	#set($pageTitle = $core_v2_wikiPage.CurrentPageKey)
+#end
+
+#set($thread = false)
+#set($thread = $core_v2_forumThread.Current)
+#if($thread && $core_v2_nodePermission.Get('forums',$thread.ForumId,'Forum_ReadForum',"%{PostType='threads',PostId=$thread.Id}").IsAllowed)
+	#set($pageTitle = $thread.Subject)
+	#if($thread.ThreadType == 'Discussion')
+		#if ($thread.Author.ProfileUrl)
+			#set($pageBody="$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Original_Template'), $thread.Subject, $thread.Body('Raw'), $thread.Author.DisplayName, $thread.Url, $thread.Author.ProfileUrl)")
+		#else
+			#set($pageBody="$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Original_Template_Anonymous'), $thread.Subject, $thread.Body('Raw'), $thread.Author.DisplayName, $thread.Url)")
+		#end
+	#else
+		#if ($thread.Author.ProfileUrl)
+			#set($pageBody="$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_OriginalQuestion_Template'), $thread.Subject, $thread.Body('Raw'), $thread.Author.DisplayName, $thread.Url, $thread.Author.ProfileUrl)")
+		#else
+			#set($pageBody="$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_OriginalQuestion_Template_Anonymous'), $thread.Subject, $thread.Body('Raw'), $thread.Author.DisplayName, $thread.Url)")
+		#end
+	#end
+	#if ($thread.File && $thread.File.FileUrl && $thread.File.FileName)
+		#set ($temporaryWikiFileContextId = $core_v2_uploadedFile.CreateContextId())
+		#if ($thread.File.SaveToTemporaryFiles($temporaryWikiFileContextId, $thread.File.FileName))
+			#set ($wikiFile = $core_v2_wikiFiles.Create($wiki.Id, $thread.File.FileName, $temporaryWikiFileContextId))
+			#set ($wikiFileUrl = $core_v2_encoding.HtmlAttributeEncode($wikiFile.FileUrl))
+			#set ($wikiFilePreview = $core_v2_ui.GetPreviewHtml($wikiFile.FileUrl, "%{Width = 40, Height = 40}"))
+			#set ($attachment = $core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Attachment'), $wikiFileUrl, $wikiFilePreview, $wikiFile.FileName))
+			#set ($pageBody = "${pageBody}${attachment}")
+		#end
+	#end
+	#set($forumReplies = $core_v2_forumReply.List($thread.Id, "%{PageSize=100,PageIndex=0}"))
+	#if ($thread.ThreadType == 'Discussion')
+		#foreach ($forumReply in $forumReplies)
+			#if ($forumReply.Author.ProfileUrl)
+				#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Template'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url, $forumReply.Author.ProfileUrl)")
+			#else
+				#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Template_Anonymous'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url)")
+			#end
+			#if ($forumReply.File && $forumReply.File.FileUrl && $forumReply.File.FileName)
+				#set ($temporaryWikiFileContextId = $core_v2_uploadedFile.CreateContextId())
+				#if ($forumReply.File.SaveToTemporaryFiles($temporaryWikiFileContextId, $forumReply.File.FileName))
+					#set ($wikiFile = $core_v2_wikiFiles.Create($wiki.Id, $forumReply.File.FileName, $temporaryWikiFileContextId))
+					#set ($wikiFileUrl = $core_v2_encoding.HtmlAttributeEncode($wikiFile.FileUrl))
+					#set ($wikiFilePreview = $core_v2_ui.GetPreviewHtml($wikiFile.FileUrl, "%{Width = 40, Height = 40}"))
+					#set ($attachment = $core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Attachment'), $wikiFileUrl, $wikiFilePreview, $wikiFile.FileName))
+					#set ($pageBody = "${pageBody}${attachment}")
+				#end
+			#end
+		#end
+	#else
+		#foreach($forumReply in $forumReplies)
+			#if($forumReply.IsAnswer)
+				#if ($forumReply.Author.ProfileUrl)
+					#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Answer_Template'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url, $forumReply.Author.ProfileUrl)")
+				#else
+					#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Answer_Template_Anonymous'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url)")
+				#end
+			#end
+			#if ($forumReply.File && $forumReply.File.FileUrl && $forumReply.File.FileName)
+				#set ($temporaryWikiFileContextId = $core_v2_uploadedFile.CreateContextId())
+				#if ($forumReply.File.SaveToTemporaryFiles($temporaryWikiFileContextId, $forumReply.File.FileName))
+					#set ($wikiFile = $core_v2_wikiFiles.Create($wiki.Id, $forumReply.File.FileName, $temporaryWikiFileContextId))
+					#set ($wikiFileUrl = $core_v2_encoding.HtmlAttributeEncode($wikiFile.FileUrl))
+					#set ($wikiFilePreview = $core_v2_ui.GetPreviewHtml($wikiFile.FileUrl, "%{Width = 40, Height = 40}"))
+					#set ($attachment = $core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Attachment'), $wikiFileUrl, $wikiFilePreview, $wikiFile.FileName))
+					#set ($pageBody = "${pageBody}${attachment}")
+				#end
+			#end
+		#end
+		#foreach($forumReply in $forumReplies)
+			#if ($forumReply.IsSuggestedAnswer)
+				#if ($forumReply.Author.ProfileUrl)
+					#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_SuggestedAnswer_Template'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url, $forumReply.Author.ProfileUrl)")
+				#else
+					#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_SuggestedAnswer_Template_Anonymous'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url)")
+				#end
+			#elseif (!$forumReply.IsAnswer)
+				#if ($forumReply.Author.ProfileUrl)
+					#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Question_Template'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url, $forumReply.Author.ProfileUrl)")
+				#else
+					#set($pageBody="$pageBody$core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Question_Template_Anonymous'), $forumReply.Subject, $forumReply.Body('Raw'), $forumReply.Author.DisplayName, $forumReply.Url)")
+				#end
+			#end
+			#if ($forumReply.File && $forumReply.File.FileUrl && $forumReply.File.FileName)
+				#set ($temporaryWikiFileContextId = $core_v2_uploadedFile.CreateContextId())
+				#if ($forumReply.File.SaveToTemporaryFiles($temporaryWikiFileContextId, $forumReply.File.FileName))
+					#set ($wikiFile = $core_v2_wikiFiles.Create($wiki.Id, $forumReply.File.FileName, $temporaryWikiFileContextId))
+					#set ($wikiFileUrl = $core_v2_encoding.HtmlAttributeEncode($wikiFile.FileUrl))
+					#set ($wikiFilePreview = $core_v2_ui.GetPreviewHtml($wikiFile.FileUrl, "%{Width = 40, Height = 40}"))
+					#set ($attachment = $core_v2_language.FormatString($core_v2_language.GetResource('Wiki_Thread_Attachment'), $wikiFileUrl, $wikiFilePreview, $wikiFile.FileName))
+					#set ($pageBody = "${pageBody}${attachment}")
+				#end
+			#end
+		#end
+	#end
+#end
+
+#if($page)
+	#if (!$core_v2_nodePermission.Get('wikis',$wiki.Id,'Wiki_ModifyPage',"%{PostType='pages',PostId=$page.Id}").IsAllowed)
+		$core_v2_widget.Hide()
+	#elseif($page.IsLocked && !$core_v2_nodePermission.Get('wikis',$wiki.Id,'Wiki_ModifyPage',"%{PostType='pages',PostId=$page.Id}").IsAllowed)
+		$core_v2_widget.Hide()
+	#end
+#elseif(!$core_v2_nodePermission.Get('wikis',$wiki.Id,'Wiki_CreatePage').IsAllowed)
+	$core_v2_widget.Hide()
+#end
+
+#set($userCanMovePage = $core_v2_nodePermission.Get('wikis',$wiki.Id,'Wiki_MovePage',"%{PostType='pages',PostId=$page.Id}").IsAllowed)
+
+<div class="message warning" id="$core_v2_widget.UniqueId('warning')" style="display: none;"></div>
+
+<fieldset>
+
+	#if ($page)
+		#set ($heading = $page.Title)
+	#else
+		#set ($heading = $core_v2_language.FormatString($core_v2_language.GetResource('NewPage'), $wiki.Name))
+	#end
+	<h1>$heading</h1>
+
+	<div id="$core_v2_encoding.HtmlAttributeEncode($tabsContainerId)">
+		<div id="$core_v2_encoding.HtmlAttributeEncode($writeTabId)">
+        	<ul class="field-list">
+        	    ## Only allow a parent to be defined if the page is new or not the default page and the user has move permission
+        		#if(!$page || (!$page.IsDefaultPage && $userCanMovePage))
+        			<li class="field-item post-parent">
+        				<label for="$core_v2_widget.UniqueId('parent')" class="field-item-name">$core_v2_language.GetResource('Wikis_ParentPage')</label>
+        				<span class="field-item-description">$core_v2_language.GetResource('Parent_Description')</span>
+        				<span class="field-item-input"><input type="text" id="$core_v2_widget.UniqueId('parent')" value="$!parentPage.Id" /></span>
+        			</li>
+        		#end
+        		<li class="field-item required post-name">
+        			<label for="$core_v2_widget.UniqueId('title')" class="field-item-name">$core_v2_language.GetResource('Title')</label>
+        			<span class="field-item-input">
+        				<textarea maxlength="256" rows="1" id="$core_v2_widget.UniqueId('title')" class="scaled" name="$core_v2_widget.UniqueId('title')" size="90">$!pageTitle</textarea>
+        			</span>
+        			<span class="field-item-validation" style="display: none;"></span>
+        		</li>
+        		<li class="field-item required post-body">
+        			<label for="$core_v2_widget.UniqueId('body')" class="field-item-name">$core_v2_language.GetResource('Body')</label>
+        			<span class="field-item-input">$core_v2_editor.Render('body',"%{Width='100%', Value='$!pageBody', ContentTypeId=$core_v2_wikiPage.ContentTypeId}")</span>
+        			<span class="field-item-validation" style="display:none;"></span>
+        		</li>
+        		<li class="field-item post-tags">
+        			<label for="$core_v2_widget.UniqueId('tags')" class="field-item-name">$core_v2_language.GetResource('CreateEditPost_Tags')</label>
+        			<span class="field-item-input">
+        				<input type="text" id="$core_v2_widget.UniqueId('tags')" value="$core_v2_utility.Join(', ', $page.Tags)" size="60" />
+        			</span>
+        		</li>
+        		#if ($core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+        			<li class="field-item post-subscribe">
+        				<span class="field-item-input">
+        					<input type="checkbox" id="$core_v2_widget.UniqueId('subscribe')"#if(!$page || $core_v2_wikiPage.IsSubscribed($page.Id)) checked="checked"#end />
+        					<label for="$core_v2_widget.UniqueId('subscribe')">$core_v2_language.GetResource('Wikis_Page_Subscribe')</label>
+        				</span>
+        			</li>
+        		#end
+        	</ul>
+	    </div>
+	    <div id="$core_v2_encoding.HtmlAttributeEncode($optionsTabId)">
+	        #if (!$page || !$page.IsDefaultPage)
+    	        <h3>$core_v2_language.GetResource('Toc_Heading')</h3>
+                <ul class="field-list">
+                    #if($userCanMovePage)
+            			<li class="field-item post-ordering">
+            			    <label for="$core_v2_widget.UniqueId('ordering')" class="field-item-name">$core_v2_language.GetResource('Wikis_Order')</label>
+            			    <span class="field-item-description">$core_v2_language.GetResource('Wikis_Order_Description')</span>
+            			    <span class="field-item-input">
+            			        <select id="$core_v2_widget.UniqueId('ordering')" size="10"></select>
+            			        <a href="#" id="$core_v2_widget.UniqueId('ordering-up')" style="margin-right:1em;">$core_v2_language.GetResource('Order_MoveUp')</a>
+            			        <a href="#" id="$core_v2_widget.UniqueId('ordering-down')">$core_v2_language.GetResource('Order_MoveDown')</a>
+            			    </span>
+            			</li>
+
+            		#end
+        			<li class="field-item post-hiding">
+        			    <span class="field-item-input">
+        			        <input type="checkbox" id="$core_v2_widget.UniqueId('tochiding')" #if($page && $page.HiddenInTableOfContents) checked="checked" #end />
+        			        <label for="$core_v2_widget.UniqueId('tochiding')">$core_v2_language.GetResource('Wikis_HideFromToc')</label>
+        			    </span>
+        			    <span class="field-item-description">$core_v2_language.GetResource('Wikis_HideFromToc_Description')</span>
+        			</li>
+
+            	</ul>
+            #end
+
+        	<h3>$core_v2_language.GetResource('Meta_Heading')</h3>
+            <ul class="field-list">
+                <li class="field-item meta-title">
+					<label for="$core_v2_widget.UniqueId('metaTitle')" class="field-item-name">$core_v2_language.GetResource('Meta_Title')</label>
+					<span class="field-item-description">$core_v2_language.GetResource('Meta_TitleDescription')</span>
+					<span class="field-item-input">
+						<textarea maxlength="128" rows="1" id="$core_v2_widget.UniqueId('metaTitle')" class="scaled" name="$core_v2_widget.UniqueId('metaTitle')" size="90">$!page.MetaTitle</textarea>
+					</span>
+					 <span class="field-item-description character-count"></span>
+				</li>
+			    <li class="field-item meta-keywords">
+			   		<label for="$core_v2_widget.UniqueId('metaKeywords')" class="field-item-name">$core_v2_language.GetResource('Meta_Keywords')</label>
+					<span class="field-item-description">$core_v2_language.GetResource('Meta_KeywordsDescription')</span>
+					<span class="field-item-input">
+						<textarea maxlength="512" rows="1" id="$core_v2_widget.UniqueId('metaKeywords')" class="scaled" name="$core_v2_widget.UniqueId('metaKeywords')" size="90">$!page.MetaKeywords</textarea>
+					</span>
+				</li>
+			    <li class="field-item">
+					<label class="field-item-name">$core_v2_language.GetResource('Meta_Description')</label>
+					<span class="field-item-description">$core_v2_language.GetResource('Meta_DescriptionDescription')</span>
+					<span class="field-item-input">
+						<textarea maxlength="512" type="text" id="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.UniqueId('metaDescription'))">$!page.MetaDescription</textarea>
+					</span>
+                    <span class="field-item-description character-count"></span>
+				</li>
+            </ul>
+	    </div>
+	</div>
+
+	<ul class="field-list">
+	    <li class="field-item submit-button">
+			<span class="field-item-input">
+				<a id="$core_v2_widget.UniqueId('save')" href="javascript:void(0);" class="button internal-link save-post disabled"><span></span>$core_v2_language.GetResource('Save')</a>
+				<span class="processing" style="visibility: hidden;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+			</span>
+			<span class="field-item-input"><a id="$core_v2_widget.UniqueId('viewchanges')" href="javascript:void(0);" class="internal-link view-post" style="display: none;"><span></span>$core_v2_language.GetResource('Wiki_PageEdit_ViewChanges')</a></span>
+		</li>
+	</ul>
+</fieldset>
+#registerEndOfPageHtml('telligent.evolution.widgets.PageEdit')
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+#end
+#registerEndOfPageHtml()
+    #set($selectedtags = '')
+    #foreach($t in $page.Tags)
+    #each
+        #set($selectedtags = "$selectedtags'$core_v2_encoding.JavascriptEncode($core_v2_encoding.HtmlDecode($t))'")
+    #between
+        #set($selectedtags = "$selectedtags,")
+    #end
+	<script type="text/javascript">
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+	jQuery(document).ready(function()
+	{
+		jQuery.telligent.evolution.widgets.pageEdit.register({
+			tags:$('#$core_v2_widget.UniqueId('tags')'),
+			selectedTags: [#if($selectedtags)$selectedtags#end],
+			lookupvm: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('lookuptags.vm'))',
+			
+			applicationId: '$wiki.applicationId',
+			#if($parentPage)
+				parentPageTitle:'$core_v2_encoding.JavascriptEncode($core_v2_language.Truncate($parentPage.Title, 60, "..."))',
+			#end
+			parent:$('#$core_v2_widget.UniqueId('parent')'),
+			tochiding:$('#$core_v2_widget.UniqueId('tochiding')'),
+			ordering: $('#$core_v2_widget.UniqueId('ordering')'),
+			orderingUp: $('#$core_v2_widget.UniqueId('ordering-up')'),
+			orderingDown: $('#$core_v2_widget.UniqueId('ordering-down')'),
+			getChildrenUrl: '$core_v2_widget.GetExecutedFileUrl('get-children.vm')',
+			subscribe:$('#$core_v2_widget.UniqueId('subscribe')'),
+			lookupPagesUrl:'$core_v2_widget.GetExecutedFileUrl('LookupPages.vm')',
+			subscribeUrl:'$core_v2_widget.GetExecutedFileUrl('Subscribe.vm')',
+			noPageMatchesText:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('WikiPageLookUpTextBox_NoMatches'))',
+			save:jQuery('#$core_v2_widget.UniqueId('save')'),
+			title:jQuery('#$core_v2_widget.UniqueId('title')'),
+			 metaTitle:jQuery('#$core_v2_widget.UniqueId('metaTitle')'),
+		    metaKeywords:jQuery('#$core_v2_widget.UniqueId('metaKeywords')'),
+		    metaDescription:jQuery('#$core_v2_widget.UniqueId('metaDescription')'),
+			wikiId: $wiki.Id,
+			getBody: function() { return $core_v2_editor.GetContentScript('body'); },
+			#if($page)
+				pageId:$page.Id,
+				parentPageId:$page.ParentPageId,
+				originalRevision:#if($page)$page.RevisionNumber#else-1#end,
+				overwriteText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Wiki_PageEdit_Overwrite'))',
+				lockedText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Wikis_Page_LockMessage'))',
+				viewChanges: $('#$core_v2_widget.UniqueId('viewchanges')'),
+				mergeMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.FormatString($core_v2_language.GetResource('Wikis_Page_MergeMessage'), '{AuthorUrl}', '{AuthorName}', '{MergeUrl}'))',
+				message: $('#$core_v2_widget.UniqueId('warning')'),
+				mergeUrl: '$core_v2_encoding.JavascriptEncode($core_v2_wikiUrls.PageMerge($page.Id, 998877, 778899))',
+				userCanLock :#if($core_v2_nodePermission.Get('wikispages',$page.Id,'Wiki_LockPage').IsAllowed) true#else false#end,
+			#else
+				pageId:-1,
+				parentPageId:-1,
+			#end
+			threadId:#if($thread) $thread.Id#else -1#end,
+			wrapperId: '$core_v2_widget.WrapperElementId',
+			titleSelector: '#$core_v2_widget.UniqueId('title')',
+			tabsSelector: '#$core_v2_encoding.JavascriptEncode($tabsContainerId)',
+			writeTabId: '$core_v2_encoding.JavascriptEncode($writeTabId)',
+			writeTabLabel: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Write'))',
+			optionsTabId: '$core_v2_encoding.JavascriptEncode($optionsTabId)',
+			optionsTabLabel: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Options'))',
+			requiredFieldText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('RequiredField'))',
+			pageExistsText: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Wiki_WikiPageKeyDuplicate'))',
+			attachBodyChangeHandler: function(h) { $core_v2_editor.GetAttachOnChangeScript('body', 'h') },
+			userCanMovePage: #if($userCanMovePage) true#else false#end,
+      charactersRemain: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Characters_Remain'))',
+		  charactersOver: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Characters_Over'))',
+		  orderPlaceholder: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Order_Placeholder'))',
+		    titleHidden: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Title_Hidden'))'
+		});
+	});
+	//</script>
+    #end
+    ]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Wikis_PageEdit_Name}'))
+			]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Wikis_PageEdit_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Body">Body</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Characters_Over">character(s) over the recomended length.  For best results this should be shortened.</resource>
+  <resource name="Characters_Remain">character(s)</resource>
+  <resource name="CreateEditPost_Tags">Tags</resource>
+  <resource name="Meta_Description">Description</resource>
+  <resource name="Meta_DescriptionDescription">If specified, search engines will use this description to provide an excerpt of this page.</resource>
+  <resource name="Meta_Heading">Search Engine Optimization</resource>
+  <resource name="Meta_Keywords">Keywords</resource>
+  <resource name="Meta_KeywordsDescription">Comma-separated list of words that uniquely relate to this content. These can be used by search engines to improve search results.</resource>
+  <resource name="Meta_Title">Title</resource>
+  <resource name="Meta_TitleDescription">Adjust the title used by search engines when referencing this content. If not set, the page’s title will be used.</resource>
+  <resource name="NewPage">New Page to {0}</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Order_MoveDown">Move down</resource>
+  <resource name="Order_MoveUp">Move up</resource>
+  <resource name="Order_Placeholder">(This Page)</resource>
+  <resource name="Parent_Description">The parent page for this page in this wiki's table of contents</resource>
+  <resource name="RequiredField">This field is required.</resource>
+  <resource name="Save">Post</resource>
+  <resource name="TagEditor_SelectTags">Select Tags...</resource>
+  <resource name="Title">Title</resource>
+  <resource name="Title_Hidden">&lt;i&gt;Hidden: {0}&lt;/i&gt;</resource>
+  <resource name="Toc_Heading">Table of Contents</resource>
+  <resource name="Wiki_PageEdit_Overwrite">Overwrite</resource>
+  <resource name="Wiki_PageEdit_ViewChanges">View Changes</resource>
+  <resource name="Wiki_Thread_Answer_Template">Verified Answer: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Answer_Template_Anonymous">Verified Answer: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Attachment">&lt;div class="post-attachment-container"&gt;&lt;div class="post-attachment-viewer"&gt;&lt;a href="{0}" class="internal-link download-attachment"&gt;{1}&lt;/a&gt;&lt;/div&gt;&lt;div class="post-attachment"&gt;&lt;span class="value"&gt;&lt;a href="{0}" class="internal-link download-attachment"&gt;{2}&lt;/a&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;</resource>
+  <resource name="Wiki_Thread_Original_Template">&lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Original_Template_Anonymous">&lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_OriginalQuestion_Template">Original Question: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_OriginalQuestion_Template_Anonymous">Original Question: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Question_Template">Question: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Question_Template_Anonymous">Question: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_SuggestedAnswer_Template">Suggested Answer: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by &lt;a href="{4}"&gt;{2}&lt;/a&gt;{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_SuggestedAnswer_Template_Anonymous">Suggested Answer: &lt;strong&gt;&lt;a href="{3}"&gt;{0}&lt;/a&gt;&lt;/strong&gt; by {2}{1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Template">&lt;strong&gt;{0}&lt;/strong&gt; by &lt;a href="{4}"&gt;{2}&lt;/a&gt;: {1}&lt;br/&gt;</resource>
+  <resource name="Wiki_Thread_Template_Anonymous">&lt;strong&gt;{0}&lt;/strong&gt; by {2}: {1}&lt;br/&gt;</resource>
+  <resource name="Wiki_WikiPageKeyDuplicate">A page by this name exists in this wiki already. Please choose another name for this page.</resource>
+  <resource name="WikiPageLookUpTextBox_NoMatches">A matching page could not be found.</resource>
+  <resource name="Wikis_HideFromToc">Hide this page from the table of contents</resource>
+  <resource name="Wikis_HideFromToc_Description">When hidden, the page will not be represented in the wiki's table of contents.</resource>
+  <resource name="Wikis_Order">Order</resource>
+  <resource name="Wikis_Order_Description">Set the order of this page and its siblings within the wiki's table of contents.</resource>
+  <resource name="Wikis_Page_LockMessage">Wiki page is locked and changes are not able to be saved.</resource>
+  <resource name="Wikis_Page_MergeMessage">&lt;a href='{0}' target='_blank' class='internal-link view-user-profile'&gt;&lt;span&gt;&lt;/span&gt;{1}&lt;/a&gt; posted a &lt;a href="#" onclick="{2}" class='internal-link wiki'&gt;&lt;span&gt;&lt;/span&gt;new version&lt;/a&gt; while you were editing.</resource>
+  <resource name="Wikis_Page_Subscribe">Notify me when this page is edited</resource>
+  <resource name="Wikis_PageEdit_Description">Edits a wiki page.</resource>
+  <resource name="Wikis_PageEdit_Name">Arm - Wikis - Edit Page</resource>
+  <resource name="Wikis_ParentPage">Parent</resource>
+  <resource name="Write">Write</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="578aa547a44c45d39159cab85e3002cc" />
+		</requiredContext>
+		<files>
+			<file name="get-children.vm">I3NldCgkcGFnZUlkID0gZmFsc2UpDQojc2V0KCRwYWdlSWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgnX3dfd2lraVBhZ2VJZCcpKSkNCg0KI3NldCgkd2lraUlkID0gZmFsc2UpDQojc2V0KCR3aWtpSWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgnX3dfd2lraUlkJykpKQ0KDQojaWYgKCRwYWdlSWQpDQogICAgI3NldCgkcGFnZXMgPSAkY29yZV92Ml93aWtpVG9jLkxpc3QoJHdpa2lJZCwgJHBhZ2VJZCkpDQojZWxzZQ0KICAgICNzZXQoJHBhZ2VzID0gJGNvcmVfdjJfd2lraVRvYy5MaXN0KCR3aWtpSWQpKQ0KI2VuZA0KDQokY29yZV92Ml9wYWdlLlNldENvbnRlbnRUeXBlKCd0ZXh0L2pzb24nKQ0KDQp7DQogICAgI2lmICgkcGFnZXMuQ291bnQgPD0gMTAwKQ0KICAgICAgICAicGFnZXMiOiBbDQogICAgICAgICAgICAjZm9yZWFjaCgkcGFnZSBpbiAkcGFnZXMpDQogICAgICAgICAgICAgICAgI2VhY2gNCiAgICAgICAgICAgICAgICB7DQogICAgICAgICAgICAgICAgICAgICJpZCI6ICRwYWdlLklkLA0KICAgICAgICAgICAgICAgICAgICAidGl0bGUiOiAiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkcGFnZS5UaXRsZSkiLA0KICAgICAgICAgICAgICAgICAgICAicG9zaXRpb24iOiAjaWYgKCRwYWdlLlBvc2l0aW9uKSAkcGFnZS5Qb3NpdGlvbiAjZWxzZSBudWxsICNlbmQsDQogICAgICAgICAgICAgICAgICAgICJoaWRkZW4iOiAjaWYgKCRwYWdlLkhpZGRlbkluVGFibGVPZkNvbnRlbnRzKSB0cnVlICNlbHNlIGZhbHNlICNlbmQsDQogICAgICAgICAgICAgICAgICAgICJpc0RlZmF1bHQiOiAjaWYoJHBhZ2UuSXNEZWZhdWx0UGFnZSkgdHJ1ZSAjZWxzZSBmYWxzZSAjZW5kDQogICAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgICAgICNiZXR3ZWVuDQogICAgICAgICAgICAgICAgLA0KICAgICAgICAgICAgI2VuZA0KICAgICAgICBdDQogICAgI2Vsc2UNCiAgICAgICAgInRvb21hbnkiOiB0cnVlDQogICAgI2VuZA0KfQ==</file>
+			<file name="LookupPages.vm">77u/I3NldCgkcGFyZW50UGFnZUlkVG9FeGNsdWRlID0gZmFsc2UpDQojc2V0KCRwYXJlbnRQYWdlSWRUb0V4Y2x1ZGUgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgnd19QYXJlbnRQYWdlSWRUb0V4Y2x1ZGUnKSkpDQojaWYgKCEkcGFyZW50UGFnZUlkVG9FeGNsdWRlKQ0KCSNzZXQoJHBhcmVudFBhZ2VJZFRvRXhjbHVkZSA9IC0xKQ0KI2VuZA0KI3NldCgkc2VhcmNoVGV4dCA9ICRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgnd19TZWFyY2hUZXh0JykuVG9Mb3dlcigpKQ0KI3NldCgkdG90YWxNYXRjaGVzID0gMCkNCiNzZXQoJGlnbm9yZVVudGlsTGV2ZWwgPSAtMSkNCiRjb3JlX3YyX3BhZ2UuU2V0Q29udGVudFR5cGUoJ2FwcGxpY2F0aW9uL2pzb24nKQ0KDQp7InBhZ2VzIjpbDQojaWYoJGNvcmVfdjJfd2lraS5DdXJyZW50KQ0KCSNmb3JlYWNoKCRwYWdlIGluICRjb3JlX3YyX3V0aWxpdHkuRmxhdHRlbkhpZXJhcmNoeSgkY29yZV92Ml93aWtpVG9jLkxpc3QoJGNvcmVfdjJfd2lraS5DdXJyZW50LklkKSwgJ0NoaWxkcmVuJykpDQoJCSNpZigkdG90YWxNYXRjaGVzIDwgMjApDQoJCQkjaWYgKCRpZ25vcmVVbnRpbExldmVsID4gMCAmJiAkaWdub3JlVW50aWxMZXZlbCA+PSAkcGFnZS5MZXZlbCkjc2V0KCRpZ25vcmVVbnRpbExldmVsID0gLTEpI2VuZA0KCQkJI2lmICgkcGFnZS5JdGVtLklkID09ICRwYXJlbnRQYWdlSWRUb0V4Y2x1ZGUpI3NldCgkaWdub3JlVW50aWxMZXZlbCA9ICRwYWdlLkxldmVsKSNlbmQNCgkJCSNpZiAoJGlnbm9yZVVudGlsTGV2ZWwgPT0gLTEgJiYgJHBhZ2UuSXRlbS5UaXRsZS5Ub0xvd2VyKCkuQ29udGFpbnMoJHNlYXJjaFRleHQpKQ0KCQkJCXsicGFnZUlkIjoiJHBhZ2UuSXRlbS5JZCIsInRpdGxlIjoiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YVNjcmlwdEVuY29kZSgkY29yZV92Ml9sYW5ndWFnZS5UcnVuY2F0ZSgkcGFnZS5JdGVtLlRpdGxlLCA1NSwgIi4uLiIpKSJ9LA0KCQkJCSNzZXQoJHRvdGFsTWF0Y2hlcyA9ICR0b3RhbE1hdGNoZXMgKyAxKQ0KCQkJI2VuZA0KCQkjZW5kDQoJI2VuZA0KI2VuZA0KbnVsbF19</file>
+			<file name="lookuptags.vm">I3NldCgkc2VhcmNoVGV4dCA9ICRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgnd19TZWFyY2hUZXh0JykpCgojc2V0KCR0YWdzID0gJGFybV92MV90YWdnaW5nLkxvb2tVcFRhZ3MoJHNlYXJjaFRleHQpKQoKJGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpCgp7ImNvdW50IjogIiR0YWdzLkNvdW50IiwgInRhZ3MiOlsKICAgICNpZigkdGFncykKICAgICAgICAjZm9yZWFjaCgkdGFnIGluICR0YWdzKQogICAgICAgICAgICB7InRhZyI6IiR0YWcifSwKICAgICAgICAjZW5kCiAgICAjZW5kCm51bGxdfQ==</file>
+			<file name="Subscribe.vm">77u/I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkNCgkkY29yZV92Ml9wYWdlLlNldENvbnRlbnRUeXBlKCdhcHBsaWNhdGlvbi9qc29uJykNCg0KCSNzZXQoJHN1YnNjcmliZSA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VCb29sKCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdzdWJzY3JpYmUnKSkpDQoJJGNvcmVfdjJfd2lraVBhZ2UuU2V0U3Vic2NyaWJlZCgkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCd3aWtpUGFnZUlkJykpLCAkc3Vic2NyaWJlKQ0KCXsic3Vic2NyaWJlIjojaWYoJHN1YnNjcmliZSkgdHJ1ZSNlbHNlIGZhbHNlI2VuZH0NCiNlbmQ=</file>
+			<file name="ui.js">KGZ1bmN0aW9uICgkKSB7CiAgICBpZiAodHlwZW9mICQudGVsbGlnZW50ID09PSAndW5kZWZpbmVkJykKICAgICAgICAkLnRlbGxpZ2VudCA9IHt9OwoKICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID09PSAndW5kZWZpbmVkJykKICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSB7fTsKCiAgICBpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID09PSAndW5kZWZpbmVkJykKICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9IHt9OwoKICAgIHZhciB0YWJDbGljayA9IGZ1bmN0aW9uIChjb250ZXh0LCB0YWIpIHsKICAgICAgICB2YXIgdCA9ICQodGFiKTsKICAgICAgICB2YXIgd3JhcHBlciA9ICQoJyMnICsgY29udGV4dC5lbGVtZW50SWQpOwogICAgICAgICQoJy5maWx0ZXItb3B0aW9uJywgd3JhcHBlcikucmVtb3ZlQ2xhc3MoJ3NlbGVjdGVkJyk7CiAgICAgICAgJCh0LnBhcmVudCgpLmdldCgwKSkuYWRkQ2xhc3MoJ3NlbGVjdGVkJyk7CiAgICAgICAgdmFyIGlkcyA9IHRhYi5pZC5zcGxpdCgnXycpOwogICAgICAgIHZhciBmaWx0ZXIgPSBpZHNbaWRzLmxlbmd0aCAtIDFdOwogICAgICAgIGNvbnRleHQuc2VsZWN0ZWRUYWIgPSBmaWx0ZXI7CgogICAgICAgIGxvYWQoY29udGV4dCwgZmlsdGVyKTsKICAgIH0sCiAgICAgX3RyYWNrQ2hhcnMgPSBmdW5jdGlvbiAoY29udGV4dCwgZmllbGQsIG1heExlbmd0aCkgewogICAgICAgICB2YXIgY3VyTGVuID0gZmllbGQudmFsKCkubGVuZ3RoOwogICAgICAgICB2YXIgdG9nbyA9IG1heExlbmd0aCAtIGN1ckxlbjsKICAgICAgICAgdmFyIGxhYmVsID0gZmllbGQucGFyZW50KCkubmV4dCgnc3Bhbi5jaGFyYWN0ZXItY291bnQnKTsKCiAgICAgICAgIGlmICh0b2dvID49IDApIHsKICAgICAgICAgICAgIGxhYmVsLmh0bWwoY3VyTGVuICsgJyAnICsgY29udGV4dC5jaGFyYWN0ZXJzUmVtYWluKTsKICAgICAgICAgICAgIGxhYmVsLnJlbW92ZUNsYXNzKCdmaWVsZC1pdGVtLXZhbGlkYXRpb24nKTsKICAgICAgICAgfQogICAgICAgICBlbHNlIHsKICAgICAgICAgICAgIGxhYmVsLmh0bWwoKHRvZ28gKiAtMSkgKyAnICcgKyBjb250ZXh0LmNoYXJhY3RlcnNPdmVyKTsKICAgICAgICAgICAgIGxhYmVsLmFkZENsYXNzKCdmaWVsZC1pdGVtLXZhbGlkYXRpb24nKTsKICAgICAgICAgfQogICAgIH0sCgkJc3VibWl0Q2xpY2sgPSBmdW5jdGlvbiAoY29udGV4dCkgewoJCSAgICB2YXIgaW5UYWdzID0gY29udGV4dC50YWdzLnZhbCgpLnNwbGl0KC9bLDtdL2cpOwoJCSAgICB2YXIgdGFncyA9IFtdOwoJCSAgICBmb3IgKHZhciBpID0gMDsgaSA8IGluVGFncy5sZW5ndGg7IGkrKykgewoJCSAgICAgICAgdmFyIHRhZyA9ICQudHJpbShpblRhZ3NbaV0pOwoJCSAgICAgICAgaWYgKHRhZykKCQkgICAgICAgICAgICB0YWdzW3RhZ3MubGVuZ3RoXSA9IHRhZzsKCQkgICAgfQoJCSAgICB0YWdzID0gdGFncy5qb2luKCcsJyk7CgoJCSAgICB2YXIgZGF0YSA9IHsKCQkgICAgICAgIFRpdGxlOiBjb250ZXh0LnRpdGxlLmV2b2x1dGlvbkNvbXBvc2VyKCd2YWwnKSwKCQkgICAgICAgIEJvZHk6IGNvbnRleHQuZ2V0Qm9keSgpLAoJCSAgICAgICAgVGFnczogdGFncywKCQkgICAgICAgIFdpa2lJZDogY29udGV4dC53aWtpSWQKCQkgICAgfTsKCgkJICAgIGlmIChjb250ZXh0Lm1ldGFUaXRsZSAmJiBjb250ZXh0Lm1ldGFUaXRsZS5sZW5ndGggPiAwKQoJCSAgICAgICAgZGF0YS5NZXRhVGl0bGUgPSBjb250ZXh0Lm1ldGFUaXRsZS52YWwoKTsKCQkgICAgaWYgKGNvbnRleHQubWV0YUtleXdvcmRzICYmIGNvbnRleHQubWV0YUtleXdvcmRzLmxlbmd0aCA+IDApCgkJICAgICAgICBkYXRhLk1ldGFLZXl3b3JkcyA9IGNvbnRleHQubWV0YUtleXdvcmRzLnZhbCgpOwoJCSAgICBpZiAoY29udGV4dC5tZXRhRGVzY3JpcHRpb24gJiYgY29udGV4dC5tZXRhRGVzY3JpcHRpb24ubGVuZ3RoID4gMCkKCQkgICAgICAgIGRhdGEuTWV0YURlc2NyaXB0aW9uID0gY29udGV4dC5tZXRhRGVzY3JpcHRpb24udmFsKCk7CgkJICAgICAgICAKCQkgICAgaWYgKGNvbnRleHQudG9jaGlkaW5nICYmIGNvbnRleHQudG9jaGlkaW5nLmxlbmd0aCA+IDApCgkJICAgICAgICBkYXRhLkhpZGVJblRhYmxlT2ZDb250ZW50cyA9IGNvbnRleHQudG9jaGlkaW5nLmlzKCc6Y2hlY2tlZCcpOwoJCSAgICAgICAgCgkJICAgIGlmIChjb250ZXh0LmN1cnJlbnRQYWdlT3JkZXJlZEl0ZW0gJiYgY29udGV4dC5jYW5PcmRlciAmJiBjb250ZXh0LmN1cnJlbnRQYWdlT3JkZXJlZEl0ZW0udmFsdWUucG9zaXRpb24gIT0gY29udGV4dC5jdXJyZW50UGFnZU9yZGVyZWRJdGVtLnZhbHVlLm9yaWdpbmFsUG9zaXRpb24pIHsKCQkgICAgICAgIGRhdGEuUG9zaXRpb24gPSBjb250ZXh0LmN1cnJlbnRQYWdlT3JkZXJlZEl0ZW0udmFsdWUucG9zaXRpb24gPT09IG51bGwgPyAtMSA6IGNvbnRleHQuY3VycmVudFBhZ2VPcmRlcmVkSXRlbS52YWx1ZS5wb3NpdGlvbjsKCQkgICAgfQoKCQkgICAgaWYgKGNvbnRleHQudXNlckNhbk1vdmVQYWdlICYmIGNvbnRleHQucGFyZW50KQoJCSAgICAgICAgZGF0YS5QYXJlbnRQYWdlSWQgPSBjb250ZXh0LnBhcmVudC52YWwoKSA/IGNvbnRleHQucGFyZW50LnZhbCgpIDogLTE7CgoJCSAgICBpZiAoY29udGV4dC50aHJlYWRJZCA+IDApCgkJICAgICAgICBkYXRhLkZvcnVtVGhyZWFkSWQgPSBjb250ZXh0LnRocmVhZElkOwoKCQkgICAgaWYgKGNvbnRleHQucGFnZUlkID4gMCkgewoJCSAgICAgICAgZGF0YS5JZCA9IGNvbnRleHQucGFnZUlkOwoKCQkgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5nZXQoewoJCSAgICAgICAgICAgIHVybDogJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnNpdGUuZ2V0QmFzZVVybCgpICsgJ2FwaS5hc2h4L3YyL3dpa2lzL3tXaWtpSWR9L3BhZ2VzL3tJZH0uanNvbj9JbmNsdWRlRmllbGRzPVdpa2lQYWdlLlJldmlzaW9uTnVtYmVyLFVzZXIsV2lraVBhZ2UuSXNMb2NrZWQnLAoJCSAgICAgICAgICAgIGNhY2hlOiBmYWxzZSwKCQkgICAgICAgICAgICBkYXRhOiB7CgkJICAgICAgICAgICAgICAgIFdpa2lJZDogZGF0YS5XaWtpSWQsCgkJICAgICAgICAgICAgICAgIElkOiBkYXRhLklkCgkJICAgICAgICAgICAgfSwKCQkgICAgICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsKCQkgICAgICAgICAgICAgICAgaWYgKHJlc3BvbnNlLldpa2lQYWdlLklzTG9ja2VkICYmICFjb250ZXh0LnVzZXJDYW5Mb2NrKSB7CgkJICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm1lc3NhZ2UudGV4dChjb250ZXh0LmxvY2tlZFRleHQpOwoJCSAgICAgICAgICAgICAgICAgICAgY29udGV4dC5tZXNzYWdlLnNob3coKTsKCQkgICAgICAgICAgICAgICAgICAgICQoJy5wcm9jZXNzaW5nJywgY29udGV4dC5zYXZlLnBhcmVudCgpKS5jc3MoInZpc2liaWxpdHkiLCAiaGlkZGVuIik7CgkJICAgICAgICAgICAgICAgICAgICBjb250ZXh0LnNhdmUucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7CgkJICAgICAgICAgICAgICAgICAgICByZXR1cm47CgkJICAgICAgICAgICAgICAgIH0KCQkgICAgICAgICAgICAgICAgZWxzZSB7CgkJICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm1lc3NhZ2UuaGlkZSgpOwoJCSAgICAgICAgICAgICAgICB9CgkJICAgICAgICAgICAgICAgIGlmIChyZXNwb25zZS5XaWtpUGFnZS5SZXZpc2lvbk51bWJlciA9PSBjb250ZXh0Lm9yaWdpbmFsUmV2aXNpb24pIHsKCQkgICAgICAgICAgICAgICAgICAgIGRhdGEuSXNMb2NrZWQgPSByZXNwb25zZS5XaWtpUGFnZS5Jc0xvY2tlZDsKCQkgICAgICAgICAgICAgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5wdXQoewoJCSAgICAgICAgICAgICAgICAgICAgICAgIHVybDogJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnNpdGUuZ2V0QmFzZVVybCgpICsgJ2FwaS5hc2h4L3YyL3dpa2lzL3tXaWtpSWR9L3BhZ2VzL3tJZH0uanNvbj9JbmNsdWRlRmllbGRzPVdpa2lQYWdlLklkLFdpa2lQYWdlLlVybCcsCgkJICAgICAgICAgICAgICAgICAgICAgICAgZGF0YTogZGF0YSwKCQkgICAgICAgICAgICAgICAgICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsKCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3QoewoJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgdXJsOiBjb250ZXh0LnN1YnNjcmliZVVybCwKCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGRhdGE6IHsgd2lraVBhZ2VJZDogcmVzcG9uc2UuV2lraVBhZ2UuSWQsIHN1YnNjcmliZTogY29udGV4dC5zdWJzY3JpYmUuaXMoJzpjaGVja2VkJykgfSwKCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN1Y2Nlc3M6IGZ1bmN0aW9uIChyZXNwb25zZTIpIHsKCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBfc2V0T3JkZXIoY29udGV4dCkKCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgLnRoZW4oZnVuY3Rpb24oKSB7CgkJICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB3aW5kb3cubG9jYXRpb24gPSByZXNwb25zZS5XaWtpUGFnZS5Vcmw7CgkJICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0pCgkJICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC5mYWlsKGZ1bmN0aW9uKCkgewoJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LnNhdmUucGFyZW50KCkpLmNzcygidmlzaWJpbGl0eSIsICJoaWRkZW4iKTsKCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNvbnRleHQuc2F2ZS5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsKCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfSkKCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0sCgkJICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBlcnJvcjogZnVuY3Rpb24gKHhociwgZGVzYywgZXgpIHsKCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ubm90aWZpY2F0aW9ucy5zaG93KGRlc2MsIHsgdHlwZTogJ2Vycm9yJyB9KTsKCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAkKCcucHJvY2Vzc2luZycsIGNvbnRleHQuc2F2ZS5wYXJlbnQoKSkuY3NzKCJ2aXNpYmlsaXR5IiwgImhpZGRlbiIpOwoJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNvbnRleHQuc2F2ZS5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsKCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0KCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgfSk7CgkJICAgICAgICAgICAgICAgICAgICAgICAgfSwKCQkgICAgICAgICAgICAgICAgICAgICAgICBlcnJvcjogZnVuY3Rpb24gKHhociwgZGVzYywgZXgpIHsKCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyhkZXNjLCB7IHR5cGU6ICdlcnJvcicgfSk7CgkJICAgICAgICAgICAgICAgICAgICAgICAgICAgICQoJy5wcm9jZXNzaW5nJywgY29udGV4dC5zYXZlLnBhcmVudCgpKS5jc3MoInZpc2liaWxpdHkiLCAiaGlkZGVuIik7CgkJICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNvbnRleHQuc2F2ZS5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsKCQkgICAgICAgICAgICAgICAgICAgICAgICB9CgkJICAgICAgICAgICAgICAgICAgICB9KTsKCQkgICAgICAgICAgICAgICAgfQoJCSAgICAgICAgICAgICAgICBlbHNlIHsKCQkgICAgICAgICAgICAgICAgICAgIHZhciBtZXJnZVVybCA9IGNvbnRleHQubWVyZ2VVcmwucmVwbGFjZSgvOTk4ODc3L2csIGNvbnRleHQub3JpZ2luYWxSZXZpc2lvbikucmVwbGFjZSgvNzc4ODk5L2csIHJlc3BvbnNlLldpa2lQYWdlLlJldmlzaW9uTnVtYmVyKTsKCgkJICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm1lc3NhZ2UuaHRtbChjb250ZXh0Lm1lcmdlTWVzc2FnZS5yZXBsYWNlKC97QXV0aG9yVXJsfS9nLCByZXNwb25zZS5XaWtpUGFnZS5Vc2VyLlByb2ZpbGVVcmwpLnJlcGxhY2UoL3tBdXRob3JOYW1lfS9nLCByZXNwb25zZS5XaWtpUGFnZS5Vc2VyLkRpc3BsYXlOYW1lKS5yZXBsYWNlKC97TWVyZ2VVcmx9L2csICd3aW5kb3cub3BlbihcJycgKyBtZXJnZVVybCArICdcJyxcJ21lcmdlXCcsXCd3aWR0aD01MzAsaGVpZ2h0PTUwMCxyZXNpemFibGU9MSxzY3JvbGxiYXJzPTFcJyk7IHJldHVybiBmYWxzZTsnKSkuc2hvdygpOwoKCQkgICAgICAgICAgICAgICAgICAgIGNvbnRleHQuc2F2ZS5odG1sKCc8c3Bhbj48L3NwYW4+JyArIGNvbnRleHQub3ZlcndyaXRlVGV4dCk7CgkJICAgICAgICAgICAgICAgICAgICAkKCcucHJvY2Vzc2luZycsIGNvbnRleHQuc2F2ZS5wYXJlbnQoKSkuY3NzKCJ2aXNpYmlsaXR5IiwgImhpZGRlbiIpOwoJCSAgICAgICAgICAgICAgICAgICAgY29udGV4dC5zYXZlLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOwoKCQkgICAgICAgICAgICAgICAgICAgIGNvbnRleHQudmlld0NoYW5nZXMudW5iaW5kKCdjbGljaycpOwoJCSAgICAgICAgICAgICAgICAgICAgY29udGV4dC52aWV3Q2hhbmdlcy5jbGljayhmdW5jdGlvbiAoKSB7CgkJICAgICAgICAgICAgICAgICAgICAgICAgd2luZG93Lm9wZW4obWVyZ2VVcmwsICdtZXJnZScsICd3aWR0aD01MzAsaGVpZ2h0PTUwMCxyZXNpemFibGU9MSxzY3JvbGxiYXJzPTEnKTsKCQkgICAgICAgICAgICAgICAgICAgICAgICByZXR1cm4gZmFsc2U7CgkJICAgICAgICAgICAgICAgICAgICB9KTsKCQkgICAgICAgICAgICAgICAgICAgIGNvbnRleHQudmlld0NoYW5nZXMuc2hvdygpOwoKCQkgICAgICAgICAgICAgICAgICAgIGNvbnRleHQub3JpZ2luYWxSZXZpc2lvbiA9IHJlc3BvbnNlLldpa2lQYWdlLlJldmlzaW9uTnVtYmVyOwoKCQkgICAgICAgICAgICAgICAgICAgICQoJ2h0bWwsIGJvZHknKS5hbmltYXRlKHsgc2Nyb2xsVG9wOiBjb250ZXh0Lm1lc3NhZ2Uub2Zmc2V0KCkudG9wIC0gMTAwIH0sIDUwMCk7CgkJICAgICAgICAgICAgICAgIH0KCQkgICAgICAgICAgICB9LAoJCSAgICAgICAgICAgIGVycm9yOiBmdW5jdGlvbiAoeGhyLCBkZXNjLCBleCkgewoJCSAgICAgICAgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ubm90aWZpY2F0aW9ucy5zaG93KGRlc2MsIHsgdHlwZTogJ2Vycm9yJyB9KTsKCQkgICAgICAgICAgICAgICAgJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LnNhdmUucGFyZW50KCkpLmNzcygidmlzaWJpbGl0eSIsICJoaWRkZW4iKTsKCQkgICAgICAgICAgICAgICAgY29udGV4dC5zYXZlLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOwoJCSAgICAgICAgICAgIH0KCQkgICAgICAgIH0pOwoJCSAgICB9CgkJICAgIGVsc2UgewoJCSAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3QoewoJCSAgICAgICAgICAgIHVybDogJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnNpdGUuZ2V0QmFzZVVybCgpICsgJ2FwaS5hc2h4L3YyL3dpa2lzL3tXaWtpSWR9L3BhZ2VzLmpzb24/SW5jbHVkZUZpZWxkcz1XaWtpUGFnZS5JZCxXaWtpUGFnZS5VcmwnLAoJCSAgICAgICAgICAgIGRhdGE6IGRhdGEsCgkJICAgICAgICAgICAgc3VjY2VzczogZnVuY3Rpb24gKHJlc3BvbnNlKSB7CgkJICAgICAgICAgICAgICAgIGNvbnRleHQucGFnZUlkID0gcmVzcG9uc2UuV2lraVBhZ2UuSWQ7CgkJICAgICAgICAgICAgICAgIGlmIChjb250ZXh0LmN1cnJlbnRQYWdlT3JkZXJlZEl0ZW0pIHsKCQkgICAgICAgICAgICAgICAgICAgIGNvbnRleHQuY3VycmVudFBhZ2VPcmRlcmVkSXRlbS52YWx1ZS5pZCA9IGNvbnRleHQucGFnZUlkOwoJCSAgICAgICAgICAgICAgICB9CgkJICAgICAgICAgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5wb3N0KHsKCQkgICAgICAgICAgICAgICAgICAgIHVybDogY29udGV4dC5zdWJzY3JpYmVVcmwsCgkJICAgICAgICAgICAgICAgICAgICBkYXRhOiB7IHdpa2lQYWdlSWQ6IHJlc3BvbnNlLldpa2lQYWdlLklkLCBzdWJzY3JpYmU6IGNvbnRleHQuc3Vic2NyaWJlLmlzKCc6Y2hlY2tlZCcpIH0sCgkJICAgICAgICAgICAgICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UyKSB7CgkJICAgICAgICAgICAgICAgICAgICAgICAgX3NldE9yZGVyKGNvbnRleHQpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC50aGVuKGZ1bmN0aW9uKCkgewogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgd2luZG93LmxvY2F0aW9uID0gcmVzcG9uc2UuV2lraVBhZ2UuVXJsOwogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB9KQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAuZmFpbChmdW5jdGlvbigpIHsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICQoJy5wcm9jZXNzaW5nJywgY29udGV4dC5zYXZlLnBhcmVudCgpKS5jc3MoInZpc2liaWxpdHkiLCAiaGlkZGVuIik7CgkJICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0LnNhdmUucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0pOwoJCSAgICAgICAgICAgICAgICAgICAgfSwKCQkgICAgICAgICAgICAgICAgICAgIGVycm9yOiBmdW5jdGlvbiAoeGhyLCBkZXNjLCBleCkgewoJCSAgICAgICAgICAgICAgICAgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coZGVzYywgeyB0eXBlOiAnZXJyb3InIH0pOwoJCSAgICAgICAgICAgICAgICAgICAgICAgICQoJy5wcm9jZXNzaW5nJywgY29udGV4dC5zYXZlLnBhcmVudCgpKS5jc3MoInZpc2liaWxpdHkiLCAiaGlkZGVuIik7CgkJICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5zYXZlLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOwoJCSAgICAgICAgICAgICAgICAgICAgfQoJCSAgICAgICAgICAgICAgICB9KTsKCQkgICAgICAgICAgICB9LAoJCSAgICAgICAgICAgIGVycm9yOiBmdW5jdGlvbiAoeGhyLCBkZXNjLCBleCkgewoJCSAgICAgICAgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ubm90aWZpY2F0aW9ucy5zaG93KGRlc2MsIHsgdHlwZTogJ2Vycm9yJyB9KTsKCQkgICAgICAgICAgICAgICAgJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LnNhdmUucGFyZW50KCkpLmNzcygidmlzaWJpbGl0eSIsICJoaWRkZW4iKTsKCQkgICAgICAgICAgICAgICAgY29udGV4dC5zYXZlLnJlbW92ZUNsYXNzKCdkaXNhYmxlZCcpOwoJCSAgICAgICAgICAgIH0KCQkgICAgICAgIH0pOwoJCSAgICB9CgkJfSwKCQlfc2V0T3JkZXIgPSBmdW5jdGlvbihjb250ZXh0KSB7CgkJICAgIHJldHVybiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uYmF0Y2goZnVuY3Rpb24oKSB7CiAgICAJCSAgICBpZiAoY29udGV4dC5jYW5PcmRlcikgewogICAgICAgIAkJICAgIHZhciBpdGVtQ291bnQgPSBjb250ZXh0Lm9yZGVyaW5nLmdsb3dPcmRlcmVkTGlzdCgnY291bnQnKTsKICAgICAgICAJCSAgICBmb3IgKHZhciBpID0gMDsgaSA8IGl0ZW1Db3VudDsgaSsrKSB7CiAgICAgICAgCQkgICAgICAgIHZhciBpdGVtID0gY29udGV4dC5vcmRlcmluZy5nbG93T3JkZXJlZExpc3QoJ2dldEJ5SW5kZXgnLCBpKTsKICAgICAgICAJCSAgICAgICAgaWYgKGl0ZW0udmFsdWUucG9zaXRpb24gIT09IGl0ZW0udmFsdWUub3JpZ2luYWxQb3NpdGlvbikgewogICAgICAgIAkJICAgICAgICAgICAgaWYgKGNvbnRleHQucGFnZUlkICE9IGl0ZW0udmFsdWUuaWQpIHsKICAgICAgICAJCSAgICAgICAgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ucHV0KHsKICAgICAgICAJICAgICAgICAgICAgICAgICAgICAgICAgdXJsOiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAnYXBpLmFzaHgvdjIvd2lraXMve1dpa2lJZH0vcGFnZXMve0lkfS5qc29uP0luY2x1ZGVGaWVsZHM9V2lraVBhZ2UuSWQsV2lraVBhZ2UuVXJsJywKICAgICAgICAJICAgICAgICAgICAgICAgICAgICAgICAgZGF0YTogewogICAgICAgIAkgICAgICAgICAgICAgICAgICAgICAgICAgICAgV2lraUlkOiBjb250ZXh0Lndpa2lJZCwKICAgICAgICAJICAgICAgICAgICAgICAgICAgICAgICAgICAgIElkOiBpdGVtLnZhbHVlLmlkLAogICAgICAgIAkgICAgICAgICAgICAgICAgICAgICAgICAgICAgUG9zaXRpb246IGl0ZW0udmFsdWUucG9zaXRpb24gPT09IG51bGwgPyAtMSA6IGl0ZW0udmFsdWUucG9zaXRpb24KICAgICAgICAJICAgICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgIAkgICAgICAgICAgICAgICAgICAgIH0pOwogICAgICAgIAkJICAgICAgICAgICAgfQogICAgICAgIAkJICAgICAgICB9CiAgICAgICAgCQkgICAgfQogICAgCQkgICAgfQoJCSAgICB9LCB7CgkJICAgICAgIHNlcXVlbnRpYWw6IGZhbHNlIAoJCSAgICB9KTsKCQl9LAoJCV9vcmRlckNoYW5nZWQgPSBmdW5jdGlvbihjb250ZXh0LCBjaGFuZ2VkSXRlbSwgb2xkSW5kZXgsIG5ld0luZGV4KSB7CgkJICAgIHZhciBpdGVtcyA9IFtdOwoJCSAgICB2YXIgaXRlbUNvdW50ID0gY29udGV4dC5vcmRlcmluZy5nbG93T3JkZXJlZExpc3QoJ2NvdW50Jyk7CgkJICAgIHZhciBhbGxJbk5hdHVyYWxQb3NpdGlvbiA9IHRydWU7CgkJICAgIHZhciBpOwoJCSAgICBmb3IgKGkgPSAwOyBpIDwgaXRlbUNvdW50OyBpKyspIHsKCQkgICAgICAgIHZhciBpdGVtID0gY29udGV4dC5vcmRlcmluZy5nbG93T3JkZXJlZExpc3QoJ2dldEJ5SW5kZXgnLCBpKTsKCQkgICAgICAgIGl0ZW1zLnB1c2goewoJCSAgICAgICAgICAgIGl0ZW06IGl0ZW0sCgkJICAgICAgICAgICAgb3JpZ2luYWxJbmRleDogaQoJCSAgICAgICAgICAgIH0pOwoJCSAgICAgICAgICAgIAoJCSAgICAgICAgaWYgKGl0ZW0udmFsdWUubmF0dXJhbFBvc2l0aW9uICE9IGkpIHsKCQkgICAgICAgICAgICBhbGxJbk5hdHVyYWxQb3NpdGlvbiA9IGZhbHNlOwoJCSAgICAgICAgfQoJCSAgICB9CgkJICAgIAoJCSAgICBpZiAoYWxsSW5OYXR1cmFsUG9zaXRpb24pIHsgIAoJCSAgICAgICAgZm9yIChpID0gMDsgaSA8IGl0ZW1zLmxlbmd0aDsgaSsrKSB7CgkJICAgICAgICAgICAgaXRlbXNbaV0uaXRlbS52YWx1ZS5wb3NpdGlvbiA9IG51bGw7CgkJICAgICAgICB9CgkJICAgIH0gZWxzZSB7CgkgICAgICAgICAgICBmb3IgKGkgPSAwOyBpIDwgaXRlbXMubGVuZ3RoOyBpKyspIHsKCSAgICAgICAgICAgICAgICBpdGVtc1tpXS5pdGVtLnZhbHVlLnBvc2l0aW9uID0gaTsKCQkgICAgICAgIH0KCQkgICAgfQoJCX0sCgkJX3NvcnRPcmRlckxpc3QgPSBmdW5jdGlvbihjb250ZXh0KSB7CgkJICAgIHZhciBpdGVtcyA9IFtdOwoJCSAgICB2YXIgaXRlbUNvdW50ID0gY29udGV4dC5vcmRlcmluZy5nbG93T3JkZXJlZExpc3QoJ2NvdW50Jyk7CgkJICAgIGZvciAodmFyIGkgPSAwOyBpIDwgaXRlbUNvdW50OyBpKyspIHsKCQkgICAgICAgIHZhciBpdGVtID0gY29udGV4dC5vcmRlcmluZy5nbG93T3JkZXJlZExpc3QoJ2dldEJ5SW5kZXgnLCBpKTsKCQkgICAgICAgIGl0ZW1zLnB1c2goewoJCSAgICAgICAgICAgIGl0ZW06IGl0ZW0sCgkJICAgICAgICAgICAgb3JpZ2luYWxJbmRleDogaQoJCSAgICAgICAgICAgIH0pOwoJCSAgICB9CgkJICAgIAoJCSAgICBpdGVtcy5zb3J0KGZ1bmN0aW9uKGEsIGIpIHsKCQkgICAgICAgaWYgKGEuaXRlbS52YWx1ZS5pc0RlZmF1bHQgPT0gYi5pdGVtLnZhbHVlLmlzRGVmYXVsdCkgewogICAgICAgIAkgICAgICAgcmV0dXJuIGEuaXRlbS52YWx1ZS50aXRsZS5sb2NhbGVDb21wYXJlKGIuaXRlbS52YWx1ZS50aXRsZSk7IAogICAgCSAgICAgICAgfSBlbHNlIGlmIChhLml0ZW0udmFsdWUuaXNEZWZhdWx0KSB7CiAgICAJICAgICAgICAgICAgcmV0dXJuIC0xOwogICAgCSAgICAgICAgfSBlbHNlIHsKICAgIAkgICAgICAgICAgICByZXR1cm4gMTsKICAgIAkgICAgICAgIH0gCgkJICAgIH0pOwoJCSAgICAKCQkgICAgZm9yICggaSA9IDA7IGkgPCBpdGVtQ291bnQ7IGkrKykgewoJCSAgICAgICAgaXRlbXNbaV0uaXRlbS52YWx1ZS5uYXR1cmFsUG9zaXRpb24gPSBpOwoJCSAgICB9CgkJICAgIAoJCSAgICBpdGVtcy5zb3J0KGZ1bmN0aW9uKGEsIGIpIHsKCQkgICAgICAgaWYgKGEuaXRlbS52YWx1ZS5wb3NpdGlvbiA9PT0gbnVsbCkgewoJCSAgICAgICAgICAgaWYgKGIuaXRlbS52YWx1ZS5wb3NpdGlvbiAhPT0gbnVsbCkgewoJCSAgICAgICAgICAgICAgIHJldHVybiAxOwoJCSAgICAgICAgICAgfQoJCSAgICAgICB9IGVsc2UgaWYgKGIuaXRlbS52YWx1ZS5wb3NpdGlvbiA9PT0gbnVsbCkgewoJCSAgICAgICAgICAgcmV0dXJuIC0xOwoJCSAgICAgICB9IGVsc2UgaWYgKGEuaXRlbS52YWx1ZS5wb3NpdGlvbiAhPSBiLml0ZW0udmFsdWUucG9zaXRpb24pIHsKCQkgICAgICAgICAgIHJldHVybiBhLml0ZW0udmFsdWUucG9zaXRpb24gLSBiLml0ZW0udmFsdWUucG9zaXRpb247CgkJICAgICAgIH0KCQkgICAgICAgCgkJICAgICAgIGlmIChhLml0ZW0udmFsdWUuaXNEZWZhdWx0ID09IGIuaXRlbS52YWx1ZS5pc0RlZmF1bHQpIHsKICAgICAgICAJICAgICAgIHJldHVybiBhLml0ZW0udmFsdWUudGl0bGUubG9jYWxlQ29tcGFyZShiLml0ZW0udmFsdWUudGl0bGUpOyAKICAgIAkgICAgICAgIH0gZWxzZSBpZiAoYS5pdGVtLnZhbHVlLmlzRGVmYXVsdCkgewogICAgCSAgICAgICAgICAgIHJldHVybiAtMTsKICAgIAkgICAgICAgIH0gZWxzZSB7CiAgICAJICAgICAgICAgICAgcmV0dXJuIDE7CiAgICAJICAgICAgICB9CgkJICAgIH0pOwoJCSAgICAKCQkgICAgZm9yIChpID0gMDsgaSA8IGl0ZW1Db3VudDsgaSsrKSB7CgkJICAgICAgICBpZiAoaXRlbXNbaV0ub3JpZ2luYWxJbmRleCAhPSBpKSB7CgkJICAgICAgICAgICAgY29udGV4dC5vcmRlcmluZy5nbG93T3JkZXJlZExpc3QoJ2luc2VydCcsIGl0ZW1zW2ldLml0ZW0sIGkpOwoJCSAgICAgICAgfQoJCSAgICB9CgkJICAgIAoJCSAgICBjb25zb2xlLmxvZyhpdGVtcyk7CgkJICAgIAoJCSAgICBjb250ZXh0Lm9yZGVyaW5nLmdsb3dPcmRlcmVkTGlzdCgncmVmcmVzaCcpOwoJCX0sCgkJX3VwZGF0ZU9yZGVyTGlzdCA9IGZ1bmN0aW9uKGNvbnRleHQpIHsKICAgICAgICAgICAgaWYgKGNvbnRleHQucGFyZW50KSB7CiAgICAgICAgICAgICAgICB2YXIgcGFyZW50SWQgPSBjb250ZXh0LnBhcmVudC52YWwoKSA/IGNvbnRleHQucGFyZW50LnZhbCgpIDogLTE7CiAgICAgICAgICAgICAgICBpZiAocGFyZW50SWQgIT0gY29udGV4dC5wYXJlbnRJZCkgewogICAgICAgICAgICAgICAgICAgIGNvbnRleHQucGFyZW50SWQgPSBwYXJlbnRJZDsKICAgICAgICAgICAgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24uZ2V0KHsKICAgICAgICAgICAgICAgICAgICAgICAgdXJsOiBjb250ZXh0LmdldENoaWxkcmVuVXJsLAogICAgICAgICAgICAgICAgICAgICAgICBkYXRhOiB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICBfd193aWtpUGFnZUlkOiBjb250ZXh0LnBhcmVudElkLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgX3dfd2lraUlkOiBjb250ZXh0Lndpa2lJZAogICAgICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAgICAgfSkKICAgICAgICAgICAgICAgICAgICAgICAgLmRvbmUoZnVuY3Rpb24ocmVzcG9uc2UpIHsKICAgICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5vcmRlcmluZy5nbG93T3JkZXJlZExpc3QoJ2NsZWFyJyk7CiAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmIChyZXNwb25zZS50b29tYW55KSB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm9yZGVyaW5nLmNsb3Nlc3QoJy5maWVsZC1pdGVtLnBvc3Qtb3JkZXJpbmcnKS5jc3MoewogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHBvc2l0aW9uOiAnYWJzb2x1dGUnLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHZpc2liaWxpdHk6ICdoaWRkZW4nLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGxlZnQ6ICctMTAwMHB4JywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB3aWR0aDogJzEwMHB4JwogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfSk7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0LmNhbk9yZGVyID0gZmFsc2U7CiAgICAgICAgICAgICAgICAgICAgICAgICAgIH0gZWxzZSB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm9yZGVyaW5nLmNsb3Nlc3QoJy5maWVsZC1pdGVtLnBvc3Qtb3JkZXJpbmcnKS5jc3MoewogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHBvc2l0aW9uOiAnc3RhdGljJywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB2aXNpYmlsaXR5OiAndmlzaWJsZScsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbGVmdDogJzAnLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHdpZHRoOiAnYXV0bycKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0pOwogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5jYW5PcmRlciA9IHRydWU7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB2YXIgZm91bmQgPSBmYWxzZTsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHZhciBwYWdlVGl0bGUgPSBjb250ZXh0LnRpdGxlLmV2b2x1dGlvbkNvbXBvc2VyKCd2YWwnKTsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHZhciBvcmlnaW5hbFRpdGxlID0gcGFnZVRpdGxlOwogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaWYgKHBhZ2VUaXRsZSA9PT0gJycpIHsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwYWdlVGl0bGUgPSBjb250ZXh0Lm9yZGVyUGxhY2Vob2xkZXI7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBpZiAoY29udGV4dC50b2NoaWRpbmcuaXMoJzpjaGVja2VkJykpIHsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcGFnZVRpdGxlID0gY29udGV4dC50aXRsZUhpZGRlbi5yZXBsYWNlKC9cezBcfS9nLCBwYWdlVGl0bGUpOwogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgdmFyIGN1cnJlbnRQYWdlSXRlbSA9IGNvbnRleHQub3JkZXJpbmcuZ2xvd09yZGVyZWRMaXN0KCdjcmVhdGVJdGVtJywgewogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB2YWx1ZTogewogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaWQ6IGNvbnRleHQucGFnZUlkLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgb3JpZ2luYWxQb3NpdGlvbjogbnVsbCwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIG5hdHVyYWxQb3NpdGlvbjogbnVsbCwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHBvc2l0aW9uOiBudWxsLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgdGl0bGU6IG9yaWdpbmFsVGl0bGUsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBpc0RlZmF1bHQ6IGZhbHNlCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHRleHQ6IHBhZ2VUaXRsZSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaHRtbDogJzxiPicgKyBwYWdlVGl0bGUgKyAnPC9iPicKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0pOwogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBmb3IgKHZhciBpID0gMDsgaSA8IHJlc3BvbnNlLnBhZ2VzLmxlbmd0aDsgaSsrKSB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaWYgKGNvbnRleHQucGFnZUlkID09IHJlc3BvbnNlLnBhZ2VzW2ldLmlkKSB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGZvdW5kID0gdHJ1ZTsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY3VycmVudFBhZ2VJdGVtLnZhbHVlLm9yaWdpbmFsUG9zaXRpb24gPSByZXNwb25zZS5wYWdlc1tpXS5wb3NpdGlvbjsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY3VycmVudFBhZ2VJdGVtLnZhbHVlLm5hdHVyYWxQb3NpdGlvbiA9IG51bGw7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGN1cnJlbnRQYWdlSXRlbS52YWx1ZS5wb3NpdGlvbiA9IHJlc3BvbnNlLnBhZ2VzW2ldLnBvc2l0aW9uOwogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjdXJyZW50UGFnZUl0ZW0udmFsdWUuaXNEZWZhdWx0ID0gcmVzcG9uc2UucGFnZXNbaV0uaXNEZWZhdWx0OwogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm9yZGVyaW5nLmdsb3dPcmRlcmVkTGlzdCgnYWRkJywgY3VycmVudFBhZ2VJdGVtKTsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB9IGVsc2UgewogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm9yZGVyaW5nLmdsb3dPcmRlcmVkTGlzdCgnYWRkJywgY29udGV4dC5vcmRlcmluZy5nbG93T3JkZXJlZExpc3QoJ2NyZWF0ZUl0ZW0nLCB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB2YWx1ZTogewogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlkOiByZXNwb25zZS5wYWdlc1tpXS5pZCwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwb3NpdGlvbjogcmVzcG9uc2UucGFnZXNbaV0ucG9zaXRpb24sCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgb3JpZ2luYWxQb3NpdGlvbjogcmVzcG9uc2UucGFnZXNbaV0ucG9zaXRpb24sCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbmF0dXJhbFBvc2l0aW9uOiBudWxsLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHRpdGxlOiByZXNwb25zZS5wYWdlc1tpXS50aXRsZSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBpc0RlZmF1bHQ6IHJlc3BvbnNlLnBhZ2VzW2ldLmlzRGVmYXVsdAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB0ZXh0OiByZXNwb25zZS5wYWdlc1tpXS5oaWRkZW4gPyBjb250ZXh0LnRpdGxlSGlkZGVuLnJlcGxhY2UoL1x7MFx9L2csIHJlc3BvbnNlLnBhZ2VzW2ldLnRpdGxlKSA6IHJlc3BvbnNlLnBhZ2VzW2ldLnRpdGxlLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaHRtbDogcmVzcG9uc2UucGFnZXNbaV0uaGlkZGVuID8gY29udGV4dC50aXRsZUhpZGRlbi5yZXBsYWNlKC9cezBcfS9nLCByZXNwb25zZS5wYWdlc1tpXS50aXRsZSkgOiByZXNwb25zZS5wYWdlc1tpXS50aXRsZQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB9KSk7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBpZiAoIWZvdW5kKSB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY3VycmVudFBhZ2VJdGVtLnZhbHVlLm9yaWdpbmFsUG9zaXRpb24gPSBudWxsOwogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGN1cnJlbnRQYWdlSXRlbS52YWx1ZS5wb3NpdGlvbiA9IG51bGw7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY3VycmVudFBhZ2VJdGVtLnZhbHVlLm5hdHVyYWxQb3NpdGlvbiA9IG51bGw7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5vcmRlcmluZy5nbG93T3JkZXJlZExpc3QoJ2FkZCcsIGN1cnJlbnRQYWdlSXRlbSk7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0LmN1cnJlbnRQYWdlT3JkZXJlZEl0ZW0gPSBjdXJyZW50UGFnZUl0ZW07CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBfc29ydE9yZGVyTGlzdChjb250ZXh0KTsKICAgICAgICAgICAgICAgICAgICAgICAgICAgfSAgCiAgICAgICAgICAgICAgICAgICAgICAgIH0pOwogICAgICAgICAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgICAgICAgICBpZiAoY29udGV4dC5jdXJyZW50UGFnZU9yZGVyZWRJdGVtKSB7CiAgICAgICAgICAgICAgICAgICAgICAgIHZhciBwYWdlVGl0bGUgPSBjb250ZXh0LnRpdGxlLmV2b2x1dGlvbkNvbXBvc2VyKCd2YWwnKTsKICAgICAgICAgICAgICAgICAgICAgICAgdmFyIG9yaWdpbmFsVGl0bGUgPSBwYWdlVGl0bGU7CiAgICAgICAgICAgICAgICAgICAgICAgIGlmIChwYWdlVGl0bGUgPT09ICcnKSB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgIHBhZ2VUaXRsZSA9IGNvbnRleHQub3JkZXJQbGFjZWhvbGRlcjsKICAgICAgICAgICAgICAgICAgICAgICAgfQoKICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5jdXJyZW50UGFnZU9yZGVyZWRJdGVtLnZhbHVlLm5hdHVyYWxQb3NpdGlvbiA9IG51bGw7CiAgICAgICAgICAgICAgICAgICAgICAgIGNvbnRleHQuY3VycmVudFBhZ2VPcmRlcmVkSXRlbS52YWx1ZS50aXRsZSA9IG9yaWdpbmFsVGl0bGU7CiAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICBpZiAoY29udGV4dC50b2NoaWRpbmcuaXMoJzpjaGVja2VkJykpIHsKICAgICAgICAgICAgICAgICAgICAgICAgICAgIHBhZ2VUaXRsZSA9IGNvbnRleHQudGl0bGVIaWRkZW4ucmVwbGFjZSgvXHswXH0vZywgcGFnZVRpdGxlKTsKICAgICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5jdXJyZW50UGFnZU9yZGVyZWRJdGVtLmh0bWwgPSAnPGI+JyArIHBhZ2VUaXRsZSArICc8L2I+JzsKICAgICAgICAgICAgICAgICAgICAgICAgY29udGV4dC5jdXJyZW50UGFnZU9yZGVyZWRJdGVtLnRleHQgPSBwYWdlVGl0bGU7CiAgICAgICAgICAgICAgICAgICAgICAgIF9zb3J0T3JkZXJMaXN0KGNvbnRleHQpOwogICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgfSAKCQl9OwoKICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzLnBhZ2VFZGl0ID0gewoJICAgIHJlZ2lzdGVyOiBmdW5jdGlvbiAoY29udGV4dCkgewoJICAgICAgICBpZiAoY29udGV4dC50YWdzKSB7CgkgICAgICAgICAgICAvL2NvbnRleHQudGFncy5ldm9sdXRpb25UYWdUZXh0Qm94KHsgYXBwbGljYXRpb25JZDogY29udGV4dC5hcHBsaWNhdGlvbklkIH0pOwoJICAgICAgICAgICAgdmFyIHNwaW5uZXIgPSAnPGRpdiBzdHlsZT0idGV4dC1hbGlnbjogY2VudGVyOyI+PGltZyBzcmM9IicgKyAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAndXRpbGl0eS9zcGlubmVyLmdpZiIgLz48L2Rpdj4nOwogICAgICAgICAgICAgICAgY29udGV4dC50YWdzLmdsb3dMb29rVXBUZXh0Qm94KAoJCQkJewoJCQkJICAgIGVtcHR5SHRtbDogJycsCgkJCQkgICAgbWF4VmFsdWVzOiAyMCwKCQkJCSAgICBvbkdldExvb2tVcHM6IGZ1bmN0aW9uICh0Yiwgc2VhcmNoVGV4dCkgewoJCQkJICAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLmdldCh7CgkgICAgICAgICAgICAgICAgICAgICAgICB1cmw6IGNvbnRleHQubG9va3Vwdm0sCgkJCQkgICAgICAgICAgICBkYXRhOiB7IHdfU2VhcmNoVGV4dDogc2VhcmNoVGV4dCB9LAoJCQkJICAgICAgICAgICAgc3VjY2VzczogZnVuY3Rpb24gKHJlc3BvbnNlKSB7CgkJCQkgICAgICAgICAgICAgICAgdmFyIHNlbGVjdGlvbiA9IFtdCiAgICAgICAgCQkJCSAgICAgICAgZm9yKHZhciBpID0gMDsgaSA8IHJlc3BvbnNlLnRhZ3MubGVuZ3RoOyBpKyspewogICAgICAgIAkJCQkgICAgICAgICAgICB2YXIgaXRlbSA9IHJlc3BvbnNlLnRhZ3NbaV07CiAgICAgICAgCQkJCSAgICAgICAgICAgIGlmKGl0ZW0gJiYgaXRlbS50YWcpewogICAgICAgIAkJCQkgICAgICAgICAgICAgICAgc2VsZWN0aW9uW3NlbGVjdGlvbi5sZW5ndGhdID0gY29udGV4dC50YWdzLmdsb3dMb29rVXBUZXh0Qm94KCdjcmVhdGVMb29rVXAnLCBpdGVtLnRhZywgaXRlbS50YWcsIGl0ZW0udGFnLCB0cnVlKTsKICAgICAgICAJCQkJICAgICAgICAgICAgfQogICAgICAgIAkJCQkgICAgICAgIH0KICAgICAgICAJCQkJICAgICAgICBjb250ZXh0LnRhZ3MuZ2xvd0xvb2tVcFRleHRCb3goJ3VwZGF0ZVN1Z2dlc3Rpb25zJywgc2VsZWN0aW9uKTsKCQkJCSAgICAgICAgICAgIH0KCQkJCSAgICAgICAgIH0pOwogICAgCQkJCX0sCiAgICAJCQkJc2VsZWN0ZWRMb29rVXBzSHRtbDogY29udGV4dC5zZWxlY3RlZFRhZ3MKCQkJCX0pOwoJICAgICAgICB9CgoJICAgICAgICAvLyB0YWIgc2V0dXAKCSAgICAgICAgJChjb250ZXh0LnRhYnNTZWxlY3RvcikuZ2xvd1RhYmJlZFBhbmVzKHsKCSAgICAgICAgICAgIGNzc0NsYXNzOiAndGFiLXBhbmUnLAoJICAgICAgICAgICAgdGFiU2V0Q3NzQ2xhc3M6ICd0YWItc2V0IHdpdGgtcGFuZXMnLAoJICAgICAgICAgICAgdGFiQ3NzQ2xhc3NlczogWyd0YWInXSwKCSAgICAgICAgICAgIHRhYlNlbGVjdGVkQ3NzQ2xhc3NlczogWyd0YWIgc2VsZWN0ZWQnXSwKCSAgICAgICAgICAgIHRhYkhvdmVyQ3NzQ2xhc3NlczogWyd0YWIgaG92ZXInXSwKCSAgICAgICAgICAgIGVuYWJsZVJlc2l6aW5nOiBmYWxzZSwKCSAgICAgICAgICAgIHRhYnM6IFsKCQkgICAgICAgICAgICBbY29udGV4dC53cml0ZVRhYklkLCBjb250ZXh0LndyaXRlVGFiTGFiZWwsIG51bGxdLAoJCSAgICAgICAgICAgIFtjb250ZXh0Lm9wdGlvbnNUYWJJZCwgY29udGV4dC5vcHRpb25zVGFiTGFiZWwsIG51bGxdCgkgICAgICAgICAgICBdCgkgICAgICAgIH0pOwoKCSAgICAgICAgY29udGV4dC50aXRsZS5ldm9sdXRpb25Db21wb3Nlcih7CgkgICAgICAgICAgICBwbHVnaW5zOiBbJ2hhc2h0YWdzJ10KCSAgICAgICAgfSkuZXZvbHV0aW9uQ29tcG9zZXIoJ29ua2V5ZG93bicsIGZ1bmN0aW9uIChlKSB7CgkgICAgICAgICAgICBpZiAoZS53aGljaCA9PT0gMTMpIHsKCSAgICAgICAgICAgICAgICByZXR1cm4gZmFsc2U7CgkgICAgICAgICAgICB9IGVsc2UgewoJICAgICAgICAgICAgICAgIHJldHVybiB0cnVlOwoJICAgICAgICAgICAgfQoJICAgICAgICB9KS5vbignY2hhbmdlJywgZnVuY3Rpb24oKSB7CgkgICAgICAgICAgICBfdXBkYXRlT3JkZXJMaXN0KGNvbnRleHQpOwoJICAgICAgICB9KTsKCgkgICAgICAgIGlmIChjb250ZXh0LnBhcmVudCAmJiBjb250ZXh0Lmxvb2t1cFBhZ2VzVXJsICYmIGNvbnRleHQubm9QYWdlTWF0Y2hlc1RleHQpIHsKCSAgICAgICAgICAgIHZhciB0aW1lb3V0ID0gbnVsbDsKCSAgICAgICAgICAgIGNvbnRleHQucGFyZW50Lmdsb3dMb29rVXBUZXh0Qm94KAoJCQkJewoJCQkJICAgICdtYXhWYWx1ZXMnOiAxLAoJCQkJICAgICdlbXB0eUh0bWwnOiAnJywKCQkJCSAgICAnb25HZXRMb29rVXBzJzogZnVuY3Rpb24gKHRiLCBzZWFyY2hUZXh0KSB7CgkJCQkgICAgICAgIHdpbmRvdy5jbGVhclRpbWVvdXQodGltZW91dCk7CgkJCQkgICAgICAgIGlmIChzZWFyY2hUZXh0ICYmIHNlYXJjaFRleHQubGVuZ3RoID49IDIpIHsKCQkJCSAgICAgICAgICAgIHRiLmdsb3dMb29rVXBUZXh0Qm94KCd1cGRhdGVTdWdnZXN0aW9ucycsIFt0Yi5nbG93TG9va1VwVGV4dEJveCgnY3JlYXRlTG9va1VwJywgJycsICc8c3BhbiBjbGFzcz0idWktbG9hZGluZyIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48L3NwYW4+JywgJzxzcGFuIGNsYXNzPSJ1aS1sb2FkaW5nIiB3aWR0aD0iNDgiIGhlaWdodD0iNDgiPjwvc3Bhbj4nLCBmYWxzZSldKTsKCQkJCSAgICAgICAgICAgIHRpbWVvdXQgPSB3aW5kb3cuc2V0VGltZW91dChmdW5jdGlvbiAoKSB7CgkJCQkgICAgICAgICAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLmdldCh7CgkJCQkgICAgICAgICAgICAgICAgICAgIHVybDogY29udGV4dC5sb29rdXBQYWdlc1VybCwKCQkJCSAgICAgICAgICAgICAgICAgICAgZGF0YTogeyB3X1NlYXJjaFRleHQ6IHNlYXJjaFRleHQsIHdfUGFyZW50UGFnZUlkVG9FeGNsdWRlOiAoY29udGV4dC5wYWdlSWQgPyBjb250ZXh0LnBhZ2VJZCA6IC0xKSB9LAoJCQkJICAgICAgICAgICAgICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsKCQkJCSAgICAgICAgICAgICAgICAgICAgICAgIGlmIChyZXNwb25zZSAmJiByZXNwb25zZS5wYWdlcy5sZW5ndGggPiAxKSB7CgkJCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgdmFyIHN1Z2dlc3Rpb25zID0gW107CgkJCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgZm9yICh2YXIgaSA9IDA7IGkgPCByZXNwb25zZS5wYWdlcy5sZW5ndGggLSAxOyBpKyspCgkJCQkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN1Z2dlc3Rpb25zW3N1Z2dlc3Rpb25zLmxlbmd0aF0gPSB0Yi5nbG93TG9va1VwVGV4dEJveCgnY3JlYXRlTG9va1VwJywgcmVzcG9uc2UucGFnZXNbaV0ucGFnZUlkLCByZXNwb25zZS5wYWdlc1tpXS50aXRsZSwgcmVzcG9uc2UucGFnZXNbaV0udGl0bGUsIHRydWUpOwoJCQkJICAgICAgICAgICAgICAgICAgICAgICAgICAgIHRiLmdsb3dMb29rVXBUZXh0Qm94KCd1cGRhdGVTdWdnZXN0aW9ucycsIHN1Z2dlc3Rpb25zKTsKCQkJCSAgICAgICAgICAgICAgICAgICAgICAgIH0KCQkJCSAgICAgICAgICAgICAgICAgICAgICAgIGVsc2UKCQkJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICB0Yi5nbG93TG9va1VwVGV4dEJveCgndXBkYXRlU3VnZ2VzdGlvbnMnLCBbdGIuZ2xvd0xvb2tVcFRleHRCb3goJ2NyZWF0ZUxvb2tVcCcsICcnLCBjb250ZXh0Lm5vUGFnZU1hdGNoZXNUZXh0LCBjb250ZXh0Lm5vUGFnZU1hdGNoZXNUZXh0LCBmYWxzZSldKTsKCQkJCSAgICAgICAgICAgICAgICAgICAgfQoJCQkJICAgICAgICAgICAgICAgIH0pOwoJCQkJICAgICAgICAgICAgfSwgNzQ5KTsKCQkJCSAgICAgICAgfQoJCQkJICAgIH0sCgkJCQkgICAgJ3NlbGVjdGVkTG9va1Vwc0h0bWwnOiAoY29udGV4dC5wYXJlbnRQYWdlVGl0bGUgPyBbY29udGV4dC5wYXJlbnRQYWdlVGl0bGVdIDogW10pCgkJCQl9KQoJCQkJICAgIC5vbignZ2xvd0xvb2tVcFRleHRCb3hDaGFuZ2UnLCBmdW5jdGlvbigpIHsKCQkJCSAgICAgICAgX3VwZGF0ZU9yZGVyTGlzdChjb250ZXh0KTsKCQkJICAgICAgICB9KTsKCSAgICAgICAgfQoJICAgICAgICAKCSAgICAgICAgaWYgKGNvbnRleHQub3JkZXJpbmcpIHsKCSAgICAgICAgICAgIGNvbnRleHQub3JkZXJpbmcuZ2xvd09yZGVyZWRMaXN0KHsKCSAgICAgICAgICAgICAgICBoZWlnaHQ6IDIwMAoJICAgICAgICAgICAgfSk7CgoJICAgICAgICAgICAgX3VwZGF0ZU9yZGVyTGlzdChjb250ZXh0KTsKCSAgICAgICAgICAgIAoJICAgICAgICAgICAgaWYgKGNvbnRleHQub3JkZXJpbmdVcCkgewoJICAgICAgICAgICAgICAgIGNvbnRleHQub3JkZXJpbmdVcC5vbignY2xpY2snLCBmdW5jdGlvbigpIHsKCSAgICAgICAgICAgICAgICAgICAgY29udGV4dC5vcmRlcmluZy5nbG93T3JkZXJlZExpc3QoJ21vdmVVcCcpOwoJICAgICAgICAgICAgICAgICAgICByZXR1cm4gZmFsc2U7CgkgICAgICAgICAgICAgICAgfSk7CgkgICAgICAgICAgICB9CgkgICAgICAgICAgICAKCSAgICAgICAgICAgIGlmIChjb250ZXh0Lm9yZGVyaW5nRG93bikgewoJICAgICAgICAgICAgICAgIGNvbnRleHQub3JkZXJpbmdEb3duLm9uKCdjbGljaycsIGZ1bmN0aW9uKCkgewoJICAgICAgICAgICAgICAgICAgICBjb250ZXh0Lm9yZGVyaW5nLmdsb3dPcmRlcmVkTGlzdCgnbW92ZURvd24nKTsKCSAgICAgICAgICAgICAgICAgICAgcmV0dXJuIGZhbHNlOwoJICAgICAgICAgICAgICAgIH0pOwoJICAgICAgICAgICAgfQoJICAgICAgICAgICAgCgkgICAgICAgICAgICBpZiAoY29udGV4dC50b2NoaWRpbmcpIHsKCSAgICAgICAgICAgICAgICBjb250ZXh0LnRvY2hpZGluZy5vbignY2hhbmdlJywgZnVuY3Rpb24oKSB7CgkgICAgICAgICAgICAgICAgICAgIF91cGRhdGVPcmRlckxpc3QoY29udGV4dCk7CgkgICAgICAgICAgICAgICAgfSk7CgkgICAgICAgICAgICB9CgkgICAgICAgICAgICAKCSAgICAgICAgICAgIGNvbnRleHQub3JkZXJpbmcub24oJ2dsb3dPcmRlcmVkTGlzdEl0ZW1Nb3ZlZCcsIGZ1bmN0aW9uKGUsIGl0ZW0sIG9sZEluZGV4LCBuZXdJbmRleCkgewoJICAgICAgICAgICAgICAgIF9vcmRlckNoYW5nZWQoY29udGV4dCwgaXRlbSwgb2xkSW5kZXgsIG5ld0luZGV4KTsKCSAgICAgICAgICAgIH0pOwoJICAgICAgICB9CgoJICAgICAgICBjb250ZXh0LnNhdmUuY2xpY2soZnVuY3Rpb24gKCkgewoJICAgICAgICAgICAgJCh0aGlzKS5ldm9sdXRpb25WYWxpZGF0aW9uKCd2YWxpZGF0ZScpOwoJICAgICAgICAgICAgaWYgKCEkKHRoaXMpLmV2b2x1dGlvblZhbGlkYXRpb24oJ2lzVmFsaWQnKSkgewoJICAgICAgICAgICAgICAgIHJldHVybjsKCSAgICAgICAgICAgIH0KCgkgICAgICAgICAgICBzdWJtaXRDbGljayhjb250ZXh0KTsKCSAgICAgICAgfSk7CgkgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5uYXZpZ2F0aW9uQ29uZmlybWF0aW9uLmVuYWJsZSgpOwoJICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ubmF2aWdhdGlvbkNvbmZpcm1hdGlvbi5yZWdpc3Rlcihjb250ZXh0LnNhdmUpOwoKCSAgICAgICAgaWYgKGNvbnRleHQudmlld2NoYW5nZXMpCgkgICAgICAgICAgICBjb250ZXh0LnZpZXdjaGFuZ2VzLmNsaWNrKGZ1bmN0aW9uICgpIHsgc2hvd01lcmdlKGNvbnRleHQpOyB9KTsKCgkgICAgICAgIGNvbnRleHQuc2F2ZS5jbGljayhmdW5jdGlvbiAoKSB7CgkgICAgICAgICAgICBpZiAoIWNvbnRleHQuc2F2ZS5ldm9sdXRpb25WYWxpZGF0aW9uKCd2YWxpZGF0ZUZpZWxkJywgY29udGV4dC50aXRsZVNlbGVjdG9yKSAmJiAkLnRyaW0oY29udGV4dC50aXRsZS5ldm9sdXRpb25Db21wb3NlcigndmFsJykpKQoJICAgICAgICAgICAgICAgICQudGVsbGlnZW50LmV2b2x1dGlvbi5ub3RpZmljYXRpb25zLnNob3coY29udGV4dC5wYWdlRXhpc3RzVGV4dCwgeyB0eXBlOiAnZXJyb3InIH0pOwoJICAgICAgICB9KTsKCgkgICAgICAgIGNvbnRleHQuc2F2ZS5ldm9sdXRpb25WYWxpZGF0aW9uKAoJCQl7CgkJCSAgICB2YWxpZGF0ZU9uTG9hZDogY29udGV4dC5wYWdlSWQgPD0gMCA/IGZhbHNlIDogbnVsbCwKCQkJICAgIG9uVmFsaWRhdGVkOiBmdW5jdGlvbiAoaXNWYWxpZCwgYnV0dG9uQ2xpY2tlZCwgYykgewoJCQkgICAgICAgIGlmIChpc1ZhbGlkKQoJCQkgICAgICAgICAgICBjb250ZXh0LnNhdmUucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7CgkJCSAgICAgICAgZWxzZQoJCQkgICAgICAgICAgICBjb250ZXh0LnNhdmUuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7CgkJCSAgICB9LAoJCQkgICAgb25TdWNjZXNzZnVsQ2xpY2s6IGZ1bmN0aW9uIChlKSB7CgkJCSAgICAgICAgJCgnLnByb2Nlc3NpbmcnLCBjb250ZXh0LnNhdmUucGFyZW50KCkpLmNzcygidmlzaWJpbGl0eSIsICJ2aXNpYmxlIik7CgkJCSAgICAgICAgY29udGV4dC5zYXZlLmFkZENsYXNzKCdkaXNhYmxlZCcpOwoJCQkgICAgfQoJCQl9KTsKCgkgICAgICAgIGNvbnRleHQuc2F2ZS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRGaWVsZCcsIGNvbnRleHQudGl0bGVTZWxlY3RvciwKCQkJewoJCQkgICAgcmVxdWlyZWQ6IHRydWUsCgkJCSAgICB3aWtpcGFnZWV4aXN0czogeyB3aWtpSWQ6IGNvbnRleHQud2lraUlkLCBwYWdlSWQ6IGNvbnRleHQucGFnZUlkLCBwYXJlbnRQYWdlSWQ6IGZ1bmN0aW9uICgpIHsgcmV0dXJuIGNvbnRleHQucGFyZW50ICYmIGNvbnRleHQucGFyZW50LnZhbCgpID8gY29udGV4dC5wYXJlbnQudmFsKCkgOiAtMTsgfSB9LAoJCQkgICAgbWVzc2FnZXM6CgkJCQl7CgkJCQkgICAgcmVxdWlyZWQ6IGNvbnRleHQucmVxdWlyZWRGaWVsZFRleHQsCgkJCQkgICAgd2lraXBhZ2VleGlzdHM6IGNvbnRleHQucGFnZUV4aXN0c1RleHQKCQkJCX0KCQkJfSwgJyMnICsgY29udGV4dC53cmFwcGVySWQgKyAnIC5maWVsZC1pdGVtLnBvc3QtbmFtZSAuZmllbGQtaXRlbS12YWxpZGF0aW9uJywgbnVsbCk7CgkgICAgICAgIGNvbnRleHQuc2F2ZS5ldm9sdXRpb25WYWxpZGF0aW9uKCd2YWxpZGF0ZScpOwoKCSAgICAgICAgdmFyIGYgPSBjb250ZXh0LnNhdmUuZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkQ3VzdG9tVmFsaWRhdGlvbicsICdwYWdldGV4dCcsIGZ1bmN0aW9uICgpIHsKCSAgICAgICAgICAgIHJldHVybiBjb250ZXh0LmdldEJvZHkoKS5sZW5ndGggPiAwOwoJICAgICAgICB9LAoJCQljb250ZXh0LnJlcXVpcmVkRmllbGRUZXh0LCAnIycgKyBjb250ZXh0LndyYXBwZXJJZCArICcgLmZpZWxkLWl0ZW0ucG9zdC1ib2R5IC5maWVsZC1pdGVtLXZhbGlkYXRpb24nLCBudWxsCgkJCSk7CgoJICAgICAgICBfdHJhY2tDaGFycyhjb250ZXh0LCBjb250ZXh0Lm1ldGFUaXRsZSwgNTUpOwoJICAgICAgICBjb250ZXh0Lm1ldGFUaXRsZS5vbigna2V5dXAnLCBmdW5jdGlvbiAoKSB7CgkgICAgICAgICAgICBfdHJhY2tDaGFycyhjb250ZXh0LCAkKHRoaXMpLCA1NSk7CgkgICAgICAgIH0pOwoJICAgICAgICBfdHJhY2tDaGFycyhjb250ZXh0LCBjb250ZXh0Lm1ldGFEZXNjcmlwdGlvbiwgMTUwKTsKCSAgICAgICAgY29udGV4dC5tZXRhRGVzY3JpcHRpb24ub24oJ2tleXVwJywgZnVuY3Rpb24gKCkgewoJICAgICAgICAgICAgX3RyYWNrQ2hhcnMoY29udGV4dCwgJCh0aGlzKSwgMTUwKTsKCSAgICAgICAgfSk7CgoJICAgICAgICBjb250ZXh0LmF0dGFjaEJvZHlDaGFuZ2VIYW5kbGVyKGYpOwoJICAgIH0KCX07Cn0pKGpRdWVyeSk7Cg==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

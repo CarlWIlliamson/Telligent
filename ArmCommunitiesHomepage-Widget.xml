@@ -1,0 +1,125 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="Arm - Communities - Homepage" version="10.1.8.10498" description="Responsive button navigation for home page" instanceIdentifier="57ddf2a7cd12463f908db15bebfc35c5" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="true" cssClass="raw-content grid">
+		<contentScript><![CDATA[<div id="$core_v2_widget.UniqueId('content')" class="user-defined-markup">
+    <div class="container-fluid">
+        <div class="row">
+             <div class="col-sm-6 col-md-4 box">
+                <a href="/android-community/">
+                <div class="inner android">
+                    <h4>Android</h4>
+                    <p>If you are developing Android apps or devices for mobile phones, tablets, etc, here is where you'll find the latest Arm technology.</p>
+                </div></a>
+            </div>           
+            <div class="col-sm-6 col-md-4 box">
+                <a href="/cn/">
+                <div class="inner cn">            
+                    <h4>中文社区</h4>
+                    <p>欢迎来到中文专区！这里专门提供中文的各种文档资源。</p>
+                </div></a>
+            </div>            
+            <div class="col-sm-6 col-md-4 box">
+                <a href="/company/">
+                <div class="inner company">
+                        <h4>Company</h4>
+                        <p>Find the latest Arm news, events and employee profiles. Discuss what's on your mind with Arm Marketing and Product Managers.</p>
+                    </div></a>
+            </div>            
+        <div class="clearfix visible-lg"></div>
+           <div class="col-sm-6 col-md-4 box">
+                <a href="/community-help/">
+                <div class="inner help">
+                    <h4>Community Help</h4>
+                    <p>New to Arm Community? Start here to learn how to get the most out of it.</p>
+                </div></a>
+            </div>        
+            <div class="col-sm-6 col-md-4 box">
+                <a href="/processors/designstart/">
+                <div class="inner designstart">
+                    <h4>DesignStart</h4>
+                    <p>Hear the latest information, updates and discussion about custom SoC design with Arm IP through the easy-access DesignStart program.</p>
+                </div></a>
+            </div>
+            <div class="col-sm-6 col-md-4 box">
+                <a href="/dev-platforms/">
+                <div class="inner devplatforms">
+                    <h4>Development Platforms</h4>
+                    <p>This group is to support software development on Arm supplied Development Platforms.</p>
+                </div></a>
+            </div>
+        <div class="clearfix visible-lg"></div>            
+            <div class="col-sm-6 col-md-4 box">
+                <a href="/iot/embedded/">
+                <div class="inner embedded">
+                    <h4>Embedded</h4>
+                    <p>Check out this community to discuss the trends, products and platforms that serve a range of embedded markets.</p>
+                </div></a>
+            </div>        
+            <div class="col-sm-6 col-md-4 box">
+                <a href="/graphics/">
+                <div class="inner graphics">       
+                    <h4>Graphics & Multimedia</h4>
+                    <p>Discuss, read blogs and find support material for the latest Mali tools, drivers and development platforms.</p>
+                </div></a>
+            </div>        
+            <div class="col-sm-6 col-md-4 box">
+                <a href="/iot/">
+                <div class="inner iot">
+                    <h4>Internet of Things</h4>
+                    <p>Updates and discussion about custom SoC design with Arm IP through the easy-access DesignStart program.</p>
+                </div></a>
+            </div>
+        <div class="clearfix visible-lg"></div>            
+            <div class="col-sm-6 col-md-4 box">
+                <a href="/processors/">
+                <div class="inner processors">
+                    <h4>Processors</h4>
+                    <p>Users of Arm processors can be all over the planet, and now they have a place to come together.</p>
+                </div></a>
+            </div>
+            <div class="col-sm-6 col-md-4 box">
+                <a href="/arm-research/">
+                <div class="inner research">
+                    <h4>Arm Research</h4>
+                    <p>Latest research being conducted by Arm Research and our partners. Discover resources and information to enhance your own research.</p>
+                </div></a>
+            </div>        
+            <div class="col-sm-6 col-md-4 box">
+                <a href="/soc/">
+                <div class="inner socdesign">
+                    <h4>SoC Design</h4>
+                    <p>Discussion on design and implementation, Artisan or other physical IP, manufacturing processes and technology challenges.</p>
+                </div></a>
+            </div>            
+        <div class="clearfix visible-lg"></div>                
+<!--            <div class="col-sm-6 col-md-4 box">
+                <a href="/innovation/">
+                <div class="inner innovation">
+                    <h4>Innovation</h4>
+                    <p>Our Innovators are key technical experts, extending Arm architecture and sharing their knowledge into a variety of exciting areas.</p>
+                </div></a>
+            </div> -->
+            <div class="col-sm-6 col-md-4 box">
+                <a href="/tools/">
+                <div class="inner softwaretools">
+                    <h4>Software Tools</h4>
+                    <p>Offering two software development families that provide you with tools for every stage of your software development workflow.</p>
+                </div></a>
+            </div>
+            <div class="col-sm-6 col-md-4 box">
+                <a href="/processors/trustzone-for-armv8-m/">
+                <div class="inner trustzone">
+                    <h4>TrustZone for<br />Armv8-M</h4>
+                    <p>Bring security to the smallest of Arm processors through hardware-enforced isolation.</p>
+                </div></a>
+            </div>
+        <div class="clearfix visible-lg"></div>            
+        </div>
+    </div>
+</div>]]></contentScript>
+		<headerScript><![CDATA[$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('title', '${resource:CF_GenericContent}'))]]></headerScript>
+		<configuration><![CDATA[<propertyGroup id="group1" resourceName="Options">
+	<property id="title" resourceName="CF_Title" dataType="string" defaultValue="${resource:CF_GenericContent}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>]]></configuration>
+		<languageResources><language key="en-us"><resource name="CF_Title">Communities</resource></language></languageResources>
+	</scriptedContentFragment>
+</scriptedContentFragments>

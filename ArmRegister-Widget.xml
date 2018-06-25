@@ -1,0 +1,153 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="Arm - Register" version="10.1.8.10498" description="Allows a new user to choose a username when arriving from Azure AD." instanceIdentifier="a049395df57445448996ccc4300f88e4" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="choose-username">
+		<contentScript><![CDATA[#set ($UsernameId = $core_v2_widget.UniqueId('username'))
+#set ($acceptAgreementInput = $core_v2_widget.UniqueId('acceptAgreement'))
+#set ($submitId = $core_v2_widget.UniqueId('submit'))
+
+#set ($returnUrl = false)
+#set ($returnUrl = $core_v2_page.ReturnUrl)
+#if (!$returnUrl)
+	#set ($returnUrl = $core_v2_urls.Home())
+#end
+
+#set($existingUser = $core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+
+#set ($dynamicFieldsForm = $core_v2_widget.UniqueId('profileFieldsForm'))
+#set ($selectedProfileFields = $core_v2_utility.MakeList('First Name', 'Last Name', 'Country', 'Lead Source Detail'))
+#set ($requiredProfileFields = $core_v2_utility.MakeList('First Name', 'Last Name', 'Country', 'Lead Source Detail'))
+#set ($requiredFields = "")
+
+<form id="mktoForm_1461" style="display:none;">
+    <fieldset>
+        <input type="hidden" id="EmailAddress" name="EmailAddress" value="$azure_v1_ad.GetEmailAddress()" />
+        <input type="hidden" id="ExistingUser" name="ExistingUser" value="$existingUser" />
+        
+    	<h2>$core_v2_language.GetResource('Register_Title')</h2>
+    	<p>$core_v2_language.GetResource('Description')</p>
+    	<ul class="field-list">
+    		#if(!$existingUser)
+    		<li class="field-item">
+    			<label for="$core_v2_encoding.HtmlAttributeEncode($UsernameId)" class="field-item-name">$core_v2_language.GetResource('Username')</label>
+    			<span class="field-item-input">
+    				<input name="$core_v2_encoding.HtmlAttributeEncode($UsernameId)" id="$core_v2_encoding.HtmlAttributeEncode($UsernameId)" type="text" />
+    			</span>
+    			<span class="field-item-validation" style="display: none;"></span>
+    		</li>
+    		#end
+    		
+    		#set ($formXml = '<propertyGroup id="profileData" resourceName="" resourceFile="" text="" descriptionResourceName="" descriptionResourceFile="" descriptionText="" orderNumber="1" visible="true">')
+            #set ($requiredFields = "")
+            ## append each dynamic profile field to the dynamic form xml
+            #set ($index = 1)
+            #foreach ($field in $selectedProfileFields)
+            	#if ($requiredProfileFields.contains($field))
+            		#set ($requiredFields = "${requiredFields},${field}")
+            	#end
+            	#set ($formXml = "${formXml}${core_v2_userProfileField.dynamicFormXml(${field}, '%{OrderNumber = $index}')}")
+            	#set ($index = $index + 1)
+            #end
+            ## close dynamic form xml node
+            #set ($formXml = "${formXml}</propertyGroup>")
+            
+            ## build a querystring of current values for the dynamic form fields
+            #set ($data = $core_v2_page.ParseQueryString(''))
+            #foreach ($profileField in $user.ProfileFields)
+            	$data.Add($profileField.Label, $profileField.Value)
+            #end
+            
+            ## render dynamic profile fields
+            #set ($propertyHeader = '<li class="field-item"><label class="field-item-name">{PropertyName}</label><span class="field-item-input">')
+            #set ($propertyFooter = '</span></li>')
+            $core_v2_dynamicForm.RenderForm($dynamicFieldsForm, $formXml, $data, "%{ GroupFooterHtmlFormat='', GroupHeaderHtmlFormat='', HidePropertiesWithoutValues='false', PropertyHeaderHtmlFormat=$propertyHeader, PropertyFooterHtmlFormat=$propertyFooter }")
+            <li class="field-item">
+                <input type="hidden" name="$core_v2_encoding.HtmlAttributeEncode($profileFieldsInput)" id="$core_v2_encoding.HtmlAttributeEncode($profileFieldsInput)" value="testvalue" />
+                <label class="field-item-name">$core_v2_language.GetResource('CreateNewAccount_ForumRules_Message')</label>
+            </li>
+            <li class="field-item">
+        		<span class="field-item-input">
+        			<input type="checkbox" name="$core_v2_encoding.HtmlAttributeEncode($acceptAgreementInput)" id="$core_v2_encoding.HtmlAttributeEncode($acceptAgreementInput)" />
+        			<label for="$core_v2_encoding.HtmlAttributeEncode($acceptAgreementInput)">
+        			    $core_v2_language.GetResource('CreateNewAccount_ForumRules_AgreeText')
+        		    </label>
+        		</span>
+        		<span class="field-item-validation" style="display: none;"></span>
+        	</li>
+        	<li class="field-item">
+    			<span class="field-item-input">	
+    				<input name="$core_v2_encoding.HtmlAttributeEncode($submitId)" id="$core_v2_encoding.HtmlAttributeEncode($submitId)" type="submit" value="$core_v2_encoding.HtmlAttributeEncode($core_v2_language.GetResource('Save'))" class="button" />
+    			</span>
+    		</li>
+    	</ul>
+    </fieldset>
+</form>
+<div class="field-list-footer">
+
+#registerEndOfPageHtml('telligent.evolution.widgets.register')
+	<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+	<script src="//app-lon06.marketo.com/js/forms2/js/forms2.min.js"></script>
+#end
+#registerEndOfPageHtml()
+	<script type="text/javascript">
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+	jQuery(document).ready(function(j){
+		jQuery.telligent.evolution.widgets.register.register({
+			wrapper: "#$core_v2_encoding.JavascriptEncode($core_v2_widget.WrapperElementId)",
+			usernameInput: "#$core_v2_encoding.JavascriptEncode($UsernameId)",
+			submitInput: "#$core_v2_encoding.JavascriptEncode($submitId)",
+			createUrl: "$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('create.vm'))",
+			updateUrl: "$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('update.vm'))",
+			usernameMinLength: $core_v2_configuration.UsernameMinLength,
+			usernameMaxLength: $core_v2_configuration.UsernameMaxLength,
+			usernameInvalidUserName: "$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('InvalidUserName'))",
+			usernameDuplicateUserName: "$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('DuplicateUsername'))",
+			fieldRequired: "$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('RequiredMessage'))",
+			redirectUrl: '$core_v2_encoding.JavascriptEncode($returnUrl)',
+			acceptAgreement: "#$core_v2_encoding.JavascriptEncode($acceptAgreementInput)",
+			resources: {
+				fieldRequired: "$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Validate_Field_Required'))"
+			},
+			getDynamicValues: function() {
+				return $core_v2_dynamicForm.GetValuesScript($dynamicFieldsForm);
+			},
+			getHasValue: function(profileField) {
+				return ${core_v2_dynamicForm.GetHasValueScript($dynamicFieldsForm)}(profileField);
+			},
+			dynamicFieldsForm: "$core_v2_encoding.JavascriptEncode($dynamicFieldsForm)",
+			requiredDynamicfields: '$core_v2_encoding.JavascriptEncode($requiredFields)',
+			existingUser: #if($existingUser) true #else false #end
+		});
+	});
+	//<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+	</script>
+#end
+]]></contentScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:CF_Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Choose Username</resource>
+  <resource name="Country">Country</resource>
+  <resource name="CreateNewAccount_ForumRules_AgreeText">By selecting this box you indicate your consent to receiving marketing communications from Arm in accordance with our &lt;a href="http://www.arm.com/company/policies/privacy"&gt;Privacy Policy&lt;/a&gt;. Please visit our &lt;a href="https://login.arm.com/subscriptions.php"&gt;Subscription Center&lt;/a&gt; to manage your marketing preferences or unsubscribe from further communications.</resource>
+  <resource name="CreateNewAccount_ForumRules_Message">Arm will process your information in accordance with our &lt;a href="http://www.arm.com/company/policies/privacy"&gt;Privacy Policy&lt;/a&gt;</resource>
+  <resource name="Description">Almost there! Before you can get started we need a few more details.</resource>
+  <resource name="DuplicateUsername">That display name is not available.</resource>
+  <resource name="FirstName">First Name</resource>
+  <resource name="InvalidUserName">Your sign in name does not meet the requirements for this site.</resource>
+  <resource name="LastName">Last Name</resource>
+  <resource name="LeadSourceDetail">How did you hear about the Arm Community?</resource>
+  <resource name="ProfileFields">Enter comma separated profile fields</resource>
+  <resource name="Register_Title">Register</resource>
+  <resource name="RequiredMessage">Please enter a display name.</resource>
+  <resource name="Save">Save</resource>
+  <resource name="Username">Display name - Please do not use your email address!</resource>
+  <resource name="Validate_Field_Required">This field is required.</resource>
+</language></languageResources>
+		<files>
+			<file name="create.vm">I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkKICAgICRjb3JlX3YyX3BhZ2UuU2V0Q29udGVudFR5cGUoJ2FwcGxpY2F0aW9uL2pzb24nKQoJCgkjc2V0KCR1c2VybmFtZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdVc2VybmFtZScpKQoJI3NldCgkZmlyc3ROYW1lID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0ZpcnN0TmFtZScpKQoJI3NldCgkbGFzdE5hbWUgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnTGFzdE5hbWUnKSkKCSNzZXQoJGxlYWRTb3VyY2VEZXRhaWwgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnTGVhZFNvdXJjZURldGFpbCcpKQoJI3NldCgkY291bnRyeSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdDb3VudHJ5JykpCgkKCSNpZiAoJGF6dXJlX3YxX2FkLkNyZWF0ZVVzZXIoJHVzZXJuYW1lLCAkZmlyc3ROYW1lLCAkbGFzdE5hbWUsICRsZWFkU291cmNlRGV0YWlsLCAkY291bnRyeSkpCgkgICAgeyJ1c2VyQ3JlYXRlZCI6dHJ1ZX0KCSNlbHNlCgkJJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCdUaGVyZSB3YXMgYW4gZXJyb3IgY3JlYXRpbmcgeW91ciBhY2NvdW50LicpCgkjZW5kCiNlbmQ=</file>
+			<file name="ui.js">KGZ1bmN0aW9uKCQpIHsKCXZhciBjcmVhdGVVc2VyID0gZnVuY3Rpb24oY29udGV4dCkgewoJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5wb3N0KHsKCQkJdXJsOiBjb250ZXh0LmNyZWF0ZVVybCwKCQkJZGF0YTogewoJCQkJVXNlcm5hbWU6ICQoY29udGV4dC51c2VybmFtZUlucHV0KS52YWwoKSwKCQkJCUZpcnN0TmFtZTogY29udGV4dC5nZXREeW5hbWljVmFsdWVzKClbIkZpcnN0IE5hbWUiXSwKCQkJCUxhc3ROYW1lOiBjb250ZXh0LmdldER5bmFtaWNWYWx1ZXMoKVsiTGFzdCBOYW1lIl0sCgkJCQlMZWFkU291cmNlRGV0YWlsOiBjb250ZXh0LmdldER5bmFtaWNWYWx1ZXMoKVsiTGVhZCBTb3VyY2UgRGV0YWlsIl0sCgkJCQlDb3VudHJ5OiBjb250ZXh0LmdldER5bmFtaWNWYWx1ZXMoKVsiQ291bnRyeSJdCgkJCX0sCgkJCXN1Y2Nlc3M6IGZ1bmN0aW9uIChyZXNwb25zZSkgewoJCQkgICAgaWYoJChjb250ZXh0LmFjY2VwdEFncmVlbWVudCkuaXMoIjpjaGVja2VkIikpewogICAgICAgIAkJICAgIHNlbmRNYXJrZXRvRm9ybShjb250ZXh0KTsKICAgICAgICAJCX0gZWxzZSB7CiAgICAgICAgCQkgICAgd2luZG93LmxvY2F0aW9uID0gY29udGV4dC5yZWRpcmVjdFVybDsKICAgICAgICAJCX0KCQkJfQoJCX0pOwoJfTsKCQoJdmFyIHVwZGF0ZVVzZXIgPSBmdW5jdGlvbihjb250ZXh0KSB7CgkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLnBvc3QoewoJCQl1cmw6IGNvbnRleHQudXBkYXRlVXJsLAoJCQlkYXRhOiB7CgkJCQlGaXJzdE5hbWU6IGNvbnRleHQuZ2V0RHluYW1pY1ZhbHVlcygpWyJGaXJzdCBOYW1lIl0sCgkJCQlMYXN0TmFtZTogY29udGV4dC5nZXREeW5hbWljVmFsdWVzKClbIkxhc3QgTmFtZSJdLAoJCQkJTGVhZFNvdXJjZURldGFpbDogY29udGV4dC5nZXREeW5hbWljVmFsdWVzKClbIkxlYWQgU291cmNlIERldGFpbCJdLAoJCQkJQ291bnRyeTogY29udGV4dC5nZXREeW5hbWljVmFsdWVzKClbIkNvdW50cnkiXQoJCQl9LAoJCQlzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsKCQkJICAgIGlmKCQoY29udGV4dC5hY2NlcHRBZ3JlZW1lbnQpLmlzKCI6Y2hlY2tlZCIpKXsKICAgICAgICAJCSAgICBzZW5kTWFya2V0b0Zvcm0oY29udGV4dCk7CgkJCSAgICB9IGVsc2UgewogICAgICAgIAkJICAgIHdpbmRvdy5sb2NhdGlvbiA9IGNvbnRleHQucmVkaXJlY3RVcmw7CiAgICAgICAgCQl9CgkJCX0KCQl9KTsKCX07CgkKCXZhciBzZW5kTWFya2V0b0Zvcm0gPSBmdW5jdGlvbihjb250ZXh0KXsKCSAgICBFbnZJRD0iMzEyLVNBWC00ODgiOy8vUGFyYW1ldGVyIGZvciB0aGUgTWFya2V0byBFbnZpcm9ubWVudCBJRAogICAgCUVudlVSTD0iLy9hcHAtbG9uMDIubWFya2V0by5jb20iOy8vUGFyYW1ldGVyIGZvciB0aGUgTWFya2V0byBFbnZpcm9ubWVudCBVUkwKICAgIAlNa3RvRm9ybXMyLmxvYWRGb3JtKEVudlVSTCxFbnZJRCwxNTEwLGZ1bmN0aW9uKGZvcm0pewogICAgCQlmb3JtLnZhbHMoewogICAgCQkgICAgIkxlYWRTb3VyY2UiOiJjb21tdW5pdHkuYXJtLmNvbSIsCiAgICAJCSAgICAiU291cmNlX0dyb3VwIjoiUmVnaXN0cmF0aW9uIiwKICAgIAkJICAgICJTb3VyY2VfRGV0YWlsIjpjb250ZXh0LmdldER5bmFtaWNWYWx1ZXMoKVsiTGVhZCBTb3VyY2UgRGV0YWlsIl0sCiAgICAJCSAgICAiRW1haWwiOiQoJyNFbWFpbEFkZHJlc3MnKS52YWwoKSwKICAgIAkJICAgICJGaXJzdE5hbWUiOmNvbnRleHQuZ2V0RHluYW1pY1ZhbHVlcygpWyJGaXJzdCBOYW1lIl0sCiAgICAJCSAgICAiTGFzdE5hbWUiOmNvbnRleHQuZ2V0RHluYW1pY1ZhbHVlcygpWyJMYXN0IE5hbWUiXSwKICAgIAkJICAgICJsbGVnYWxOb3RpY2UiOiJZZXMiLAogICAgCQkgICAgImxkYXRhQ29sbGVjdGlvbk5vdGljZSI6IkRDTjIiLAogICAgCQkgICAgIkNvdW50cnkiOmNvbnRleHQuZ2V0RHluYW1pY1ZhbHVlcygpWyJDb3VudHJ5Il0KICAgIAkJfSk7CiAgICAJCWZvcm0ub25TdWNjZXNzKGZ1bmN0aW9uKHZhbHVlcywgZm9sbG93VXBVcmwpewogICAgCQkgICAgCiAgICAJCSAgICB3aW5kb3cubG9jYXRpb24gPSBjb250ZXh0LnJlZGlyZWN0VXJsOwogICAgCQkgICAgcmV0dXJuIGZhbHNlOyAKICAgIAkJfSk7IAogICAgCQkKICAgIAkJZm9ybS5zdWJtaXQoKTsKICAgIAkJLy93aW5kb3cubG9jYXRpb24gPSBjb250ZXh0LnJlZGlyZWN0VXJsOwogICAgCX0pOwoJfQoJdmFyIGFwaSA9IHsKCQlyZWdpc3RlcjogZnVuY3Rpb24oY29udGV4dCkgewoJCQljb250ZXh0LnN1Ym1pdElucHV0ID0gJChjb250ZXh0LnN1Ym1pdElucHV0KQoJCQkJLmV2b2x1dGlvblZhbGlkYXRpb24oewoJCQkJCW9uVmFsaWRhdGVkOiBmdW5jdGlvbihpc1ZhbGlkLCBidXR0b25DbGlja2VkLCBjKSB7IH0sCgkJCQkJb25TdWNjZXNzZnVsQ2xpY2s6IGZ1bmN0aW9uKGUpIHsKCQkJCQkJZS5wcmV2ZW50RGVmYXVsdCgpOwoJCQkJCQlpZihjb250ZXh0LmV4aXN0aW5nVXNlcil7CgkJCQkJCSAgICB1cGRhdGVVc2VyKGNvbnRleHQpOwoJCQkJCQl9IGVsc2UgewoJCQkJCQkgICAgY3JlYXRlVXNlcihjb250ZXh0KTsKCQkJCQkJfQoJCQkJCQkKCQkJCQkJcmV0dXJuIGZhbHNlOwoJCQkJCX0KCQkJCX0pCgkJCQkKCQkJCS8vIG1ha2UgZHluYW1pYyBmaWVsZHMgdGhhdCB3ZXJlIHNwZWNpZmllZCB0byBiZSByZXF1aXJlZCByZXF1aXJlZAogICAgCQkJdmFyIHByZWZpeCA9IGNvbnRleHQuZHluYW1pY0ZpZWxkc0Zvcm0gKyAnXyc7CiAgICAJCQl2YXIgZHluYW1pY0ZpZWxkcyA9ICQoJ1tpZF49IicrcHJlZml4KyciXScsIGNvbnRleHQud3JhcHBlcik7CiAgICAJCQkkLmVhY2goY29udGV4dC5yZXF1aXJlZER5bmFtaWNmaWVsZHMuc3BsaXQoJywnKSwgZnVuY3Rpb24oaSwgZmllbGQpIHsKICAgIAkJCQlpZihmaWVsZCAhPT0gJycpIHsKICAgIAkJCQkJdmFyIGZpZWxkSWQgPSBmaWVsZC5yZXBsYWNlKC9ccy9nLCcnKTsKICAgIAkJCQkJdmFyIGR5bmFtaWNGaWVsZCA9IGR5bmFtaWNGaWVsZHMuZmlsdGVyKCdbaWQkPSInK2ZpZWxkSWQrJyJdJyk7CiAgICAJCQkJCWlmKGR5bmFtaWNGaWVsZCAhPT0gbnVsbCAmJiBkeW5hbWljRmllbGQubGVuZ3RoID4gMCkgewogICAgCQkJCQkJZHluYW1pY0ZpZWxkLmNsb3Nlc3QoJy5maWVsZC1pdGVtLWlucHV0JykuYWZ0ZXIoJzxzcGFuIGNsYXNzPSJmaWVsZC1pdGVtLXZhbGlkYXRpb24iIHN0eWxlPSJkaXNwbGF5OiBub25lOyI+PC9zcGFuPicpOwogICAgCQkJCQkJY29udGV4dC5zdWJtaXRJbnB1dAogICAgCQkJCQkJCS5ldm9sdXRpb25WYWxpZGF0aW9uKCdhZGRDdXN0b21WYWxpZGF0aW9uJywncHJvZmlsZUZpZWxkSGFzVmFsdWUnLAogICAgCQkJCQkJCQlmdW5jdGlvbigpewogICAgCQkJCQkJCQkJcmV0dXJuIGNvbnRleHQuZ2V0SGFzVmFsdWUoZmllbGQpOwogICAgCQkJCQkJCQl9LAogICAgCQkJCQkJCQljb250ZXh0LnJlc291cmNlcy5maWVsZFJlcXVpcmVkLAogICAgCQkJCQkJCQlkeW5hbWljRmllbGQuY2xvc2VzdCgnLmZpZWxkLWl0ZW0nKS5maW5kKCcuZmllbGQtaXRlbS12YWxpZGF0aW9uJyksIG51bGwpOwogICAgCQkJCQkJZHluYW1pY0ZpZWxkLmJpbmQoJ2NoYW5nZScsIGZ1bmN0aW9uKCl7CiAgICAJCQkJCQkJY29udGV4dC5zdWJtaXRJbnB1dC5ldm9sdXRpb25WYWxpZGF0aW9uKCd2YWxpZGF0ZScpOwogICAgCQkJCQkJfSk7CiAgICAJCQkJCX0KICAgIAkJCQl9CiAgICAJCQl9KTsKICAgIAkJCQogICAgCQkJaWYoIWNvbnRleHQuZXhpc3RpbmdVc2VyKXsKICAgIAkJCSAgICBjb250ZXh0LnN1Ym1pdElucHV0LmV2b2x1dGlvblZhbGlkYXRpb24oJ2FkZEZpZWxkJywgJChjb250ZXh0LnVzZXJuYW1lSW5wdXQpLCB7CiAgICAJCQkJCXJlcXVpcmVkOiB0cnVlLAogICAgCQkJCQltaW5sZW5ndGg6IGNvbnRleHQudXNlcm5hbWVNaW5MZW5ndGgsCiAgICAJCQkJCW1heGxlbmd0aDogY29udGV4dC51c2VybmFtZU1heExlbmd0aCwKICAgIAkJCQkJdXNlcm5hbWU6IHRydWUsCiAgICAJCQkJCXVzZXJuYW1lZXhpc3RzOiB0cnVlLAogICAgCQkJCQltZXNzYWdlczogewogICAgCQkJCQkJdXNlcm5hbWU6IGNvbnRleHQudXNlcm5hbWVJbnZhbGlkVXNlck5hbWUsCiAgICAJCQkJCQl1c2VybmFtZWV4aXN0czogY29udGV4dC51c2VybmFtZUR1cGxpY2F0ZVVzZXJOYW1lLAogICAgCQkJCQkJcmVxdWlyZWQ6IGNvbnRleHQuZmllbGRSZXF1aXJlZAogICAgCQkJCQl9CiAgICAJCQkJfSwJJChjb250ZXh0LnVzZXJuYW1lSW5wdXQpLmNsb3Nlc3QoJy5maWVsZC1pdGVtJykuZmluZCgnLmZpZWxkLWl0ZW0tdmFsaWRhdGlvbicpLCBudWxsKTsKCQkJCX0KCQl9Cgl9OwoKCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50ID0ge307IH0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSB7fTsgfQoJaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPSB7fTsgfQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMucmVnaXN0ZXIgPSBhcGk7Cgp9KGpRdWVyeSkpOwo=</file>
+			<file name="update.vm">I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkKICAgICRjb3JlX3YyX3BhZ2UuU2V0Q29udGVudFR5cGUoJ2FwcGxpY2F0aW9uL2pzb24nKQoJCgkjc2V0KCRmaXJzdE5hbWUgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnRmlyc3ROYW1lJykpCgkjc2V0KCRsYXN0TmFtZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdMYXN0TmFtZScpKQoJI3NldCgkbGVhZFNvdXJjZURldGFpbCA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdMZWFkU291cmNlRGV0YWlsJykpCgkjc2V0KCRjb3VudHJ5ID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0NvdW50cnknKSkKCQoJI2lmICgkYXp1cmVfdjFfYWQuVXBkYXRlVXNlcigkZmlyc3ROYW1lLCAkbGFzdE5hbWUsICRsZWFkU291cmNlRGV0YWlsLCAkY291bnRyeSkpCgkgICAgeyJ1c2VyVXBkYXRlZCI6dHJ1ZX0KCSNlbHNlCgkJJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCdUaGVyZSB3YXMgYW4gZXJyb3IgdXBkYXRpbmcgeW91ciBhY2NvdW50LicpCgkjZW5kCiNlbmQ=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

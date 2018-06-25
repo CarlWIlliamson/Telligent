@@ -1,0 +1,232 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Idea_Create_Name}" version="10.1.8.10498" description="${resource:Idea_Create_Description}" instanceIdentifier="dedbc64326194166979ef48b74e27a5e" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="idea-create">
+		<contentScript><![CDATA[#set($userId = $core_v2_user.Accessing.Id)
+#set($group = false)
+#set($group = $core_v2_group.Current)
+#set($challenge = false)
+#set($challenge = $telligentIdeas_v1_challenges.Current)
+
+#if(!$group || !$challenge)
+  $core_v2_widget.Hide()
+#else
+
+  #set($idea = false)
+  #set($idea = $telligentIdeas_v1_ideas.Current)
+
+  #set($canCreate = $telligentIdeas_v1_ideaPermissions.CanCreateIdeas($challenge.Id))
+  #set($canEdit = ($idea.TotalVotes == 0 && $idea.Author.Id == $core_v2_user.Accessing.Id) || $telligentIdeas_v1_ideaPermissions.CanEditIdeas($challenge.Id))
+
+  #if (!$idea && !$canCreate)
+    <div id="$core_v2_widget.UniqueId('errorMessage')" class="message error">$core_v2_language.GetResource("CreateIdeaPermissionDenied")</div>
+  #elseif ($idea && !$canEdit)
+    <div id="$core_v2_widget.UniqueId('errorMessage')" class="message error">$core_v2_language.GetResource("EditIdeaPermissionDenied")</div>
+  #else
+
+    #set($canModerate = $telligentIdeas_v1_ideaPermissions.CanManageIdeaStatus($challenge.Id))
+
+    <div id="$core_v2_widget.UniqueId('form')">
+      <div class="field-list-header"></div>
+      <fieldset class="field-list">
+        #if ($idea)
+          <h1>$idea.Name</h1>
+        #else
+          <h1>$core_v2_language.GetResource("Idea_Create_Title")</h1>
+        #end
+
+        <ul class="field-list">
+          <li class="field-item required idea-name">
+            <label class="field-item-header" for="$core_v2_widget.UniqueId('name')">$core_v2_language.GetResource("Name")</label>
+            <span class="field-item-input">
+              <textarea rows="1" class="scaled" maxlength="256" id="$core_v2_widget.UniqueId('name')" name="$core_v2_widget.UniqueId('name')">$!idea.Name</textarea>
+            </span>
+            <span class="field-item-validation" style="display: none;"></span>
+          </li>
+
+        <li class="field-item required idea-body">
+          <label for="$core_v2_widget.UniqueId('body')" class="field-item-header">$core_v2_language.GetResource('Description')</label>
+          <span class="field-item-input">$core_v2_editor.Render('body',"%{Width='100%', Height='250px', Value=$!idea.Description('raw'), ContentTypeId=$telligentIdeas_v1_ideas.ContentTypeId }")</span>
+          <span class="field-item-validation" style="display:none;"></span>
+        </li>
+
+        <li class="field-item post-tags">
+          #set($tags = '')
+          #foreach($tag in $core_v2_tags.Get($idea.Id, $telligentIdeas_v1_ideas.ContentTypeId, "%{}"))
+          #each
+              #set($tags = "$tags$core_v2_encoding.JavascriptEncode($core_v2_encoding.HtmlDecode($tag.TagName))")
+          #between
+              #set($tags = "$tags,")
+          #end
+            <label for="$core_v2_widget.UniqueId('Tags')" class="field-item-header">$core_v2_language.GetResource('CreateEditPost_Tags')</label>
+            <span class="field-item-input">
+                <input id="$core_v2_widget.UniqueId('TagBox')" type="text" value="$tags" size="70" />
+            </span>
+        </li>
+
+    #if($canModerate)
+        #set($statuses = $telligentIdeas_v1_statuses.List())
+        #set($statusKey = '')
+        #if($idea)
+          #set($statusKey = $idea.Status.Key)
+        #end
+
+
+        #foreach ($status in $statuses)
+        #beforeall
+            <li class="field-item required status">
+                <label for="$core_v2_widget.UniqueId('status')" class="field-item-header">$core_v2_language.GetResource('Status')</label>
+                <span class="field-item-input">
+                    <select id="$core_v2_widget.UniqueId('status')" name="$core_v2_widget.UniqueId('status')">
+        #each
+                        <option value="$status.Key" #if($statusKey == $status.Key || ($statusKey == '' && $status.IsDefault))selected="selected"#end>$status.Name</option>
+        #afterall
+                    </select>
+                </span>
+                <span class="field-item-validation" style="display: none;"></span>
+            </li>
+        #end
+
+            </li>
+
+            <li class="field-item idea-notes">
+              <label for="$core_v2_widget.UniqueId('notes')" class="field-item-header">$core_v2_language.GetResource('Notes')</label>
+              <span class="field-item-input">$core_v2_editor.Render('notes',"%{Width='100%', Height='250px', Value=$!idea.StatusNotes('raw'), ContentTypeId=$telligentIdeas_v1_ideas.ContentTypeId }")</span>
+              <span class="field-item-validation" style="display:none;"></span>
+            </li>
+    #end
+
+            <li class="field-item create-post">
+                <span class="field-item-input">
+                    <a href="javascript:void(0);" class="internal-link save-post disabled button" id="$core_v2_widget.UniqueId('save')">
+                      <span></span>$core_v2_language.GetResource('CreateButton')
+                    </a>
+                    <span class="processing" style="visibility: hidden;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+                </span>
+            </li>
+        </ul>
+    </fieldset>
+      <div class="field-list-footer"></div>
+    </div>
+
+    #registerEndOfPageHtml('telligent.evolution.Ideation.widgets.addEditIdea')
+      <script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+    #end
+
+    #registerEndOfPageHtml()
+    #set($selectedtags = '')
+    #foreach($tag in $core_v2_tags.Get($idea.Id, $telligentIdeas_v1_ideas.ContentTypeId, "%{}"))
+    #each
+        #set($selectedtags = "$selectedtags'$core_v2_encoding.JavascriptEncode($core_v2_encoding.HtmlDecode($tag.TagName))'")
+    #between
+        #set($selectedtags = "$selectedtags,")
+    #end
+    
+      <script type="text/javascript">
+      //<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+      jQuery(document).ready(function(j)
+      {
+        j.telligent.evolution.Ideation.widgets.addEditIdea.register({
+          wrapperId:'$core_v2_widget.WrapperElementId'
+          ,save: j('#$core_v2_widget.UniqueId('save')')
+          ,nameInput:"#$core_v2_widget.UniqueId('name')"
+          ,statusId:"$core_v2_widget.UniqueId('status')"
+          ,ideaId:#if($idea)'$idea.Id'#else'00000000-0000-0000-0000-000000000000'#end
+          ,groupId:$group.Id
+          ,appId:'$challenge.Id'
+          ,applicationId:'$challenge.ApplicationId'
+          ,userId:$userId
+          ,getBodyContent: function() { return $core_v2_editor.GetContentScript('body'); }
+          ,getNotesContent: function() {
+              if ('$canModerate' == 'True') {
+                return $core_v2_editor.GetContentScript('notes');
+            } else {
+                return null;
+            }
+          }
+          ,tagBox: j('#$core_v2_widget.UniqueId('TagBox')')
+          ,selectedTags: [#if($selectedtags)$selectedtags#end]
+		  ,lookupvm: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('lookuptags.vm'))'
+			
+          ,nameRequiredMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Validator_NameRequired'))'
+          ,duplicateNameMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Validator_DuplicateName'))'
+          ,processingMessage:'$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Saving'))'
+          ,successMessage:j('#$core_v2_widget.UniqueId('successMessage')')
+          ,errorMessage:j('#$core_v2_widget.UniqueId('errorMessage')')
+          ,saveUrl: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('save.vm'))'
+        });
+      });
+	    //<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+    </script>
+    #end
+  #end
+#end
+      ]]></contentScript>
+		<headerScript><![CDATA[$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Idea_Create_Title}'))]]></headerScript>
+		<configuration><![CDATA[
+      <propertyGroup id="options" resourceName="Options">
+        <property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Idea_Create_Title}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+      </propertyGroup>
+      ]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="CreateButton">Post</resource>
+  <resource name="CreateEditPost_Tags">Tags</resource>
+  <resource name="CreateIdeaPermissionDenied">You do not have permission to create ideas in this ideation.</resource>
+  <resource name="Description">Description</resource>
+  <resource name="EditIdeaPermissionDenied">You do not have permission to edit this idea in this ideation.</resource>
+  <resource name="Idea_Create_Description">Form to create or update an Idea</resource>
+  <resource name="Idea_Create_Name">Arm - Ideas - Create Idea</resource>
+  <resource name="Idea_Create_Title">Submit your Idea</resource>
+  <resource name="Name">Idea</resource>
+  <resource name="Notes">Status Notes</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Saving">Saving...</resource>
+  <resource name="Status">Status</resource>
+  <resource name="Validator_DuplicateName">A idea with this name already exists</resource>
+  <resource name="Validator_NameRequired">Idea is required</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="CreateButton">文章</resource>
+  <resource name="CreateEditPost_Tags">标记</resource>
+  <resource name="CreateIdeaPermissionDenied">您无权在此构思中创建创意。</resource>
+  <resource name="Description">描述</resource>
+  <resource name="EditIdeaPermissionDenied">您无权在此构思中编辑此创意。</resource>
+  <resource name="Idea_Create_Description">用于创建或更新创意的窗体</resource>
+  <resource name="Idea_Create_Name">创意 - 创建创意</resource>
+  <resource name="Idea_Create_Title">提交您的创意</resource>
+  <resource name="Name">创意</resource>
+  <resource name="Notes">状态说明</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Saving">正在保存...</resource>
+  <resource name="Status">状态</resource>
+  <resource name="Validator_DuplicateName">已存在具有此名称的创意</resource>
+  <resource name="Validator_NameRequired">创意是必需的</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="CreateButton">貼文</resource>
+  <resource name="CreateEditPost_Tags">標記</resource>
+  <resource name="CreateIdeaPermissionDenied">您沒有在此構思中建立構想的權限。</resource>
+  <resource name="Description">描述</resource>
+  <resource name="EditIdeaPermissionDenied">您沒有在此構思中編輯此構想的權限。</resource>
+  <resource name="Idea_Create_Description">用於建立或更新構想的表單</resource>
+  <resource name="Idea_Create_Name">構想 - 建立構想</resource>
+  <resource name="Idea_Create_Title">提交您的構想</resource>
+  <resource name="Name">構想</resource>
+  <resource name="Notes">狀態附註</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Saving">儲存中...</resource>
+  <resource name="Status">狀態</resource>
+  <resource name="Validator_DuplicateName">已經存在具有相同名稱的構想</resource>
+  <resource name="Validator_NameRequired">需要構想</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="4daabcc42846400e95f4990266d3e3c9" />
+		</requiredContext>
+		<files>
+			<file name="lookuptags.vm">I3NldCgkc2VhcmNoVGV4dCA9ICRjb3JlX3YyX3BhZ2UuR2V0UXVlcnlTdHJpbmdWYWx1ZSgnd19TZWFyY2hUZXh0JykpCgojc2V0KCR0YWdzID0gJGFybV92MV90YWdnaW5nLkxvb2tVcFRhZ3MoJHNlYXJjaFRleHQpKQoKJGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpCgp7ImNvdW50IjogIiR0YWdzLkNvdW50IiwgInRhZ3MiOlsKICAgICNpZigkdGFncykKICAgICAgICAjZm9yZWFjaCgkdGFnIGluICR0YWdzKQogICAgICAgICAgICB7InRhZyI6IiR0YWcifSwKICAgICAgICAjZW5kCiAgICAjZW5kCm51bGxdfQ==</file>
+			<file name="save.vm">77u/JGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoNCiNzZXQoJGlkZWFJZCA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VHdWlkKCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdJZGVhSWQnKSkpDQojc2V0KCRncm91cElkID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUludCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnR3JvdXBJZCcpKSkNCiNzZXQoJGNoYWxsZW5nZUlkID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUd1aWQoJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0FwcElkJykpKQ0KDQojc2V0KCRuYW1lID0gZmFsc2UpDQojc2V0KCRuYW1lID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ05hbWUnKSkNCiNzZXQoJGRlc2NyaXB0aW9uID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ0JvZHknKSkNCiNzZXQoJHN0YXR1cyA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdTdGF0dXMnKSkNCiNzZXQoJHN0YXR1c05vdGVzID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ05vdGVzJykpDQoNCiNzZXQoJHVzZXJJZCA9ICRjb3JlX3YyX3VzZXIuQWNjZXNzaW5nLklkKQ0KI3NldCgkb3B0aW9ucyA9ICIle1VzZXJJZD0kdXNlcklkfSIpDQoNCiRvcHRpb25zLkFkZCgnU3RhdHVzJywgJHN0YXR1cykNCiRvcHRpb25zLkFkZCgnU3RhdHVzTm90ZXMnLCAkc3RhdHVzTm90ZXMpDQoNCiNzZXQoJHRhZ3MgPSBmYWxzZSkNCiNzZXQoJHRhZ3MgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnVGFncycpKQ0KJG9wdGlvbnMuQWRkKCdUYWdzJywgJHRhZ3MpDQoNCiNpZigkaWRlYUlkICYmICRpZGVhSWQgIT0gJzAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCcpDQogICAgI2lmKCRuYW1lKQ0KCQkkb3B0aW9ucy5BZGQoJ05hbWUnLCAkbmFtZSkNCgkjZW5kDQoJI2lmKCRkZXNjcmlwdGlvbikNCgkJJG9wdGlvbnMuQWRkKCdEZXNjcmlwdGlvbicsICRkZXNjcmlwdGlvbikNCgkjZW5kDQogICAgI3NldCgkaWRlYSA9ICR0ZWxsaWdlbnRJZGVhc192MV9pZGVhcy5VcGRhdGUoJGlkZWFJZCwgJG9wdGlvbnMpKQ0KI2Vsc2UNCiAgICAjc2V0KCRpZGVhID0gJHRlbGxpZ2VudElkZWFzX3YxX2lkZWFzLkNyZWF0ZSgkY2hhbGxlbmdlSWQsICRuYW1lLCAkZGVzY3JpcHRpb24sICRvcHRpb25zKSkNCiNlbmQNCg0KI2lmICgkaWRlYSkNCiAgICAjaWYoJGlkZWEuRXJyb3JzLkNvdW50ID4gMCkNCiAgICAJJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCRpZGVhLkVycm9ycykNCgkjZWxzZQ0KICAgICAgICB7InJlZGlyZWN0VXJsIjoiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkdGVsbGlnZW50SWRlYXNfdjFfdXJscy5JZGVhKCRpZGVhLklkKSkifQ0KCSNlbmQNCiNlbHNlCQkNCgkkY29yZV92Ml9wYWdlLlNlbmRKc29uRXJyb3IoJ1VuZXhwZWN0ZWQgZXJyb3IuIFRoZSBpZGVhIGhhcyBub3QgYmVlbiBjcmVhdGVkL3VwZGF0ZWQnKQ0KI2VuZA==</file>
+			<file name="ui.js">KGZ1bmN0aW9uICgkLCBnbG9iYWwpIHsKICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50ID0ge307IH0KICAgIGlmICh0eXBlb2YgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24gPSB7fTsgfQogICAgaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMgPSB7fTsgfQogICAgaWYgKHR5cGVvZiAkLnRlbGxpZ2VudC5ldm9sdXRpb24uSWRlYXRpb24gPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50LmV2b2x1dGlvbi5JZGVhdGlvbiA9IHt9OyB9CiAgICBpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbi5JZGVhdGlvbi53aWRnZXRzID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24uSWRlYXRpb24ud2lkZ2V0cyA9IHt9OyB9CgogICAgdmFyIF9zYXZlID0gZnVuY3Rpb24gKGNvbnRleHQpIHsKCiAgICAgICAgdmFyIHRhZ1N0cmluZyA9ICcnOwogICAgICAgIGlmIChjb250ZXh0LnRhZ0JveC5sZW5ndGggPiAwKSB7CiAgICAgICAgICAgIHZhciBpblRhZ3MgPSBjb250ZXh0LnRhZ0JveC52YWwoKS5zcGxpdCgvWyw7XS9nKTsKICAgICAgICAgICAgdmFyIHRhZ3MgPSBbXTsKICAgICAgICAgICAgZm9yICh2YXIgaSA9IDA7IGkgPCBpblRhZ3MubGVuZ3RoOyBpKyspIHsKICAgICAgICAgICAgICAgIHZhciB0YWcgPSAkLnRyaW0oaW5UYWdzW2ldKTsKICAgICAgICAgICAgICAgIGlmICh0YWcpIHsKICAgICAgICAgICAgICAgICAgICB0YWdzW3RhZ3MubGVuZ3RoXSA9IHRhZzsKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgfQoKICAgICAgICAgICAgdGFnU3RyaW5nID0gdGFncy5qb2luKCcsJyk7CiAgICAgICAgfQoKICAgICAgICB2YXIgbm90ZXMgPSAnJzsKICAgICAgICBpZiAoY29udGV4dC5nZXROb3Rlc0NvbnRlbnQoKSAhPSBudWxsKSB7CiAgICAgICAgICAgIG5vdGVzID0gY29udGV4dC5nZXROb3Rlc0NvbnRlbnQoKTsKICAgICAgICB9CgogICAgICAgIHZhciBkYXRhID0gewogICAgICAgICAgICBJZGVhSWQ6IGNvbnRleHQuaWRlYUlkCiAgICAgICAgICAgICwgR3JvdXBJZDogY29udGV4dC5ncm91cElkCiAgICAgICAgICAgICwgQXBwSWQ6IGNvbnRleHQuYXBwSWQKICAgICAgICAgICAgLCBCb2R5OiBjb250ZXh0LmdldEJvZHlDb250ZW50KCkKICAgICAgICAgICAgLCBTdGF0dXM6ICQoJyMnICsgY29udGV4dC5zdGF0dXNJZCkudmFsKCkKICAgICAgICAgICAgLCBOb3Rlczogbm90ZXMKICAgICAgICAgICAgLCBUYWdzOiB0YWdTdHJpbmcKICAgICAgICB9OwoKICAgICAgICBpZiAoY29udGV4dC5uYW1lSW5wdXQubGVuZ3RoID4gMCkgewogICAgICAgICAgICBkYXRhLk5hbWUgPSAkKGNvbnRleHQubmFtZUlucHV0KS5ldm9sdXRpb25Db21wb3NlcigndmFsJyk7CiAgICAgICAgfQoKICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ucG9zdCh7CiAgICAgICAgICAgIHVybDogY29udGV4dC5zYXZlVXJsLAogICAgICAgICAgICBkYXRhOiBkYXRhLAogICAgICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsKICAgICAgICAgICAgICAgIGlmIChyZXNwb25zZS5FcnJvcnMgJiYgcmVzcG9uc2UuRXJyb3JzLmxlbmd0aCA+IDApIHsKICAgICAgICAgICAgICAgICAgICBhbGVydChyZXNwb25zZS5FcnJvcnNbMF0pOwogICAgICAgICAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgICAgICAgICB3aW5kb3cubG9jYXRpb24gPSByZXNwb25zZS5yZWRpcmVjdFVybDsKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgfSwKICAgICAgICAgICAgZXJyb3I6IGZ1bmN0aW9uICh4aHIsIGRlc2MsIGV4KSB7CiAgICAgICAgICAgICAgICBpZih4aHIucmVzcG9uc2VKU09OLkVycm9ycyAhPSBudWxsICYmIHhoci5yZXNwb25zZUpTT04uRXJyb3JzLmxlbmd0aCA+IDApCgkJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyh4aHIucmVzcG9uc2VKU09OLkVycm9yc1swXSx7dHlwZTonZXJyb3InfSk7CgkJCQllbHNlCgkJCQkJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5vdGlmaWNhdGlvbnMuc2hvdyhkZXNjLHt0eXBlOidlcnJvcid9KTsKICAgICAgICAgICAgICAgICQoJy5wcm9jZXNzaW5nJywgY29udGV4dC5zYXZlLnBhcmVudCgpKS5jc3MoInZpc2liaWxpdHkiLCAiaGlkZGVuIik7CiAgICAgICAgICAgICAgICBjb250ZXh0LnNhdmUucmVtb3ZlQ2xhc3MoJ2Rpc2FibGVkJyk7CiAgICAgICAgICAgIH0KICAgICAgICB9KTsKICAgIH07CgogICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLklkZWF0aW9uLndpZGdldHMuYWRkRWRpdElkZWEgPSB7CiAgICAgICAgcmVnaXN0ZXI6IGZ1bmN0aW9uIChjb250ZXh0KSB7CgogICAgICAgICAgICAvL2NvbnRleHQudGFnQm94LmV2b2x1dGlvblRhZ1RleHRCb3goeyBhcHBsaWNhdGlvbklkOiBjb250ZXh0LmFwcGxpY2F0aW9uSWQgfSk7CiAgICAgICAgICAgIGlmIChjb250ZXh0LnRhZ0JveCkgewogICAgICAgICAgICAgICAgdmFyIHNwaW5uZXIgPSAnPGRpdiBzdHlsZT0idGV4dC1hbGlnbjogY2VudGVyOyI+PGltZyBzcmM9IicgKyAkLnRlbGxpZ2VudC5ldm9sdXRpb24uc2l0ZS5nZXRCYXNlVXJsKCkgKyAndXRpbGl0eS9zcGlubmVyLmdpZiIgLz48L2Rpdj4nOwogICAgICAgICAgICAgICAgY29udGV4dC50YWdCb3guZ2xvd0xvb2tVcFRleHRCb3goCgkJCQl7CgkJCQkgICAgZW1wdHlIdG1sOiAnJywKCQkJCSAgICBtYXhWYWx1ZXM6IDIwLAoJCQkJICAgIG9uR2V0TG9va1VwczogZnVuY3Rpb24gKHRiLCBzZWFyY2hUZXh0KSB7CgkJCQkgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24uZ2V0KHsKCSAgICAgICAgICAgICAgICAgICAgICAgIHVybDogY29udGV4dC5sb29rdXB2bSwKCQkJCSAgICAgICAgICAgIGRhdGE6IHsgd19TZWFyY2hUZXh0OiBzZWFyY2hUZXh0IH0sCgkJCQkgICAgICAgICAgICBzdWNjZXNzOiBmdW5jdGlvbiAocmVzcG9uc2UpIHsKCQkJCSAgICAgICAgICAgICAgICB2YXIgc2VsZWN0aW9uID0gW10KICAgICAgICAJCQkJICAgICAgICBmb3IodmFyIGkgPSAwOyBpIDwgcmVzcG9uc2UudGFncy5sZW5ndGg7IGkrKyl7CiAgICAgICAgCQkJCSAgICAgICAgICAgIHZhciBpdGVtID0gcmVzcG9uc2UudGFnc1tpXTsKICAgICAgICAJCQkJICAgICAgICAgICAgaWYoaXRlbSAmJiBpdGVtLnRhZyl7CiAgICAgICAgCQkJCSAgICAgICAgICAgICAgICBzZWxlY3Rpb25bc2VsZWN0aW9uLmxlbmd0aF0gPSBjb250ZXh0LnRhZ0JveC5nbG93TG9va1VwVGV4dEJveCgnY3JlYXRlTG9va1VwJywgaXRlbS50YWcsIGl0ZW0udGFnLCBpdGVtLnRhZywgdHJ1ZSk7CiAgICAgICAgCQkJCSAgICAgICAgICAgIH0KICAgICAgICAJCQkJICAgICAgICB9CiAgICAgICAgCQkJCSAgICAgICAgY29udGV4dC50YWdCb3guZ2xvd0xvb2tVcFRleHRCb3goJ3VwZGF0ZVN1Z2dlc3Rpb25zJywgc2VsZWN0aW9uKTsKCQkJCSAgICAgICAgICAgIH0KCQkJCSAgICAgICAgIH0pOwogICAgCQkJCX0sCiAgICAJCQkJc2VsZWN0ZWRMb29rVXBzSHRtbDogY29udGV4dC5zZWxlY3RlZFRhZ3MKCQkJCX0pOwogICAgICAgICAgICB9CiAgICAgICAgICAgIAoKICAgICAgICAgICAgJChjb250ZXh0Lm5hbWVJbnB1dCkuZXZvbHV0aW9uQ29tcG9zZXIoewogICAgICAgICAgICAgICAgcGx1Z2luczogWydoYXNodGFncyddCiAgICAgICAgICAgIH0pLmV2b2x1dGlvbkNvbXBvc2VyKCdvbmtleWRvd24nLCBmdW5jdGlvbiAoZSkgewogICAgICAgICAgICAgICAgaWYgKGUud2hpY2ggPT09IDEzKSB7CiAgICAgICAgICAgICAgICAgICAgcmV0dXJuIGZhbHNlOwogICAgICAgICAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgICAgICAgICByZXR1cm4gdHJ1ZTsKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgfSk7CgogICAgICAgICAgICBjb250ZXh0LnNhdmUuY2xpY2soZnVuY3Rpb24gKCkgewogICAgICAgICAgICAgICAgJCh0aGlzKS5ldm9sdXRpb25WYWxpZGF0aW9uKCd2YWxpZGF0ZScpOwogICAgICAgICAgICAgICAgaWYgKCEkKHRoaXMpLmV2b2x1dGlvblZhbGlkYXRpb24oJ2lzVmFsaWQnKSkgewogICAgICAgICAgICAgICAgICAgIGNvbnRleHQuc2F2ZS5hZGRDbGFzcygnZGlzYWJsZWQnKTsKICAgICAgICAgICAgICAgICAgICByZXR1cm47CiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICBfc2F2ZShjb250ZXh0KTsKICAgICAgICAgICAgfSk7CgogICAgICAgICAgICAkLnRlbGxpZ2VudC5ldm9sdXRpb24ubmF2aWdhdGlvbkNvbmZpcm1hdGlvbi5lbmFibGUoKTsKICAgICAgICAgICAgJC50ZWxsaWdlbnQuZXZvbHV0aW9uLm5hdmlnYXRpb25Db25maXJtYXRpb24ucmVnaXN0ZXIoY29udGV4dC5zYXZlKTsKCiAgICAgICAgICAgIGNvbnRleHQuc2F2ZS5ldm9sdXRpb25WYWxpZGF0aW9uKHsKICAgICAgICAgICAgICAgIHZhbGlkYXRlT25Mb2FkOiBjb250ZXh0LmlkZWFJZCA9PSAnMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwJyA/IGZhbHNlIDogbnVsbCwKICAgICAgICAgICAgICAgIG9uVmFsaWRhdGVkOiBmdW5jdGlvbiAoaXNWYWxpZCwgYnV0dG9uQ2xpY2tlZCwgYykgewogICAgICAgICAgICAgICAgICAgIGlmIChpc1ZhbGlkKSB7CiAgICAgICAgICAgICAgICAgICAgICAgIGNvbnRleHQuc2F2ZS5yZW1vdmVDbGFzcygnZGlzYWJsZWQnKTsKICAgICAgICAgICAgICAgICAgICB9IGVsc2UgewogICAgICAgICAgICAgICAgICAgICAgICBjb250ZXh0LnNhdmUuYWRkQ2xhc3MoJ2Rpc2FibGVkJyk7CiAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgfSwKICAgICAgICAgICAgICAgIG9uU3VjY2Vzc2Z1bENsaWNrOiBmdW5jdGlvbiAoZSkgewogICAgICAgICAgICAgICAgICAgICQoJy5wcm9jZXNzaW5nJywgY29udGV4dC5zYXZlLnBhcmVudCgpKS5jc3MoInZpc2liaWxpdHkiLCAidmlzaWJsZSIpOwogICAgICAgICAgICAgICAgICAgIGNvbnRleHQuc2F2ZS5hZGRDbGFzcygnZGlzYWJsZWQnKTsKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgfSk7CgogICAgICAgICAgICBjb250ZXh0LnNhdmUuZXZvbHV0aW9uVmFsaWRhdGlvbignYWRkRmllbGQnLCBjb250ZXh0Lm5hbWVJbnB1dCwKICAgICAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICAgICByZXF1aXJlZDogdHJ1ZSwKICAgICAgICAgICAgICAgICAgICBtZXNzYWdlczogeyByZXF1aXJlZDogY29udGV4dC5uYW1lUmVxdWlyZWRNZXNzYWdlIH0KICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICAnIycgKyBjb250ZXh0LndyYXBwZXJJZCArICcgLmZpZWxkLWl0ZW0uaWRlYS1uYW1lIC5maWVsZC1pdGVtLXZhbGlkYXRpb24nLCBudWxsKTsKICAgICAgICB9CiAgICB9OwoKfSkoalF1ZXJ5LCB3aW5kb3cpOwo=</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

@@ -1,0 +1,108 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:ReportAbuse_Name}" version="10.1.8.10498" description="${resource:ReportAbuse_Description}" instanceIdentifier="3f6151c2e4674f7bac9e21cabae80131" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="content-report-abuse">
+		<contentScript><![CDATA[
+#set($contentId = false)
+#set($contentId = $core_v2_utility.ParseGuid($core_v2_page.GetQueryStringValue('AbuseContentId')))
+#set($contentTypeId = false)
+#set($contentTypeId = $core_v2_utility.ParseGuid($core_v2_page.GetQueryStringValue('AbuseContentTypeId')))
+#set($flag = false)
+#set($flag = $core_v2_utility.ParseBool($core_v2_page.GetQueryStringValue('AbuseFlag')))
+
+#set ($successMessage = $core_v2_language.GetResource('Flag_Success'))
+#set ($content = false)
+#set ($content = $core_v2_content.Get($contentId, $contentTypeId))
+#if ($content)
+	#set ($author = false)
+	#set ($author = $core_v2_user.Get("%{ Id = $content.CreatedByUserId }"))
+	#if ($author)
+		#set ($successMessage = $core_v2_language.FormatString($core_v2_language.GetResource('Flag_Success_Attributed'), $author.DisplayName))
+	#end
+#end
+
+#if (!$core_v2_widget.IsInWidgetPreviewMode && $contentId && $contentTypeId && $flag && $core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+	#set($abuseReports = $core_v2_abuseReport.List("%{ReportingUserId = $core_v2_user.Accessing.Id, AbusiveContentId = $contentId}"))
+	#if (!$abuseReports || $abuseReports.TotalCount == 0)
+		#registerEndOfPageHtml()
+			<script type="text/javascript">
+				jQuery(function(j){
+					if (confirm('$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Confirm_Message'))')) {
+						j.telligent.evolution.post({
+							url: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('flag.vm'))',
+							data: { contentId: '$contentId', contentTypeId: '$contentTypeId' },
+							success: function (data) {
+								if (data.success) {
+									j.telligent.evolution.messaging.publish('ui.reportabuse', {
+										contentId: '$contentId',
+										contentTypeId: '$contentTypeId'
+									});
+									j.telligent.evolution.notifications.show('$core_v2_encoding.JavascriptEncode($successMessage)', { type:'success' });
+								} else {
+									j.telligent.evolution.notifications.show('$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Flag_Error'))', { type:'error' });
+								}
+							}
+						})
+					}
+				});
+			</script>
+		#end
+	#elseif ($abuseReports && $abuseReports.TotalCount == 1)
+		#registerEndOfPageHtml()
+			<script type="text/javascript">
+				jQuery(function(j){
+					j.telligent.evolution.notifications.show('$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Flag_Already_Flagged'))', { type:'success' });
+				});
+			</script>
+		#end
+	#else
+		$core_v2_widget.Hide()
+	#end
+#else
+	$core_v2_widget.Hide()
+#end
+		]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:ReportAbuse_Name}'))
+		]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:ReportAbuse_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Confirm_Message">Are you sure you want to flag this content as abusive?</resource>
+  <resource name="Flag_Already_Flagged">This content has already been flagged.  Thank you for your feedback.</resource>
+  <resource name="Flag_Error">There was an error flagging this content as abusive.</resource>
+  <resource name="Flag_Success">This content has been flagged as spam/abuse.</resource>
+  <resource name="Flag_Success_Attributed">{0}'s post has been flagged. Thank you for your feedback.</resource>
+  <resource name="Options">Options</resource>
+  <resource name="ReportAbuse_Description">Allows content to be reported as abusive from a link in an email.</resource>
+  <resource name="ReportAbuse_Name">Report Abuse</resource>
+</language>
+<language key="zh-cn">
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Confirm_Message">是否确定要将此内容标记为不良信息?</resource>
+  <resource name="Flag_Already_Flagged">已标记此内容。感谢您的反馈。</resource>
+  <resource name="Flag_Error">将此内容标记为不良信息时出错。</resource>
+  <resource name="Flag_Success">此内容被标记为垃圾邮件/不良信息。</resource>
+  <resource name="Flag_Success_Attributed">{0} 的文章已被标记。感谢您的反馈。</resource>
+  <resource name="Options">选项</resource>
+  <resource name="ReportAbuse_Description">允许通过电子邮件中的链接举报内容属于不良信息。</resource>
+  <resource name="ReportAbuse_Name">报告不良信息</resource>
+</language>
+<language key="zh-tw">
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Confirm_Message">您確定要將此內容標幟為不當使用嗎?</resource>
+  <resource name="Flag_Already_Flagged">已標幟此內容。感謝您的意見反應。</resource>
+  <resource name="Flag_Error">將此內容標幟為不當使用時發生錯誤。</resource>
+  <resource name="Flag_Success">此內容已被標幟為垃圾郵件/不當使用。</resource>
+  <resource name="Flag_Success_Attributed">已被標幟 {0} 的貼文。感謝您的意見反應。</resource>
+  <resource name="Options">選項</resource>
+  <resource name="ReportAbuse_Description">允許透過電子郵件中的連結報告不當使用的內容。</resource>
+  <resource name="ReportAbuse_Name">回報不當使用</resource>
+</language></languageResources>
+		<files>
+			<file name="flag.vm">77u/I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkNCgkkY29yZV92Ml9wYWdlLlNldENvbnRlbnRUeXBlKCdhcHBsaWNhdGlvbi9qc29uJykNCg0KCSNzZXQoJGNvbnRlbnRJZCA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VHdWlkKCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdjb250ZW50SWQnKSkpDQoJI3NldCgkY29udGVudFR5cGVJZCA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VHdWlkKCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdjb250ZW50VHlwZUlkJykpKQ0KDQoJI3NldCgkYWJ1c2VSZXBvcnQgPSBmYWxzZSkNCgkjc2V0KCRhYnVzZVJlcG9ydCA9ICRjb3JlX3YyX2FidXNlUmVwb3J0LkNyZWF0ZSgkY29udGVudElkLCAkY29udGVudFR5cGVJZCkpDQoJeyJzdWNjZXNzIjojaWYoJGFidXNlUmVwb3J0KSB0cnVlI2Vsc2UgZmFsc2UjZW5kfQ0KI2VuZA==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

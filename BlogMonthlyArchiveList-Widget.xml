@@ -1,0 +1,47 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Blogs_BlogArchiveList_Name}" version="10.1.8.10498" description="${resource:Blogs_BlogArchiveList_Description}" instanceIdentifier="957f4b146dab4c47af2abc060f6bcbfe" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="true" cssClass="blog-archive-list">
+		<contentScript><![CDATA[
+
+#set ($blogId = $core_v2_blog.Current.Id)
+#set ($blogPostSummaries = $core_v2_blogPostSummary.List($blogId))
+
+<ul class="navigation-list">
+#foreach ($summary in $blogPostSummaries)
+	<li class="navigation-list-item">
+		<a href="$core_v2_encoding.HtmlAttributeEncode($core_v2_blogUrls.Month($blogId, $summary.Date))">$core_v2_language.FormatDate($summary.Date, "MMMM yyyy")</a> ($summary.Count)
+	</li>
+#end
+</ul>
+
+	]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Blogs_BlogArchiveList_Name}'))
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Blogs_BlogArchiveList_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+	]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Blogs_BlogArchiveList_Description">Displays a list of months of archived blog posts.</resource>
+  <resource name="Blogs_BlogArchiveList_Name">Blog - Monthly Archive List</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="Options">Options</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Blogs_BlogArchiveList_Description">显示已存档博客文章的每月列表。</resource>
+  <resource name="Blogs_BlogArchiveList_Name">博客 - 每月存档列表</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="Options">选项</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Blogs_BlogArchiveList_Description">顯示已封存部落格貼文的月份清單。</resource>
+  <resource name="Blogs_BlogArchiveList_Name">部落格 - 每月封存清單</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="Options">選項</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="94b4a7db70934b0abcce06169b6f2272" />
+		</requiredContext>
+	</scriptedContentFragment>
+</scriptedContentFragments>

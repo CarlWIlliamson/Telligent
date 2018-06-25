@@ -1,0 +1,284 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Wikis_Page_Name}" version="10.1.8.10498" description="${resource:Wikis_Page_Description}" instanceIdentifier="3be81e4a13d74e78ab039be987d2f7fb" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="true" cssClass="page">
+		<contentScript><![CDATA[#set ($wiki = false)
+#set ($wiki = $core_v2_wiki.Current)
+#if (!$wiki)
+	$core_v2_widget.Hide()
+#end
+#set ($page = false)
+#set ($page = $core_v2_wikiPage.CurrentOrDefault)
+#if (!$page)
+	$core_v2_widget.Hide()
+#end
+#set ($body = $page.Body())
+
+$core_v2_wikiPage.IncrementViewCount($page.Id)
+
+#if(!$page.IsPublished)
+    <div class="message warning">
+        $core_v2_language.GetResource('DraftPost')
+    </div>
+#end
+
+<div class="content full without-author text">
+	<h1 class="name">$page.Title</h1>
+	<div class="content">$!body</div>
+
+	#if ($page.Tags)
+		#foreach ($tag in $page.Tags)
+		#beforeall
+			<div class="content-tags">
+				<ul class="tag-list">
+		#each
+			#set ($tagUrl = false)
+			#set ($tagUrl = $core_v2_wikiUrls.Tags($wiki.Id, $core_v2_utility.MakeList($tag)))
+			#if ($tagUrl)
+				<li class="tag-item">
+					<a href="$core_v2_encoding.HtmlAttributeEncode($tagUrl)" rel="tag">$tag</a>
+				</li>
+			#end
+		#afterall
+				</ul>
+			</div>
+		#end
+	#end
+
+	<div class="actions">
+		#set($maxLinks = 3)
+		#if ($core_v2_wikiPage.AreRatingsEnabled($page.Id))
+			#set($maxLinks = 4)
+		#end
+		<div class="ui-links navigation-list" data-minlinks="$maxLinks" data-direction="horizontal" data-maxlinks="$maxLinks">
+			<ul class="navigation-list">
+				#set($url = false)
+				#set($url = $core_v2_wikiUrls.EditPage($page.Id))
+				#if($url)
+					<li class="navigation-list-item primary"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link edit-wiki-page"><span></span>$core_v2_language.GetResource('Wikis_Page_EditPage')</a></li>
+				#end
+
+				#if ($core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+					#set ($likeFormat = '{toggle} <span class="count"><span class="icon"></span>{count}</span>')
+				#else
+					#set ($likeFormat = '<span class="count"><span class="icon"></span>{count}</span>')
+				#end
+				<li class="navigation-list-item like">
+				    $core_v2_ui.Like($page.ContentId, $core_v2_wikiPage.ContentTypeId, "%{ Format = $likeFormat, IncludeTip = 'true' }")
+				</li>
+
+				#if ($core_v2_wikiPage.AreRatingsEnabled($page.Id))
+					<li class="navigation-list-item rating">
+						$core_v2_ui.Rate($page.ContentId, $core_v2_wikiPage.ContentTypeId)
+					</li>
+				#end
+
+				#set($url = false)
+				#set($url = $core_v2_wikiUrls.SharePage($page.Id, "%{Modal='False'}"))
+				#if($url)
+					<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlEncode($url)" class="internal-link email-post"><span></span>$core_v2_language.GetResource('CF_WikiLinks_PageShare')</a></li>
+				#else
+					<li class="navigation-list-item"><a href="mailto:?subject=$page.Title&body=$core_v2_encoding.HtmlAttributeEncode($core_v2_page.AbsoluteUrl($page.Url))" class="internal-link email-post"><span></span>$core_v2_language.GetResource('CF_WikiLinks_PageShare')</a></li>
+				#end
+
+				#set($url = false)
+				#set($url = $core_v2_wikiUrls.PageHistory($page.Id))
+				#if($url)
+					<li class="navigation-list-item"><a href="$core_v2_encoding.HtmlAttributeEncode($url)" class="internal-link wiki-page-history"><span></span>$core_v2_language.GetResource('Wikis_Page_PageHistory')</a></li>
+				#end
+
+				#if ($page && $core_v2_nodePermission.Get('wikispages', $page.Id, $core_v2_wikiPermissions.DeletePage).IsAllowed)
+					<li class="navigation-list-item"><a href="#" data-messagename="widget.${core_v2_widget.WrapperElementId}.wikiDelete" data-pageid="$page.Id" data-successurl="$core_v2_encoding.HtmlAttributeEncode($core_v2_wikiUrls.Wiki($wiki.Id))" id="$core_v2_widget.UniqueId('deletepage')" class="internal-link delete-page">$core_v2_language.GetResource('Wikis_Page_Delete')</a></li>
+					<script type="text/javascript">
+					jQuery(function(j){
+						j.telligent.evolution.messaging.subscribe('widget.${core_v2_widget.WrapperElementId}.wikiDelete', function(data) {
+							if (window.confirm('$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Wikis_Page_Delete_Confirmation'))'))
+							{
+								jQuery.telligent.evolution.del({
+									url: jQuery.telligent.evolution.site.getBaseUrl() + 'api.ashx/v2/wikis/pages/{id}.json',
+									data: {
+										id: j(data.target).data('pageid')
+									},
+									success: function(response) {
+										window.location = j(data.target).data('successurl');
+									},
+									defaultErrorMessage: '$core_v2_encoding.JavascriptEncode($core_v2_language.GetResource('Wikis_Page_Delete_Error'))'
+								});
+							}
+						});
+					});
+					</script>
+				#end
+
+		        #set($convert = false)
+				#set($convert = $core_v2_ui.ConvertContent($page.ContentId, $page.ContentTypeId))
+				#if ($convert)
+				    <li class="navigation-list-item">
+				        $convert
+				    </li>
+				#end
+
+				#if ($core_v2_user.IsRegistered($core_v2_user.Accessing.Id) && $core_v2_nodePermission.Get('wikispages',$page.Id,$core_v2_wikiPermissions.LockPage).IsAllowed)
+					<li class="navigation-list-item">
+						<a data-messagename="widget.${core_v2_widget.WrapperElementId}.wikiLockPage" data-wikipageid="$page.Id" data-locked="false" href="#" #if($page.IsLocked) style="display:none" #end>$core_v2_language.GetResource('Wiki_WikiLinks_UnlockPage')</a>
+					</li>
+					<li>
+						<a data-messagename="widget.${core_v2_widget.WrapperElementId}.wikiLockPage" data-wikipageid="$page.Id" data-locked="true" href="#" #if(!$page.IsLocked) style="display:none" #end>$core_v2_language.GetResource('Wiki_WikiLinks_LockPage')</a>
+					</li>
+					#registerEndOfPageHtml("widget.${core_v2_widget.WrapperElementId}.wikiLockPage")
+						<script type="text/javascript">
+						jQuery(function(j){
+							function update(value, link) {
+								j.telligent.evolution.post({
+									url: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('lock.vm'))',
+									data: {
+										type:'wikiPage',
+										lock:value,
+										wikiPageId:link.data('wikipageid')
+									},
+									dataType: 'json'
+								}).then(function(){
+									if(value) {
+										link.closest('ul').find('a[data-messagename="widget.${core_v2_widget.WrapperElementId}.wikiLockPage"][data-locked="false"]').hide();
+										link.closest('ul').find('a[data-messagename="widget.${core_v2_widget.WrapperElementId}.wikiLockPage"][data-locked="true"]').show();
+									} else {
+										link.closest('ul').find('a[data-messagename="widget.${core_v2_widget.WrapperElementId}.wikiLockPage"][data-locked="false"]').show();
+										link.closest('ul').find('a[data-messagename="widget.${core_v2_widget.WrapperElementId}.wikiLockPage"][data-locked="true"]').hide();
+									}
+								});
+							}
+							j.telligent.evolution.messaging.subscribe('widget.${core_v2_widget.WrapperElementId}.wikiLockPage', function(data){
+								update(!j(data.target).data('locked'), j(data.target));
+							});
+						});
+						</script>
+					#end
+				#end
+
+				#if ($core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+					<li class="navigation-list-item">
+						<a data-messagename="widget.${core_v2_widget.WrapperElementId}.wikiSubscribe" data-wikipageid="$page.Id" data-subscribed="false" href="#" #if($core_v2_wikiPage.IsSubscribed($page.Id)) style="display:none" #end>$core_v2_language.GetResource('CF_WikiLinks_Subscribe')</a>
+					</li>
+					<li>
+						<a data-messagename="widget.${core_v2_widget.WrapperElementId}.wikiSubscribe" data-wikipageid="$page.Id" data-subscribed="true" href="#" #if(!$core_v2_wikiPage.IsSubscribed($page.Id)) style="display:none" #end>$core_v2_language.GetResource('CF_WikiLinks_Unsubscribe')</a>
+					</li>
+					#registerEndOfPageHtml("widget.${core_v2_widget.WrapperElementId}.wikiSubscribe")
+						<script type="text/javascript">
+						jQuery(function(j){
+							function update(value, link) {
+								j.telligent.evolution.post({
+									url: '$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('subscribe.vm'))',
+									data: {
+										type:'wikiPage',
+										subscribe:value,
+										wikiPageId: link.data('wikipageid')
+									},
+									dataType: 'json'
+								}).then(function(){
+									if(value) {
+										link.closest('ul').find('a[data-messagename="widget.${core_v2_widget.WrapperElementId}.wikiSubscribe"][data-subscribed="false"]').hide();
+										link.closest('ul').find('a[data-messagename="widget.${core_v2_widget.WrapperElementId}.wikiSubscribe"][data-subscribed="true"]').show();
+									} else {
+										link.closest('ul').find('a[data-messagename="widget.${core_v2_widget.WrapperElementId}.wikiSubscribe"][data-subscribed="false"]').show();
+										link.closest('ul').find('a[data-messagename="widget.${core_v2_widget.WrapperElementId}.wikiSubscribe"][data-subscribed="true"]').hide();
+									}
+								});
+							}
+							j.telligent.evolution.messaging.subscribe('widget.${core_v2_widget.WrapperElementId}.wikiSubscribe', function(data){
+								update(!j(data.target).data('subscribed'), j(data.target));
+							});
+						});
+						</script>
+					#end
+				#end
+
+				#if ($core_v2_user.IsRegistered($core_v2_user.Accessing.Id))
+					<li class="navigation-list-item">
+	    				$core_v2_ui.Moderate($page.ContentId, $core_v2_wikiPage.ContentTypeId, "%{ }")
+	    			</li>
+				#end
+
+		        #if ($core_v3_feature.CanFeature($page.ContentId, $page.ContentTypeId))
+		          <li class="navigation-list-item">$core_v2_ui.Feature($page.ContentId, $page.ContentTypeId)</li>
+		        #end
+
+				<li class="navigation-list-item">
+		            <a href="#" data-more>$core_v2_language.GetResource('more')</a>
+		        </li>
+		        <li class="navigation-list-item">
+		            <a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+		        </li>
+			</ul>
+		</div>
+	</div>
+
+</div>
+		]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Wikis_Page_Name}'))
+		]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Wikis_Page_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="cancel">Cancel</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="CF_WikiLinks_PageShare">Share</resource>
+  <resource name="CF_WikiLinks_Subscribe">Turn Page notifications on</resource>
+  <resource name="CF_WikiLinks_Unsubscribe">Turn Page notifications off</resource>
+  <resource name="DraftPost">This page is not published. </resource>
+  <resource name="more">More</resource>
+  <resource name="Options">Options</resource>
+  <resource name="Wiki_WikiLinks_LockPage">Locked</resource>
+  <resource name="Wiki_WikiLinks_UnlockPage">Unlocked</resource>
+  <resource name="Wikis_Page_Delete">Delete</resource>
+  <resource name="Wikis_Page_Delete_Confirmation">Are you sure you want to delete this page?</resource>
+  <resource name="Wikis_Page_Delete_Error">Sorry an error occurred when deleting the page.</resource>
+  <resource name="Wikis_Page_Description">Displays a wiki page.</resource>
+  <resource name="Wikis_Page_EditPage">Edit</resource>
+  <resource name="Wikis_Page_Name">Wikis - Page</resource>
+  <resource name="Wikis_Page_PageHistory">History</resource>
+</language>
+<language key="zh-cn">
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="CF_WikiLinks_PageShare">共享</resource>
+  <resource name="CF_WikiLinks_Subscribe">打开页面通知</resource>
+  <resource name="CF_WikiLinks_Unsubscribe">关闭页面通知</resource>
+  <resource name="DraftPost">未发布此页面。</resource>
+  <resource name="more">更多</resource>
+  <resource name="Options">选项</resource>
+  <resource name="Wiki_WikiLinks_LockPage">已锁定</resource>
+  <resource name="Wiki_WikiLinks_UnlockPage">已解锁</resource>
+  <resource name="Wikis_Page_Delete">删除</resource>
+  <resource name="Wikis_Page_Description">显示 Wiki 页面。</resource>
+  <resource name="Wikis_Page_EditPage">编辑</resource>
+  <resource name="Wikis_Page_Name">Wiki - 页面</resource>
+  <resource name="Wikis_Page_PageHistory">历史记录</resource>
+</language>
+<language key="zh-tw">
+  <resource name="cancel">取消</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="CF_WikiLinks_PageShare">分享</resource>
+  <resource name="CF_WikiLinks_Subscribe">開啟頁面通知</resource>
+  <resource name="CF_WikiLinks_Unsubscribe">關閉頁面通知</resource>
+  <resource name="DraftPost">這個頁面尚未發佈。</resource>
+  <resource name="more">更多</resource>
+  <resource name="Options">選項</resource>
+  <resource name="Wiki_WikiLinks_LockPage">已鎖定</resource>
+  <resource name="Wiki_WikiLinks_UnlockPage">解除鎖定</resource>
+  <resource name="Wikis_Page_Delete">刪除</resource>
+  <resource name="Wikis_Page_Description">顯示 Wiki 頁面。</resource>
+  <resource name="Wikis_Page_EditPage">編輯</resource>
+  <resource name="Wikis_Page_Name">Wiki - 頁面</resource>
+  <resource name="Wikis_Page_PageHistory">記錄</resource>
+</language></languageResources>
+		<requiredContext>
+			<context id="5ec5866ac72c47c4b8f12f9af40e5c35" />
+		</requiredContext>
+		<files>
+			<file name="lock.vm">77u/I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkNCgkjc2V0KCR0eXBlID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ3R5cGUnKSkNCgkjc2V0KCRsb2NrID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUJvb2woJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ2xvY2snKSkpDQoJJGNvcmVfdjJfcGFnZS5TZXRDb250ZW50VHlwZSgnYXBwbGljYXRpb24vanNvbicpDQoNCgkjaWYgKCR0eXBlID09ICd3aWtpUGFnZScpDQoJCXsibG9jayI6I2lmKCRjb3JlX3YyX3dpa2lQYWdlLlVwZGF0ZSgkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCd3aWtpUGFnZUlkJykpLCAiJXsgSXNMb2NrZWQgPSAkbG9jaywgU2F2ZVJldmlzaW9uID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUJvb2woJ0ZhbHNlJykgfSIpLklzTG9ja2VkKSB0cnVlI2Vsc2UgZmFsc2UjZW5kfQ0KCSNlbHNlDQoJCSRjb3JlX3YyX3BhZ2UuU2VuZEpzb25FcnJvcignVW5yZWNvZ25pemVkIGxvY2sgdHlwZS4nKQ0KCSNlbmQNCiNlbmQ=</file>
+			<file name="subscribe.vm">77u/I2lmICgkY29yZV92Ml9wYWdlLklzUG9zdCkNCgkjc2V0KCR0eXBlID0gJGNvcmVfdjJfcGFnZS5HZXRGb3JtVmFsdWUoJ3R5cGUnKSkNCgkjc2V0KCRzdWJzY3JpYmUgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlQm9vbCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnc3Vic2NyaWJlJykpKQ0KCSRjb3JlX3YyX3BhZ2UuU2V0Q29udGVudFR5cGUoJ2FwcGxpY2F0aW9uL2pzb24nKQ0KCSNzZXQoJHJlc3BvbnNlID0gZmFsc2UpDQoNCgkjaWYgKCR0eXBlID09ICd3aWtpUGFnZScpDQoJCSNzZXQoJHJlc3BvbnNlID0gJGNvcmVfdjJfd2lraVBhZ2UuU2V0U3Vic2NyaWJlZCgkY29yZV92Ml91dGlsaXR5LlBhcnNlSW50KCRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCd3aWtpUGFnZUlkJykpLCAkc3Vic2NyaWJlKSkNCgkJeyJzdWJzY3JpYmUiOiNpZigkc3Vic2NyaWJlKSB0cnVlI2Vsc2UgZmFsc2UjZW5kLCJ3YXJuaW5ncyI6Ww0KCQkJI2ZvcmVhY2ggKCR3YXJuaW5nIGluICRyZXNwb25zZS5XYXJuaW5ncykNCgkJCQkjZWFjaA0KCQkJCQkiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkd2FybmluZy5NZXNzYWdlKSINCgkJCQkjYmV0d2Vlbg0KCQkJCQksDQoJCQkjZW5kDQoJCV19DQoJI2Vsc2UNCgkJJGNvcmVfdjJfcGFnZS5TZW5kSnNvbkVycm9yKCdVbnJlY29nbml6ZWQgc3Vic2NyaXB0aW9uIHR5cGUuJykNCgkjZW5kDQojZW5k</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>

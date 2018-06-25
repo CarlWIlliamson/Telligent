@@ -1,0 +1,124 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Core_OAuthClientAuthorize_Name}" version="10.1.8.10498" description="${resource:Core_OAuthClientAuthorize_Description}" instanceIdentifier="e0074c30237e41769a3e11f89fb209ed" theme="" isCacheable="true" varyCacheByUser="true" showHeaderByDefault="false" cssClass="oauth-client-authorize">
+		<contentScript><![CDATA[
+#set ($accessingUser = $core_v2_user.Accessing)
+#if (!$core_v2_user.IsRegistered($accessingUser.Id))
+	$core_v2_page.Redirect($core_v2_urls.LogIn("%{ReturnToCurrentUrl='true'}"))
+#end
+
+#set ($submitId = $core_v2_widget.UniqueId('submit'))
+#set ($denyId = $core_v2_widget.UniqueId('deny'))
+#set ($client = false)
+#set ($client = $core_v2_oauthClient.Current)
+#set ($scope = '')
+#set ($scope = $core_v2_page.GetQueryStringValue('scope'))
+#set ($state = '')
+#set ($state = $core_v2_page.GetQueryStringValue('state'))
+#set ($responseType = '')
+#set ($responseType = $core_v2_page.GetQueryStringValue('response_type'))
+#set ($redirectUrl = '')
+#set ($redirectUrl = $core_v2_page.GetQueryStringValue('redirect_uri'))
+
+#set($validateUrl = false)
+#if ($client)
+	#set($validateUrl = $core_v2_oauthClient.Validate($client.Id, $redirectUrl, $responseType, $scope, $state))
+#else
+	#set($validateUrl = $core_v2_oauthClient.Validate($redirectUrl, $responseTYpe, $scope, $state))
+#end
+#if ($validateUrl && $validateUrl != '')
+	$core_v2_page.Redirect($validateUrl)
+#end
+
+#if (!$client)
+	<div class="message error">$core_v2_language.GetResource('ClientNotFound')</div>
+#else
+	<div class="field-list-header"></div>
+	<fieldset class="field-list">
+		<legend class="field-list-description"><span>$core_v2_language.GetResource('Authorize') $core_v2_encoding.HtmlEncode($client.Name)?</span></legend>
+		<ul class="field-list">
+			<li class="field-item">
+				<span class="label field-item-header">$core_v2_language.GetResource('AppAuthorizePrompt')</span>
+				<span class="field-item-input">
+					<a id="$core_v2_encoding.HtmlAttributeEncode($submitId)" class="internal-link authorize-app submit-button" href="#"><span></span>$core_v2_language.GetResource('Allow')</a>
+					<a id="$core_v2_encoding.HtmlAttributeEncode($denyId)" class="internal-link deny-app cancel-button" href="#"><span></span>$core_v2_language.GetResource('Deny')</a>
+				</span>
+				<span class="field-item-validation" style="display: none;"></span>
+				<span class="processing" style="visibility: hidden;"><span class="ui-loading" data-width="45" data-height="15"></span></span>
+			</li>
+		</ul>
+	</fieldset>
+	<div class="field-list-footer"></div>
+
+	#registerEndOfPageHtml('telligent.evolution.widgets.oauthClientAuthorize')
+		<script type="text/javascript" src="$core_v2_encoding.HtmlAttributeEncode($core_v2_widget.GetFileUrl('ui.js'))"></script>
+	#end
+	#registerEndOfPageHtml()
+		<script type="text/javascript">
+		//<!--31154f2f1a944c64b0e644f1022f506c-cdata-start-->
+		jQuery(document).ready(function(j){
+			jQuery.telligent.evolution.widgets.oauthClientAuthorize.register({
+				wrapperSelector: "#$core_v2_encoding.JavascriptEncode($core_v2_widget.WrapperElementId)",
+				submitButtonSelector: "#$core_v2_encoding.JavascriptEncode($submitId)",
+				denyButtonSelector: "#$core_v2_encoding.JavascriptEncode($denyId)",
+				authorizeUrl: "$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('authorize.vm'))",
+				denyUrl: "$core_v2_encoding.JavascriptEncode($core_v2_widget.GetExecutedFileUrl('deny.vm'))",
+				clientId: "$core_v2_encoding.JavascriptEncode($client.Id.ToString())",
+				callbackUrl: "$core_v2_encoding.JavascriptEncode($redirectUrl)",
+				responseType: "$core_v2_encoding.JavascriptEncode($responseType)",
+				scope: "$core_v2_encoding.JavascriptEncode($scope)",
+				state: "$core_v2_encoding.JavascriptEncode($state)"
+			});
+		});
+		//<!--31154f2f1a944c64b0e644f1022f506c-cdata-end-->
+		</script>
+	#end
+#end
+	]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Core_OAuthClientAuthorize_Name}'))
+	]]></headerScript>
+		<configuration><![CDATA[
+<propertyGroup id="options" resourceName="Options">
+	<property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Core_OAuthClientAuthorize_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+</propertyGroup>
+			]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="Allow">Allow</resource>
+  <resource name="AppAuthorizePrompt">This application would like to act on your behalf on this site.</resource>
+  <resource name="Authorize">Authorize</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="ClientNotFound">Client not found for this ID</resource>
+  <resource name="Core_OAuthClientAuthorize_Description">Allows you to authorize an OAuth client application.</resource>
+  <resource name="Core_OAuthClientAuthorize_Name">OAuth App Authorization</resource>
+  <resource name="Deny">Deny</resource>
+  <resource name="Options">Options</resource>
+</language>
+<language key="zh-cn">
+  <resource name="Allow">允许</resource>
+  <resource name="AppAuthorizePrompt">此应用程序将代表您在该网站上操作。</resource>
+  <resource name="Authorize">授权</resource>
+  <resource name="CF_Title">小组件标题</resource>
+  <resource name="ClientNotFound">未找到此 ID 的客户端</resource>
+  <resource name="Core_OAuthClientAuthorize_Description">允许您向 OAuth 客户端应用程序授权。</resource>
+  <resource name="Core_OAuthClientAuthorize_Name">OAuth 应用程序授权</resource>
+  <resource name="Deny">拒绝</resource>
+  <resource name="Options">选项</resource>
+</language>
+<language key="zh-tw">
+  <resource name="Allow">允許</resource>
+  <resource name="AppAuthorizePrompt">此應用程式要在這個網站中代表您行動。</resource>
+  <resource name="Authorize">授權</resource>
+  <resource name="CF_Title">Widget 標題</resource>
+  <resource name="ClientNotFound">找不到此 ID 的用戶端</resource>
+  <resource name="Core_OAuthClientAuthorize_Description">允許您授權 OAuth 用戶端應用程式。</resource>
+  <resource name="Core_OAuthClientAuthorize_Name">OAuth 應用程式授權</resource>
+  <resource name="Deny">拒絕</resource>
+  <resource name="Options">選項</resource>
+</language></languageResources>
+		<files>
+			<file name="authorize.vm">77u/I3NldCgkY2xpZW50SWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlR3VpZCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnY2xpZW50SWQnKSkpDQojc2V0KCRjYWxsYmFja1VybCA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdjYWxsYmFja1VybCcpKQ0KI3NldCgkcmVzcG9uc2VfdHlwZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdyZXNwb25zZV90eXBlJykpDQojc2V0KCRzY29wZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdzY29wZScpKQ0KI3NldCgkc3RhdGUgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnc3RhdGUnKSkNCg0KI3NldCgkcmV0dXJuVXJsID0gJGNvcmVfdjJfb2F1dGhDbGllbnQuQXV0aG9yaXplKCRjbGllbnRJZCwgIiRjYWxsYmFja1VybCIsICIkcmVzcG9uc2VfdHlwZSIsICIkc2NvcGUiLCAiJHN0YXRlIikpDQoNCg0KDQokY29yZV92Ml9wYWdlLlNldENvbnRlbnRUeXBlKCdhcHBsaWNhdGlvbi9qc29uJykNCnsicmV0dXJuVXJsIjogIiRjb3JlX3YyX2VuY29kaW5nLkphdmFzY3JpcHRFbmNvZGUoJHJldHVyblVybCkifQ==</file>
+			<file name="deny.vm">77u/I3NldCgkY2xpZW50SWQgPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlR3VpZCgkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnY2xpZW50SWQnKSkpDQojc2V0KCRjYWxsYmFja1VybCA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdjYWxsYmFja1VybCcpKQ0KI3NldCgkcmVzcG9uc2VfdHlwZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdyZXNwb25zZV90eXBlJykpDQojc2V0KCRzY29wZSA9ICRjb3JlX3YyX3BhZ2UuR2V0Rm9ybVZhbHVlKCdzY29wZScpKQ0KI3NldCgkc3RhdGUgPSAkY29yZV92Ml9wYWdlLkdldEZvcm1WYWx1ZSgnc3RhdGUnKSkNCg0KI3NldCgkcmV0dXJuVXJsID0gJGNvcmVfdjJfb2F1dGhDbGllbnQuRGVueSgkY2xpZW50SWQsICIkY2FsbGJhY2tVcmwiLCAiJHJlc3BvbnNlX3R5cGUiLCAiJHNjb3BlIiwgIiRzdGF0ZSIpKQ0KDQoNCiRjb3JlX3YyX3BhZ2UuU2V0Q29udGVudFR5cGUoJ2FwcGxpY2F0aW9uL2pzb24nKQ0KeyJyZXR1cm5VcmwiOiAiJGNvcmVfdjJfZW5jb2RpbmcuSmF2YXNjcmlwdEVuY29kZSgkcmV0dXJuVXJsKSJ9</file>
+			<file name="ui.js">KGZ1bmN0aW9uKCQpew0KDQoJdmFyIGF1dGhvcml6ZUNsaWVudCA9IGZ1bmN0aW9uKGNvbnRleHQpIHsNCgkJJCgncHJvY2Vzc2luZycsIGNvbnRleHQud3JhcHBlcikuc2hvdygpOw0KCQkkLnRlbGxpZ2VudC5ldm9sdXRpb24ucG9zdCh7DQoJCQl1cmw6IGNvbnRleHQuYXV0aG9yaXplVXJsLA0KCQkJZGF0YTogew0KCQkJCWNsaWVudElkOiBjb250ZXh0LmNsaWVudElkLA0KCQkJCWNhbGxiYWNrVXJsOiBjb250ZXh0LmNhbGxiYWNrVXJsLA0KCQkJCXJlc3BvbnNlX3R5cGU6IGNvbnRleHQucmVzcG9uc2VUeXBlLA0KCQkJCXNjb3BlOiBjb250ZXh0LnNjb3BlLA0KCQkJCXN0YXRlOiBjb250ZXh0LnN0YXRlDQoJCQl9LA0KCQkJc3VjY2VzczogZnVuY3Rpb24ocmVzcG9uc2UpIHsNCgkJCQlpZiAocmVzcG9uc2UucmV0dXJuVXJsKQ0KCQkJCQl3aW5kb3cubG9jYXRpb24uaHJlZiA9IHJlc3BvbnNlLnJldHVyblVybDsNCgkJCX0NCgkJfSk7DQoJfSwNCglkZW55Q2xpZW50ID0gZnVuY3Rpb24oY29udGV4dCkgew0KCQkkKCdwcm9jZXNzaW5nJywgY29udGV4dC53cmFwcGVyKS5zaG93KCk7DQoJCSQudGVsbGlnZW50LmV2b2x1dGlvbi5wb3N0KHsNCgkJCXVybDogY29udGV4dC5kZW55VXJsLA0KCQkJZGF0YTogew0KCQkJCWNsaWVudElkOiBjb250ZXh0LmNsaWVudElkLA0KCQkJCWNhbGxiYWNrVXJsOiBjb250ZXh0LmNhbGxiYWNrVXJsLA0KCQkJCXJlc3BvbnNlX3R5cGU6IGNvbnRleHQucmVzcG9uc2VUeXBlLA0KCQkJCXNjb3BlOiBjb250ZXh0LnNjb3BlLA0KCQkJCXN0YXRlOiBjb250ZXh0LnN0YXRlDQoJCQl9LA0KCQkJc3VjY2VzczogZnVuY3Rpb24ocmVzcG9uc2UpIHsNCgkJCQlpZiAocmVzcG9uc2UucmV0dXJuVXJsKQ0KCQkJCQl3aW5kb3cubG9jYXRpb24uaHJlZiA9IHJlc3BvbnNlLnJldHVyblVybDsNCgkJCX0NCgkJfSk7DQoJfTsNCg0KCXZhciBhcGkgPSB7DQoJCXJlZ2lzdGVyOiBmdW5jdGlvbihjb250ZXh0KSB7DQoJCQljb250ZXh0LndyYXBwZXIgPSAkKGNvbnRleHQud3JhcHBlclNlbGVjdG9yKTsNCg0KCQkJJChjb250ZXh0LnN1Ym1pdEJ1dHRvblNlbGVjdG9yKS5jbGljayhmdW5jdGlvbigpIHsgDQoJCQkJYXV0aG9yaXplQ2xpZW50KGNvbnRleHQpOw0KCQkJfSk7DQoJCQkkKGNvbnRleHQuZGVueUJ1dHRvblNlbGVjdG9yKS5jbGljayhmdW5jdGlvbigpIHsgDQoJCQkJZGVueUNsaWVudChjb250ZXh0KTsNCgkJCX0pOw0KCQl9DQoJfTsNCg0KCWlmICh0eXBlb2YgJC50ZWxsaWdlbnQgPT09ICd1bmRlZmluZWQnKSB7ICQudGVsbGlnZW50ID0ge307IH0NCglpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbiA9PT0gJ3VuZGVmaW5lZCcpIHsgJC50ZWxsaWdlbnQuZXZvbHV0aW9uID0ge307IH0NCglpZiAodHlwZW9mICQudGVsbGlnZW50LmV2b2x1dGlvbi53aWRnZXRzID09PSAndW5kZWZpbmVkJykgeyAkLnRlbGxpZ2VudC5ldm9sdXRpb24ud2lkZ2V0cyA9IHt9OyB9DQoJJC50ZWxsaWdlbnQuZXZvbHV0aW9uLndpZGdldHMub2F1dGhDbGllbnRBdXRob3JpemUgPSBhcGk7DQoNCn0oalF1ZXJ5KSkNCg==</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>
