@@ -1,0 +1,211 @@
+<scriptedContentFragments>
+	<scriptedContentFragment name="${resource:Blog_Banner_Name}" version="10.1.8.10498" description="${resource:Blog_Banner_Description}" instanceIdentifier="2f91c9a38a9f426ab9155ff3acc352a2" theme="" isCacheable="true" varyCacheByUser="false" showHeaderByDefault="false" cssClass="blog-banner">
+		<contentScript><![CDATA[
+#set ($blog = $core_v2_blog.Current)
+#if (!$blog)
+	$core_v2_widget.Hide()
+#end
+
+#set ($post = false)
+#set ($renderTitle = $core_v2_widget.GetBoolValue('renderTitle', true))
+#set ($renderPoster = $core_v2_widget.GetBoolValue('renderPoster', true))
+#if ($renderTitle || $renderPoster)
+	#set($post = $core_v2_blogPost.Current)
+#end
+
+$core_v2_widget.ExecuteFile('style.vm')
+
+<div class="banner application">
+	<div class="name">
+		#if ($renderTitle && $post)
+			<div class="title">
+				<a href="$core_v2_encoding.HtmlAttributeEncode($post.Url)">$post.Title</a>
+			</div>
+		#else
+			<div class="title">
+				<a href="$core_v2_encoding.HtmlAttributeEncode($blog.Url)">$blog.Name</a>
+			</div>
+			#if ($blog.Description)
+				<div class="description">$blog.Description</div>
+			#end
+		#end
+	</div>
+
+	## Custom Navigation
+	#set ($navigationItems = $core_v2_customNavigation.Deserialize($core_v2_widget.GetCustomValue('navigation', '')))
+	#foreach($navigationItem in $navigationItems)
+	#beforeall
+		<div class="navigation-list ui-links" data-minlinks="0" data-direction="horizontal">
+			<ul class="navigation-list">
+	#each
+				<li class="navigation-list-item #if($navigationItem.IsSelected) selected#end">
+					<a href="$core_v2_encoding.HtmlAttributeEncode($navigationItem.Url)" class="#if($navigationItem.IsSelected) selected#end">$!navigationItem.Label</a>
+				</li>
+	#afterall
+				<li class="navigation-list-item">
+					<a href="#" class="more" data-more>$core_v2_language.GetResource('more')</a>
+				</li>
+				<li class="navigation-list-item">
+					<a href="#" data-cancel>$core_v2_language.GetResource('cancel')</a>
+				</li>
+			</ul>
+		</div>
+	#end
+</div>
+		]]></contentScript>
+		<headerScript><![CDATA[
+$core_v2_widget.ApplyTokens($core_v2_widget.GetStringValue('fragmentHeader', '${resource:Blog_Banner_Name}'))
+		]]></headerScript>
+		<configuration><![CDATA[
+ <propertyGroup id="options" resourceName="Options">
+	 <property id="fragmentHeader" resourceName="CF_Title" dataType="string" defaultValue="${resource:Blog_Banner_Name}" controlType="Telligent.Evolution.Controls.ContentFragmentTokenStringControl, Telligent.Evolution.Platform" />
+	 <property id="renderTitle" resourceName="renderTitle" descriptionResourceName="renderTitle_desc" dataType="bool" defaultValue="True" />
+	 <property id="renderPoster" resourceName="renderPoster" descriptionResourceName="renderPoster_desc" dataType="bool" defaultValue="False" />
+	 <property id="navigation" dataType="custom" controlType="Telligent.Evolution.Controls.CustomNavigationCustomControl, Telligent.Evolution.Platform" maximumDepth="1" resourceName="navigation" descriptionResourceName="navigation_desc" navigationType="site" />
+ </propertyGroup>
+ <propertyGroup id="design" resourceName="design" descriptionResourceName="design_desc">
+	 <property id="designMode" resourceName="designMode" descriptionResourceName="designMode_desc" dataType="string" defaultValue="inherit" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		 <propertyValue value="inherit" resourceName="inherit"  propertiesToShow="" propertiesToHide="coverPhotoUrl,blurCoverPhoto,shadowCoverPhoto,palette,colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="color" resourceName="color"  propertiesToShow="palette,colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" propertiesToHide="coverPhotoUrl,blurCoverPhoto,shadowCoverPhoto" />
+		 <propertyValue value="photo" resourceName="photo" propertiesToShow="coverPhotoUrl,blurCoverPhoto,shadowCoverPhoto" propertiesToHide="palette,colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+	 </property>
+	 <property id="palette" resourceName="palette" descriptionResourceName="palette_desc" dataType="string" controlType="Telligent.Evolution.Controls.ColorSelectionControl, Telligent.Evolution.Platform">
+		 <propertyValue value="background-color=#ffffff&amp;color=#263238&amp;shadow=true&amp;border=true" resourceName="white" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color-from=#2BC0E4&amp;background-color-to=#EAECC6&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="tropic" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color-from=#7474BF&amp;background-color-to=#348AC7&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="stellar" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color-from=#43cea2&amp;background-color-to=#185a9d&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="river" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color-from=#3494E6&amp;background-color-to=#EC6EAD&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="city" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color-from=#36D1DC&amp;background-color-to=#5B86E5&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="scooter" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color-from=#A1FFCE&amp;background-color-to=#FAFFD1&amp;color=#000000&amp;shadow=false&amp;border=false" resourceName="limeade" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color-from=#EDE574&amp;background-color-to=#E1F5C4&amp;color=#000000&amp;shadow=false&amp;border=false" resourceName="sunny" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color-from=#DAE2F8&amp;background-color-to=#D6A4A4&amp;color=#000000&amp;shadow=false&amp;border=false" resourceName="moonrise" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color-from=#ED4264&amp;background-color-to=#FFEDBC&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="peach" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color-from=#ee0979&amp;background-color-to=#ff6a00&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="sunset" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color=#FFC107&amp;color=#000000&amp;shadow=false&amp;border=false" resourceName="amber" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color=#2196F3&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="blue" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color=#455A64&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="bluegray" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color=#00BCD4&amp;color=#000000&amp;shadow=false&amp;border=false" resourceName="cyan" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color=#8BC34A&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="green" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color=#03a9f4&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="lightblue" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color=#ECEFF1&amp;color=#263238&amp;shadow=true&amp;border=true" resourceName="lightbluegray" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color=#CDDC39&amp;color=#000000&amp;shadow=false&amp;border=false" resourceName="lime" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color=#E91E63&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="pink" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color=#9C27B0&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="purple" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color=#F44336&amp;color=#ffffff&amp;shadow=false&amp;border=false" resourceName="red" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color=#009688&amp;color=#ffffff&amp;shadow=false&amp;border=true" resourceName="teal" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color=#FFEB3B&amp;color=#000000&amp;shadow=false&amp;border=false" resourceName="yellow" propertiesToShow="" propertiesToHide="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" />
+		 <propertyValue value="background-color=#ffffff&amp;color=#263238&amp;custom=true" resourceName="custom" propertiesToShow="colorMode,backgroundColor,backgroundColor2,foregroundColor,shadow,border" propertiesToHide="" />
+	 </property>
+	 <property id="coverPhotoUrl" dataType="url" resourceName="coverphoto" descriptionResourceName="coverPhotoUrl_desc" controlType="Telligent.Evolution.Controls.ThemeFileUrlControl, Telligent.Evolution.Platform">
+		 <propertyRule type="Telligent.Evolution.Controls.PropertyRules.FileExtensionRule, Telligent.Evolution.Platform" validExtensions="gif,jpg,jpeg,png" />
+	 </property>
+	 <property id="blurCoverPhoto" descriptionResourceName="coverPhotoBlur_desc" dataType="bool" defaultValue="False" resourceName="coverPhotoBlur" />
+	 <property id="shadowCoverPhoto" descriptionResourceName="shadowCoverPhoto_desc" dataType="bool" defaultValue="True" resourceName="shadowCoverPhoto" />
+	 <property id="colorMode" resourceName="colorMode" dataType="string" defaultValue="yes" controlType="Telligent.Evolution.Controls.PropertyVisibilityValueSelectionControl, Telligent.Evolution.Platform">
+		 <propertyValue value="solid" resourceName="solid"  propertiesToShow="" propertiesToHide="backgroundColor2" />
+		 <propertyValue value="gradient" resourceName="gradient" propertiesToShow="backgroundColor2" propertiesToHide="" />
+	 </property>
+	 <property id="backgroundColor" dataType="color" defaultValue="#fff" resourceName="backgroundColor" />
+	 <property id="backgroundColor2" dataType="color" defaultValue="#fff" resourceName="backgroundColor2" />
+	 <property id="foregroundColor" dataType="color" defaultValue="#263238" resourceName="foregroundColor" />
+	 <property id="shadow" descriptionResourceName="shadow_desc" dataType="bool" defaultValue="True" resourceName="shadow" />
+	 <property id="border" descriptionResourceName="border_desc" dataType="bool" defaultValue="True" resourceName="border" />
+ </propertyGroup>
+		]]></configuration>
+		<languageResources><language key="en-us">
+  <resource name="amber">Amber</resource>
+  <resource name="backgroundColor">Background Color</resource>
+  <resource name="backgroundColor2">Secondary Gradient Background Color</resource>
+  <resource name="black">Black</resource>
+  <resource name="Blog_Banner_Description">Displays a blog banner.</resource>
+  <resource name="Blog_Banner_Name">Blog - Banner</resource>
+  <resource name="blue">Blue</resource>
+  <resource name="bluegray">Blue Gray</resource>
+  <resource name="border">Bottom Border</resource>
+  <resource name="border_desc">Render a bottom border beneath the banner. When the bottom shadow is enabled, only renders when not scrolled.</resource>
+  <resource name="cancel">Cancel</resource>
+  <resource name="CF_Title">Widget Title</resource>
+  <resource name="city">City</resource>
+  <resource name="color">Use Color</resource>
+  <resource name="colorMode">Color Type</resource>
+  <resource name="coverphoto">Cover Photo</resource>
+  <resource name="coverPhotoBlur">Blur Cover Photo</resource>
+  <resource name="coverPhotoBlur_desc">When selected, cover photo is blurred. This is useful for legibility of overlaid text when using a complex image.</resource>
+  <resource name="coverPhotoUrl_desc">When provided, a cover photo is rendered as the banner's background.</resource>
+  <resource name="custom">Custom</resource>
+  <resource name="cyan">Cyan</resource>
+  <resource name="design">Design</resource>
+  <resource name="design_desc">Customize your blog's banner design. The blog banner's design overrides the group banner's design.</resource>
+  <resource name="designMode">Design</resource>
+  <resource name="designMode_desc">Customize your blog's banner with a cover photo or color palette.</resource>
+  <resource name="foregroundColor">Foreground Color</resource>
+  <resource name="gradient">Gradient</resource>
+  <resource name="green">Green</resource>
+  <resource name="inherit">Use Group's Design</resource>
+  <resource name="lightblue">Light Blue</resource>
+  <resource name="lightbluegray">Light Blue Gray</resource>
+  <resource name="lime">Lime</resource>
+  <resource name="limeade">Limeade</resource>
+  <resource name="moonrise">Moonrise</resource>
+  <resource name="more">More</resource>
+  <resource name="navigation">Custom Navigation</resource>
+  <resource name="navigation_desc">Add, edit, delete, and reorder custom navigation links.</resource>
+  <resource name="Options">Options</resource>
+  <resource name="palette">Color Palette</resource>
+  <resource name="palette_desc">Select a color palette for your blog's banner, or create a custom one.</resource>
+  <resource name="peach">Peach</resource>
+  <resource name="photo">Use Cover Photo</resource>
+  <resource name="pink">Pink</resource>
+  <resource name="purple">Purple</resource>
+  <resource name="red">Red</resource>
+  <resource name="renderPoster">Post Image</resource>
+  <resource name="renderPoster_desc">When selected, renders post image as the banner background on post pages when available instead of the configured design.</resource>
+  <resource name="renderTitle">Post Title</resource>
+  <resource name="renderTitle_desc">When selected, renders post title on post pages instead of the blog name.</resource>
+  <resource name="river">River</resource>
+  <resource name="scooter">Scooter</resource>
+  <resource name="shadow">Bottom Shadow</resource>
+  <resource name="shadow_desc">Render a shadow beneath the banner. When the bottom border is enabled, only renders when scrolled.</resource>
+  <resource name="shadowCoverPhoto">Shadow Cover Photo</resource>
+  <resource name="shadowCoverPhoto_desc">When selected, cover photo is shadowed to increase legibility of text on a light photo</resource>
+  <resource name="solid">Solid</resource>
+  <resource name="stellar">Stellar</resource>
+  <resource name="sunny">Sunny</resource>
+  <resource name="sunset">Sunset</resource>
+  <resource name="teal">Teal</resource>
+  <resource name="tropic">Tropic</resource>
+  <resource name="white">White</resource>
+  <resource name="yellow">Yellow</resource>
+</language></languageResources>
+		<additionalCssScript><![CDATA[
+#set ($post = false)
+#set ($renderPoster = $core_v2_widget.GetBoolValue('renderPoster', true))
+#if ($renderPoster)
+	#set($post = $core_v2_blogPost.Current)
+#end
+#if ($renderPoster && $post && $post.PostImageUrl && $post.PostImageUrl.length > 0)
+	with-cover-photo with-shadow
+#else
+	#set ($designMode = $core_v2_widget.GetStringValue('designMode', 'inherit'))
+	#if ($designMode == 'photo')
+		#set ($coverPhotoUrl = false)
+		#set ($coverPhotoUrl = $core_v2_widget.GetUrlValue('coverPhotoUrl', ''))
+		#if ($coverPhotoUrl && $coverPhotoUrl.Length > 0)
+			with-cover-photo
+		#end
+		#set ($blurCoverPhoto = $core_v2_widget.GetBoolValue('blurCoverPhoto', true))
+		#if ($blurCoverPhoto)
+			with-blur
+		#end
+		#set ($shadowCoverPhoto = $core_v2_widget.GetBoolValue('shadowCoverPhoto', false))
+		#if ($shadowCoverPhoto)
+			with-shadow
+		#end
+	#end
+#end
+		]]></additionalCssScript>
+		<files>
+			<file name="style.vm">I3NldCAoJGRlc2lnbk1vZGUgPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ2Rlc2lnbk1vZGUnLCAnaW5oZXJpdCcpKQ0KI2lmICgkZGVzaWduTW9kZSA9PSAnJykNCgkjc2V0ICgkZGVzaWduTW9kZSA9ICdpbmhlcml0JykNCiNlbmQNCg0KIyMgSWYgY29uZmlndXJlZCB0byByZW5kZXIgcG9zdCBpbWFnZXMgYW5kIHRoZXJlIGlzIG9uZSwgb3ZlcnJpZGUgZGVzaWduIG1vZGUgYW5kIGNvdmVyIHBob3RvIFVSTA0KI3NldCAoJGNvdmVyUGhvdG9VcmwgPSBmYWxzZSkNCiNzZXQgKCRyZW5kZXJpbmdQb3N0ZXIgPSBmYWxzZSkNCiNpZiAoJHJlbmRlclBvc3RlciAmJiAkcG9zdCAmJiAkcG9zdC5Qb3N0SW1hZ2VVcmwgJiYgJHBvc3QuUG9zdEltYWdlVXJsLmxlbmd0aCA+IDApDQoJI3NldCAoJHJlbmRlcmluZ1Bvc3RlciA9IHRydWUpDQoJI3NldCAoJGRlc2lnbk1vZGUgPSAncGhvdG8nKQ0KCSNzZXQgKCRjb3ZlclBob3RvVXJsID0gJHBvc3QuUG9zdEltYWdlVXJsKQ0KI2VuZA0KDQojaWYgKCRkZXNpZ25Nb2RlICE9ICdpbmhlcml0JykNCgkjIyBEZWZhdWx0cw0KCSNzZXQgKCRiYWNrZ3JvdW5kQ29sb3IgPSAnI2ZmZicpDQoJI3NldCAoJGZvcmVncm91bmRDb2xvciA9ICcjMjYzMjM4JykNCgkjc2V0ICgkc2hhZG93ID0gdHJ1ZSkNCgkjc2V0ICgkYm9yZGVyID0gdHJ1ZSkNCg0KCSNpZiAoJGRlc2lnbk1vZGUgPT0gJ2NvbG9yJykNCgkJIyMgUGFyc2UgU2VsZWN0ZWQgQ29sb3IgUGFsZXR0ZQ0KDQoJCSNzZXQgKCRyYXdQYWxldHRlID0gJGNvcmVfdjJfd2lkZ2V0LkdldEN1c3RvbVZhbHVlKCdwYWxldHRlJywnJykpDQoJCSNpZiAoJHJhd1BhbGV0dGUuTGVuZ3RoID09IDApDQoJCQkjc2V0ICgkcmF3UGFsZXR0ZSA9ICJiYWNrZ3JvdW5kLWNvbG9yPSNmZmZmZmYmY29sb3I9IzI2MzIzOCZzaGFkb3c9dHJ1ZSZib3JkZXI9dHJ1ZSIpDQoJCSNlbmQNCgkJJGNvcmVfdjJfd2lkZ2V0LlNldEN1c3RvbVZhbHVlKCdwYWxldHRlJywgJGNvcmVfdjJfdXRpbGl0eS5SZXBsYWNlKCRyYXdQYWxldHRlLCAnJmFtcDsnLCAnJicpKQ0KCQkjc2V0ICgkcGFsZXR0ZSA9ICRjb3JlX3YyX3BhZ2UuUGFyc2VRdWVyeVN0cmluZygkcmF3UGFsZXR0ZSkpDQoJCSNzZXQgKCRiYWNrZ3JvdW5kQ29sb3IgPSAkcGFsZXR0ZS5WYWx1ZSgnYmFja2dyb3VuZC1jb2xvcicpKQ0KCQkjc2V0ICgkYmFja2dyb3VuZENvbG9yRnJvbSA9ICRwYWxldHRlLlZhbHVlKCdiYWNrZ3JvdW5kLWNvbG9yLWZyb20nKSkNCgkJI3NldCAoJGJhY2tncm91bmRDb2xvclRvID0gJHBhbGV0dGUuVmFsdWUoJ2JhY2tncm91bmQtY29sb3ItdG8nKSkNCgkJI3NldCAoJGNvbG9yID0gJHBhbGV0dGUuVmFsdWUoJ2NvbG9yJykpDQoJCSNzZXQgKCRjb2xvck1vZGUgPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ2NvbG9yTW9kZScsICdzb2xpZCcpKQ0KCQkjc2V0ICgkc2hhZG93ID0gJGNvcmVfdjJfdXRpbGl0eS5QYXJzZUJvb2woJHBhbGV0dGUuVmFsdWUoJ3NoYWRvdycpKSkNCgkJI3NldCAoJGJvcmRlciA9ICRjb3JlX3YyX3V0aWxpdHkuUGFyc2VCb29sKCRwYWxldHRlLlZhbHVlKCdib3JkZXInKSkpDQoJCSNzZXQgKCRjdXN0b20gPSAkY29yZV92Ml91dGlsaXR5LlBhcnNlQm9vbCgkcGFsZXR0ZS5WYWx1ZSgnY3VzdG9tJykpKQ0KDQoJCSNpZiAoJGN1c3RvbSkNCgkJCSMjIEN1c3RvbSBDb2xvciBQYWxldHRlDQoJCQkjc2V0ICgkYmFja2dyb3VuZENvbG9yID0gJGNvcmVfdjJfd2lkZ2V0LkdldFN0cmluZ1ZhbHVlKCdiYWNrZ3JvdW5kQ29sb3InLCAnI2ZmZicpKQ0KCQkJI3NldCAoJGJhY2tncm91bmRDb2xvcjIgPSAkY29yZV92Ml93aWRnZXQuR2V0U3RyaW5nVmFsdWUoJ2JhY2tncm91bmRDb2xvcjInLCAnI2ZmZicpKQ0KCQkJI2lmICgkY29sb3JNb2RlID09ICdncmFkaWVudCcpDQoJCQkJI3NldCAoJGJhY2tncm91bmQgPSAibGluZWFyLWdyYWRpZW50KHRvIHJpZ2h0LCAke2JhY2tncm91bmRDb2xvcn0sICR7YmFja2dyb3VuZENvbG9yMn0pIikNCgkJCSNlbHNlDQoJCQkJI3NldCAoJGJhY2tncm91bmQgPSAkYmFja2dyb3VuZENvbG9yKQ0KCQkJI2VuZA0KCQkJI3NldCAoJGZvcmVncm91bmRDb2xvciA9ICRjb3JlX3YyX3dpZGdldC5HZXRTdHJpbmdWYWx1ZSgnZm9yZWdyb3VuZENvbG9yJywgJyMyNjMyMzgnKSkNCgkJCSNzZXQgKCRzaGFkb3cgPSAkY29yZV92Ml93aWRnZXQuR2V0Qm9vbFZhbHVlKCdzaGFkb3cnLCB0cnVlKSkNCgkJCSNzZXQgKCRib3JkZXIgPSAkY29yZV92Ml93aWRnZXQuR2V0Qm9vbFZhbHVlKCdib3JkZXInLCB0cnVlKSkNCgkJI2Vsc2UNCgkJCSMjIFNlbGVjdGVkIENvbG9yIFBhbGV0dGUNCgkJCSNzZXQgKCRmb3JlZ3JvdW5kQ29sb3IgPSAkY29sb3IpDQoJCQkjaWYgKCRiYWNrZ3JvdW5kQ29sb3JGcm9tLmxlbmd0aCA+IDAgJiYgJGJhY2tncm91bmRDb2xvclRvLmxlbmd0aCA+IDApDQoJCQkJI3NldCAoJGJhY2tncm91bmQgPSAibGluZWFyLWdyYWRpZW50KHRvIHJpZ2h0LCAke2JhY2tncm91bmRDb2xvckZyb219LCAke2JhY2tncm91bmRDb2xvclRvfSkiKQ0KCQkJCSNzZXQgKCRiYWNrZ3JvdW5kQ29sb3IgPSAkYmFja2dyb3VuZENvbG9yRnJvbSkNCgkJCSNlbHNlaWYgKCRiYWNrZ3JvdW5kQ29sb3IubGVuZ3RoID4gMCkNCgkJCQkjc2V0ICgkYmFja2dyb3VuZCA9ICRiYWNrZ3JvdW5kQ29sb3IpDQoJCQkjZW5kDQoJCSNlbmQNCgkjZW5kDQoNCgk8c3R5bGU+DQoJCSMjIFJlc2V0IGluaGVyaXRlZCBzdHlsZXMNCgkJLndpdGgtY292ZXItcGhvdG8gLmNvdmVyLXBob3RvLA0KCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQgLmxheW91dC1yZWdpb24uY29udGVudCAubGF5b3V0LXJlZ2lvbi1pbm5lciAuY29udGVudC1mcmFnbWVudC5ncm91cC1iYW5uZXIgLmNvdmVyLXBob3RvIHsNCgkJCWJhY2tncm91bmQtaW1hZ2U6IG5vbmU7DQoJCX0NCgkJLnNpbmdsZS1jb2x1bW4uaGVhZGVyLWZyYWdtZW50cywNCgkJLmhlYWRlci1mcmFnbWVudHMgLmxheW91dCAuaGVhZGVyLXRvcC1jb250ZW50IC5sYXlvdXQtcmVnaW9uLmNvbnRlbnQsDQoJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudC53aXRoLWFkYXB0YWJsZS1lbGVtZW50cyAubGF5b3V0LXJlZ2lvbi5jb250ZW50LA0KCQkuYmFubmVyLmNvbnRleHQsDQoJCS5iYW5uZXIuY29udGV4dDpub3QoLmhvbWUpLA0KCQkuYmFubmVyLmNvbnRleHQuaG9tZSB7DQoJCQliYWNrZ3JvdW5kLWNvbG9yOiB0cmFuc3BhcmVudDsNCgkJfQ0KCQkuc2luZ2xlLWNvbHVtbi5oZWFkZXItZnJhZ21lbnRzLA0KCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQgLmxheW91dC1yZWdpb24uY29udGVudCwNCgkJLmhlYWRlci1mcmFnbWVudHMgLmxheW91dCAuaGVhZGVyLXRvcC1jb250ZW50LndpdGgtYWRhcHRhYmxlLWVsZW1lbnRzIC5sYXlvdXQtcmVnaW9uLmNvbnRlbnQgew0KCQkJYm9yZGVyLWJvdHRvbTogMHB4Ow0KCQl9DQoJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudCwNCgkJLmhlYWRlci1mcmFnbWVudHMgLmxheW91dCAuaGVhZGVyLXRvcC1jb250ZW50LnNjcm9sbGVkIHsNCgkJCWJveC1zaGFkb3c6IG5vbmU7DQoJCX0NCg0KDQoJCSNzZXQgKCRpbmNsdWRlQXZhdGFyID0gJGNvcmVfdjJfd2lkZ2V0LkdldEJvb2xWYWx1ZSgnaW5jbHVkZUF2YXRhcicsIHRydWUpKQ0KCQkjaWYgKCEkaW5jbHVkZUF2YXRhcikNCgkJCS5iYW5uZXIuY29udGV4dCA+IC5hdmF0YXIgew0KCQkJCWRpc3BsYXk6IG5vbmU7DQoJCQl9DQoJCSNlbmQNCg0KCQkjaWYgKCEkY292ZXJQaG90b1VybCkNCgkJCSNzZXQgKCRjb3ZlclBob3RvVXJsID0gJGNvcmVfdjJfd2lkZ2V0LkdldFVybFZhbHVlKCdjb3ZlclBob3RvVXJsJywgJycpKQ0KCQkjZW5kDQoJCSNpZiAoJGNvdmVyUGhvdG9VcmwgJiYgJGNvdmVyUGhvdG9VcmwuTGVuZ3RoID4gMCAmJiAkZGVzaWduTW9kZSA9PSAncGhvdG8nKQ0KCQkJI3NldCAoJGJhY2tncm91bmRDb2xvciA9ICcjMjYzMjM4JykNCgkJCSNzZXQgKCRmb3JlZ3JvdW5kQ29sb3IgPSAnI2ZmZicpDQoJCQkjc2V0ICgkc2hhZG93ID0gZmFsc2UpDQoJCQkjc2V0ICgkYm9yZGVyID0gZmFsc2UpDQoJCQkjaWYgKCRyZW5kZXJpbmdQb3N0ZXIpDQoJCQkJI3NldCAoJGJsdXJDb3ZlclBob3RvID0gZmFsc2UpDQoJCQkjZWxzZQ0KCQkJCSNzZXQgKCRibHVyQ292ZXJQaG90byA9ICRjb3JlX3YyX3dpZGdldC5HZXRCb29sVmFsdWUoJ2JsdXJDb3ZlclBob3RvJywgdHJ1ZSkpDQoJCQkjZW5kDQoJCQkjc2V0ICgkY292ZXJQaG90b1dpZHRoID0gMTAwMCkNCgkJCSNzZXQgKCRjb3ZlclBob3RvSGVpZ2h0ID0gMjUwKQ0KCQkJI2lmICgkYmx1ckNvdmVyUGhvdG8pDQoJCQkJI3NldCAoJGNvdmVyUGhvdG9XaWR0aCA9IDIwMCkNCgkJCQkjc2V0ICgkY292ZXJQaG90b0hlaWdodCA9IDUwKQ0KCQkJI2VuZA0KCQkJI3NldCAoJHJlc2l6ZWRDb3ZlclBob3RvVXJsID0gJGNvcmVfdjJfdWkuR2V0UmVzaXplZEltYWdlVXJsKCRjb3ZlclBob3RvVXJsLCAkY292ZXJQaG90b1dpZHRoLCAkY292ZXJQaG90b0hlaWdodCwgIiV7IFNjYWxlRmFjdG9yID0gMiwgUmVzaXplTWV0aG9kPSdab29tQW5kQ3JvcCcgfSIpKQ0KDQoJCQkud2l0aC1jb3Zlci1waG90byAuY292ZXItcGhvdG8sDQoJCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQgLmxheW91dC1yZWdpb24uY29udGVudCAubGF5b3V0LXJlZ2lvbi1pbm5lciAuY29udGVudC1mcmFnbWVudC5ncm91cC1iYW5uZXIgLmNvdmVyLXBob3RvIHsNCgkJCQliYWNrZ3JvdW5kLWltYWdlOiB1cmwoJHJlc2l6ZWRDb3ZlclBob3RvVXJsKTsNCgkJCQliYWNrZ3JvdW5kLXBvc2l0aW9uOiBjZW50ZXI7DQoJCQkJYmFja2dyb3VuZC1zaXplOiBjb3ZlcjsNCgkJCQkjaWYgKCRibHVyQ292ZXJQaG90bykNCgkJCQkJZmlsdGVyOiBibHVyKDE1cHgpOw0KCQkJCSNlbmQNCgkJCX0NCg0KCQkjZWxzZQ0KDQoJCQkuc2luZ2xlLWNvbHVtbi5oZWFkZXItZnJhZ21lbnRzLA0KCQkJLmhlYWRlci1mcmFnbWVudHMgLmxheW91dCAuaGVhZGVyLXRvcC1jb250ZW50IC5sYXlvdXQtcmVnaW9uLmNvbnRlbnQsDQoJCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQud2l0aC1hZGFwdGFibGUtZWxlbWVudHMgLmxheW91dC1yZWdpb24uY29udGVudCB7DQoJCQkJYmFja2dyb3VuZDogJGJhY2tncm91bmQ7DQoJCQl9DQoNCgkJI2VuZA0KDQoJCSMjIHdoZW4gYm90aCBkZWZpbmVkLCBzaG93cyBzaGFkb3cgd2hlbiBzY3JvbGxlZCwgYm9yZGVyIHdoZW4gbm90DQoJCSNpZiAoJHNoYWRvdyAmJiAkYm9yZGVyKQ0KCQkJLnNpbmdsZS1jb2x1bW4uaGVhZGVyLWZyYWdtZW50cyB7fQ0KDQoJCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQ6bm90KC5zY3JvbGxlZCkgLmxheW91dC1yZWdpb24uY29udGVudCwNCgkJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudC53aXRoLWFkYXB0YWJsZS1lbGVtZW50czpub3QoLnNjcm9sbGVkKSAubGF5b3V0LXJlZ2lvbi5jb250ZW50IHsNCgkJCQkgYm9yZGVyLWJvdHRvbTogMXB4IHNvbGlkICNDRkQ4REM7DQoJCQl9DQoNCgkJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudDpub3Qoc2Nyb2xsZWQpIHsNCgkJCQlib3gtc2hhZG93OiBub25lOw0KCQkJfQ0KCQkJLmhlYWRlci1mcmFnbWVudHMgLmxheW91dCAuaGVhZGVyLXRvcC1jb250ZW50LnNjcm9sbGVkIHsNCgkJCQlib3gtc2hhZG93OiAwIDJweCA1cHggcmdiYSgwLCAwLCAwLCAwLjE1KTsNCgkJCX0NCgkJIyMgd2hlbiBvbmx5IHNoYWRvdywgYWx3YXlzIHNob3dzIHNoYWRvdw0KCQkjZWxzZWlmICgkc2hhZG93KQ0KCQkJLnNpbmdsZS1jb2x1bW4uaGVhZGVyLWZyYWdtZW50cywNCgkJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudCAubGF5b3V0LXJlZ2lvbi5jb250ZW50LA0KCQkJLmhlYWRlci1mcmFnbWVudHMgLmxheW91dCAuaGVhZGVyLXRvcC1jb250ZW50LndpdGgtYWRhcHRhYmxlLWVsZW1lbnRzIC5sYXlvdXQtcmVnaW9uLmNvbnRlbnQgew0KCQkJCWJvcmRlci1ib3R0b206IDBweDsNCgkJCX0NCgkJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudCB7DQoJCQkJYm94LXNoYWRvdzogMCAycHggNXB4IHJnYmEoMCwgMCwgMCwgMC4xNSk7DQoJCQl9DQoJCSMjIHdoZW4gb25seSBib3JkZXIsIGFsd2F5cyBzaG93cyBib3JkZXINCgkJI2Vsc2VpZiAoJGJvcmRlcikNCgkJCS5zaW5nbGUtY29sdW1uLmhlYWRlci1mcmFnbWVudHMsDQoJCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQgLmxheW91dC1yZWdpb24uY29udGVudCwNCgkJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudC53aXRoLWFkYXB0YWJsZS1lbGVtZW50cyAubGF5b3V0LXJlZ2lvbi5jb250ZW50IHsNCgkJCQlib3JkZXItYm90dG9tOiAxcHggc29saWQgI0NGRDhEQzsNCgkJCX0NCgkJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudCwNCgkJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudC5zY3JvbGxlZCB7DQoJCQkJYm94LXNoYWRvdzogbm9uZTsNCgkJCX0NCgkJI2Vsc2UNCgkJCS5zaW5nbGUtY29sdW1uLmhlYWRlci1mcmFnbWVudHMsDQoJCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQgLmxheW91dC1yZWdpb24uY29udGVudCwNCgkJCS5oZWFkZXItZnJhZ21lbnRzIC5sYXlvdXQgLmhlYWRlci10b3AtY29udGVudC53aXRoLWFkYXB0YWJsZS1lbGVtZW50cyAubGF5b3V0LXJlZ2lvbi5jb250ZW50IHsNCgkJCQlib3JkZXItYm90dG9tOiAwcHg7DQoJCQl9DQoJCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQsDQoJCQkuaGVhZGVyLWZyYWdtZW50cyAubGF5b3V0IC5oZWFkZXItdG9wLWNvbnRlbnQuc2Nyb2xsZWQgew0KCQkJCWJveC1zaGFkb3c6IG5vbmU7DQoJCQl9DQoJCSNlbmQNCg0KCQkvKiBwYXJlbnQgbmF2aWdhdGlvbiAqLw0KCQkuYmFubmVyLmNvbnRleHQuc2xpbSAuaGllcmFyY2h5ID4gLnBhcmVudC1uYXZpZ2F0aW9uIGEubW9yZTpiZWZvcmUsDQoJCS5iYW5uZXIuY29udGV4dCA+IC5oaWVyYXJjaHkgPiAucGFyZW50LW5hdmlnYXRpb24gdWwgbGkgYSwNCgkJLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5wYXJlbnQtbmF2aWdhdGlvbiB1bCBsaSBhOmhvdmVyLA0KCQkuYmFubmVyLmNvbnRleHQgPiAuaGllcmFyY2h5ID4gLnBhcmVudC1uYXZpZ2F0aW9uIHVsIGxpIGE6YmVmb3JlLA0KCQkuc2Nyb2xsZWQgLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5wYXJlbnQtbmF2aWdhdGlvbiBhLm1vcmU6YmVmb3JlLA0KCQkuc2Nyb2xsZWQgLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5wYXJlbnQtbmF2aWdhdGlvbiB1bCBsaSBhOmJlZm9yZSwNCgkJLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5wYXJlbnQtbmF2aWdhdGlvbiB1bCBsaSBhLm1vcmUubGlua3MtZXhwYW5kZWQsDQoJCS5iYW5uZXIuY29udGV4dCA+IC5oaWVyYXJjaHkgPiAucGFyZW50LW5hdmlnYXRpb24gdWwgbGkgYS5tb3JlLmxpbmtzLWV4cGFuZGVkOmJlZm9yZSwNCgkJLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5wYXJlbnQtbmF2aWdhdGlvbiB1bCBsaSBhLm1vcmU6YmVmb3JlIHsNCgkJCWNvbG9yOiAkZm9yZWdyb3VuZENvbG9yOw0KCQl9DQoNCgkJLyogaGllcmFyY2h5IGNvbXBvbmVudHMgKi8NCgkJLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5oaWVyYXJjaHktY29tcG9uZW50LA0KCQkuYmFubmVyLmNvbnRleHQgPiAuaGllcmFyY2h5ID4gLmN1cnJlbnQtaGllcmFyY2h5ID4gLmhpZXJhcmNoeS1jb21wb25lbnQgYSwNCgkJLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5oaWVyYXJjaHktY29tcG9uZW50OmJlZm9yZSwNCgkJLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5oaWVyYXJjaHktY29tcG9uZW50IGE6aG92ZXIgew0KCQkJY29sb3I6ICRmb3JlZ3JvdW5kQ29sb3I7DQoJCX0NCg0KCQkvKiBhcHBsaWNhdGlvbnMgKi8NCgkJLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYSwNCgkJLmJhbm5lci5jb250ZXh0ID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYTpob3ZlciwNCgkJLmJhbm5lci5jb250ZXh0Om5vdCguaG9tZSkgPiAuaGllcmFyY2h5ID4gLmN1cnJlbnQtaGllcmFyY2h5ID4gLmFwcGxpY2F0aW9ucyB1bCBhLm1vcmUsDQoJCS5iYW5uZXIuY29udGV4dDpub3QoLmhvbWUpID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYS5tb3JlOmJlZm9yZSwNCgkJLmJhbm5lci5jb250ZXh0LmhvbWUgPiAuaGllcmFyY2h5ID4gLmN1cnJlbnQtaGllcmFyY2h5ID4gLmFwcGxpY2F0aW9ucyB1bCBhLm1vcmU6YmVmb3JlLA0KCQkuc2Nyb2xsZWQgLmJhbm5lci5jb250ZXh0IC5oaWVyYXJjaHkgLmN1cnJlbnQtaGllcmFyY2h5ID4gLmFwcGxpY2F0aW9ucyB1bCBhLm1vcmUsDQoJCS5zY3JvbGxlZCAuYmFubmVyLmNvbnRleHQgLmhpZXJhcmNoeSAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGEubW9yZTpiZWZvcmUsDQoJCS5iYW5uZXIuY29udGV4dC5zbGltOm5vdCguaG9tZSkgPiAuaGllcmFyY2h5ID4gLmN1cnJlbnQtaGllcmFyY2h5ID4gLmFwcGxpY2F0aW9ucyB1bCBhLm1vcmUsDQoJCS5iYW5uZXIuY29udGV4dC5zbGltOm5vdCguaG9tZSkgPiAuaGllcmFyY2h5ID4gLmN1cnJlbnQtaGllcmFyY2h5ID4gLmFwcGxpY2F0aW9ucyB1bCBhLm1vcmU6YmVmb3JlLA0KCQkuc2Nyb2xsZWQgLmJhbm5lci5jb250ZXh0Om5vdCguaG9tZSkgPiAuaGllcmFyY2h5ID4gLmN1cnJlbnQtaGllcmFyY2h5ID4gLmFwcGxpY2F0aW9ucyB1bCBhLm1vcmUsDQoJCS5zY3JvbGxlZCAuYmFubmVyLmNvbnRleHQ6bm90KC5ob21lKSA+IC5oaWVyYXJjaHkgPiAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGEubW9yZTpiZWZvcmUgew0KCQkJYm9yZGVyLWNvbG9yOiAkZm9yZWdyb3VuZENvbG9yOw0KCQkJY29sb3I6ICRmb3JlZ3JvdW5kQ29sb3I7DQoJCX0NCgkJLmJhbm5lci5jb250ZXh0LmhvbWUgPiAuaGllcmFyY2h5ID4gLmN1cnJlbnQtaGllcmFyY2h5ID4gLmFwcGxpY2F0aW9ucyB1bCBhLmxpbmtzLWV4cGFuZGVkLA0KCQkuYmFubmVyLmNvbnRleHQuaG9tZSA+IC5oaWVyYXJjaHkgPiAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGEubGlua3MtZXhwYW5kZWQ6YmVmb3JlLA0KCQkuYmFubmVyLmNvbnRleHQuaG9tZSA+IC5oaWVyYXJjaHkgPiAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGEubW9yZS5saW5rcy1leHBhbmRlZDpiZWZvcmUsDQoJCS5zY3JvbGxlZCAuYmFubmVyLmNvbnRleHQgLmhpZXJhcmNoeSAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGEubW9yZS5saW5rcy1leHBhbmRlZCwNCgkJLnNjcm9sbGVkIC5iYW5uZXIuY29udGV4dCAuaGllcmFyY2h5IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYS5tb3JlLmxpbmtzLWV4cGFuZGVkOmJlZm9yZSwNCgkJLmJhbm5lci5jb250ZXh0Om5vdCguaG9tZSkgPiAuaGllcmFyY2h5ID4gLmN1cnJlbnQtaGllcmFyY2h5ID4gLmFwcGxpY2F0aW9ucyB1bCBhLm1vcmUubGlua3MtZXhwYW5kZWQsDQoJCS5iYW5uZXIuY29udGV4dDpub3QoLmhvbWUpID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYS5tb3JlLmxpbmtzLWV4cGFuZGVkOmJlZm9yZSwNCgkJLmJhbm5lci5jb250ZXh0LnNsaW06bm90KC5ob21lKSA+IC5oaWVyYXJjaHkgPiAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGEubW9yZS5saW5rcy1leHBhbmRlZCwNCgkJLmJhbm5lci5jb250ZXh0LnNsaW06bm90KC5ob21lKSA+IC5oaWVyYXJjaHkgPiAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGEubW9yZS5saW5rcy1leHBhbmRlZDpiZWZvcmUsDQoJCS5zY3JvbGxlZCAuYmFubmVyLmNvbnRleHQ6bm90KC5ob21lKSA+IC5oaWVyYXJjaHkgPiAuY3VycmVudC1oaWVyYXJjaHkgPiAuYXBwbGljYXRpb25zIHVsIGEubW9yZS5saW5rcy1leHBhbmRlZCwNCgkJLnNjcm9sbGVkIC5iYW5uZXIuY29udGV4dDpub3QoLmhvbWUpID4gLmhpZXJhcmNoeSA+IC5jdXJyZW50LWhpZXJhcmNoeSA+IC5hcHBsaWNhdGlvbnMgdWwgYS5tb3JlLmxpbmtzLWV4cGFuZGVkOmJlZm9yZSB7DQoJCQliYWNrZ3JvdW5kLWNvbG9yOiAkZm9yZWdyb3VuZENvbG9yOw0KCQkJY29sb3I6ICRiYWNrZ3JvdW5kQ29sb3I7DQoJCQlib3JkZXItY29sb3I6ICRmb3JlZ3JvdW5kQ29sb3I7DQoJCX0NCg0KCQkvKiBuZXcgKi8NCgkJLmJhbm5lci5jb250ZXh0ID4gLm5ldyB1bCBhLA0KCQkuYmFubmVyLmNvbnRleHQgLm5hdmlnYXRpb24tbGlzdC5uZXcgdWwgYS5saW5rcy1leHBhbmRlZCwNCgkJLmJhbm5lci5jb250ZXh0IC5uYXZpZ2F0aW9uLWxpc3QubmV3IHVsIGEubGlua3MtZXhwYW5kZWQ6aG92ZXIsDQoJCS5iYW5uZXIuY29udGV4dCAubmF2aWdhdGlvbi1saXN0Lm5ldyB1bCBhLmxpbmtzLWV4cGFuZGVkOmFjdGl2ZSwNCgkJLmJhbm5lci5jb250ZXh0IC5uYXZpZ2F0aW9uLWxpc3QubmV3IHVsIGE6aG92ZXIgew0KCQkJYmFja2dyb3VuZC1jb2xvcjogJGZvcmVncm91bmRDb2xvcjsNCgkJCWNvbG9yOiAkYmFja2dyb3VuZENvbG9yOw0KCQl9DQoJCS5zaW5nbGUtY29sdW1uIC5iYW5uZXIuY29udGV4dCA+IC5uZXcgYSwNCgkJLnNpbmdsZS1jb2x1bW4gLmJhbm5lci5jb250ZXh0Om5vdCguaG9tZSkgPiAubmV3IGEsDQoJCS5zaW5nbGUtY29sdW1uIC5iYW5uZXIuY29udGV4dC5ob21lID4gLm5ldyBhIHsNCgkJCWNvbG9yOiAkZm9yZWdyb3VuZENvbG9yOw0KCQkJYm9yZGVyLWNvbG9yOiAkZm9yZWdyb3VuZENvbG9yOw0KCQl9DQoNCgkJLyogaW5oZXJpdGluZyBhcHBsaWNhdGlvbiBiYW5uZXIgKi8NCgkJLmJhbm5lci5hcHBsaWNhdGlvbiwNCgkJLmJhbm5lci5hcHBsaWNhdGlvbiAubmF2aWdhdGlvbi1saXN0IGEsDQoJCS5iYW5uZXIuYXBwbGljYXRpb24gLm5hbWUgLnRpdGxlIGEgew0KCQkJY29sb3I6ICRmb3JlZ3JvdW5kQ29sb3I7DQoJCX0NCgkJLmJhbm5lci5hcHBsaWNhdGlvbjo6YWZ0ZXIgew0KCQkJYmFja2dyb3VuZC1jb2xvcjogJGZvcmVncm91bmRDb2xvcjsNCgkJfQ0KDQoNCgkJLyogY3VzdG9tIG5hdmlnYXRpb24gd2lkZ2V0ICovDQoJCS5oZWFkZXItZnJhZ21lbnRzIC5jb250ZW50LWZyYWdtZW50Lm5hdmlnYXRpb24tY3VzdG9tIC5uYXZpZ2F0aW9uLWxpc3RbZGF0YS1kaXJlY3Rpb249J2hvcml6b250YWwnXSBhLA0KCQkuaGVhZGVyLWZyYWdtZW50cyAuY29udGVudC1mcmFnbWVudC5uYXZpZ2F0aW9uLWN1c3RvbSAubmF2aWdhdGlvbi1saXN0W2RhdGEtZGlyZWN0aW9uPSdob3Jpem9udGFsJ10gYTpob3ZlciB7DQoJCQljb2xvcjogJGZvcmVncm91bmRDb2xvcjsNCgkJfQ0KCQkuaGVhZGVyLWZyYWdtZW50cyAuY29udGVudC1mcmFnbWVudC5uYXZpZ2F0aW9uLWN1c3RvbTphZnRlciwNCgkJLmhlYWRlci1mcmFnbWVudHMgLmNvbnRlbnQtZnJhZ21lbnQubmF2aWdhdGlvbi1jdXN0b20gLm5hdmlnYXRpb24tbGlzdFtkYXRhLWRpcmVjdGlvbj0naG9yaXpvbnRhbCddIGEuc2VsZWN0ZWQ6YWZ0ZXIgew0KCQkJYmFja2dyb3VuZC1jb2xvcjogJGZvcmVncm91bmRDb2xvcjsNCgkJfQ0KCQkuaGVhZGVyLWZyYWdtZW50czpob3ZlciAuaGVhZGVyLXRvcC1jb250ZW50IC5sYXlvdXQtcmVnaW9uLmNvbnRlbnQgLmNvbnRlbnQtZnJhZ21lbnQubmF2aWdhdGlvbi1jdXN0b20gLm5hdmlnYXRpb24tbGlzdFtkYXRhLWRpcmVjdGlvbj0naG9yaXpvbnRhbCddIGEgew0KCQkJY29sb3I6ICRmb3JlZ3JvdW5kQ29sb3I7DQoJCX0NCgkJLmhlYWRlci1mcmFnbWVudHMgLmhlYWRlci10b3AtY29udGVudCAubGF5b3V0LXJlZ2lvbi5jb250ZW50IC5jb250ZW50LWZyYWdtZW50Lm5hdmlnYXRpb24tY3VzdG9tIC5uYXZpZ2F0aW9uLWxpc3RbZGF0YS1kaXJlY3Rpb249J2hvcml6b250YWwnXSBhLmxpbmtzLWV4cGFuZGVkLA0KCQkuaGVhZGVyLWZyYWdtZW50cyAuaGVhZGVyLXRvcC1jb250ZW50IC5sYXlvdXQtcmVnaW9uLmNvbnRlbnQgLmNvbnRlbnQtZnJhZ21lbnQubmF2aWdhdGlvbi1jdXN0b20gLm5hdmlnYXRpb24tbGlzdFtkYXRhLWRpcmVjdGlvbj0naG9yaXpvbnRhbCddIGEuc3VibmF2LW9wZW4sDQoJCS5oZWFkZXItZnJhZ21lbnRzOmhvdmVyIC5oZWFkZXItdG9wLWNvbnRlbnQgLmxheW91dC1yZWdpb24uY29udGVudCAuY29udGVudC1mcmFnbWVudC5uYXZpZ2F0aW9uLWN1c3RvbSAubmF2aWdhdGlvbi1saXN0W2RhdGEtZGlyZWN0aW9uPSdob3Jpem9udGFsJ10gYS5saW5rcy1leHBhbmRlZCwNCgkJLmhlYWRlci1mcmFnbWVudHM6aG92ZXIgLmhlYWRlci10b3AtY29udGVudCAubGF5b3V0LXJlZ2lvbi5jb250ZW50IC5jb250ZW50LWZyYWdtZW50Lm5hdmlnYXRpb24tY3VzdG9tIC5uYXZpZ2F0aW9uLWxpc3RbZGF0YS1kaXJlY3Rpb249J2hvcml6b250YWwnXSBhLnN1Ym5hdi1vcGVuIHsNCgkJCWJhY2tncm91bmQtY29sb3I6ICRmb3JlZ3JvdW5kQ29sb3I7DQoJCQljb2xvcjogJGJhY2tncm91bmRDb2xvcjsNCgkJfQ0KDQoJPC9zdHlsZT4NCg0KCSNpZiAoJGNvdmVyUGhvdG9VcmwgJiYgJGNvdmVyUGhvdG9VcmwuTGVuZ3RoID4gMCAmJiAkZGVzaWduTW9kZSA9PSAncGhvdG8nKQ0KCQk8ZGl2IGNsYXNzPSJjb3Zlci1waG90byI+PC9kaXY+DQoJI2VuZA0KI2VuZA0K</file>
+		</files>
+	</scriptedContentFragment>
+</scriptedContentFragments>
